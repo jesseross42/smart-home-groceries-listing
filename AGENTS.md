@@ -166,3 +166,9 @@ Rust.
 
 Use the thermo-nuclear-code-review skill when performing a code review.
 Always give simple to understand language.
+
+## Documentation MCP
+
+The SuperTokens documentation MCP endpoint is `https://supertokens.com/docs/mcp`.
+Connect it in the coding agent's MCP settings when working on SuperTokens. It
+provides read-only documentation search and page retrieval. See `.mcp/README.md`.
