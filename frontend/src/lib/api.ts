@@ -22,6 +22,7 @@ import { spendingApi } from "#/lib/api/spending";
 import { triageApi } from "#/lib/api/triage";
 import { trolleyHandoffsApi } from "#/lib/api/trolley-handoffs";
 import { voiceApi } from "#/lib/api/voice";
+import { voiceListChangesApi } from "#/lib/api/voice-list-changes";
 
 export * from "#/lib/api/access-logs";
 export { ApiError } from "#/lib/api/client";
@@ -39,6 +40,7 @@ export * from "#/lib/api/spending";
 export * from "#/lib/api/triage";
 export * from "#/lib/api/trolley-handoffs";
 export * from "#/lib/api/voice";
+export * from "#/lib/api/voice-list-changes";
 
 export const api = {
 	voice: voiceApi,
@@ -55,5 +57,6 @@ export const api = {
 	purchases: purchasesApi,
 	spending: spendingApi,
 	accessLogs: accessLogsApi,
+	voiceChanges: voiceListChangesApi,
 	deliverySettings: deliverySettingsApi,
 };

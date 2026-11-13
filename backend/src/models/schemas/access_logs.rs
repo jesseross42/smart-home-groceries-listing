@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::models::access_log_rows::AccessLogRow;
 use crate::services::access_log::AccessLogPage;
 
-/// `?before=&limit=&hide_health_checks=` — which page to list.
+/// `?before=&limit=&hide_health_checks=&user=&path=` — which page to list.
 #[derive(Debug, Default, Deserialize)]
 pub struct AccessLogQuery {
     /// Only rows older than this id: the previous page's `next_before`.
@@ -15,6 +15,10 @@ pub struct AccessLogQuery {
     pub limit: Option<i64>,
     /// Leave out the container's health probe. Defaults to true.
     pub hide_health_checks: Option<bool>,
+    /// Only requests recorded for exactly this user id (or `unauthenticated`).
+    pub user: Option<String>,
+    /// Only requests whose path starts with this.
+    pub path: Option<String>,
 }
 
 /// One answered request as the web app sees it.

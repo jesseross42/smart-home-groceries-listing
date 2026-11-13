@@ -22,6 +22,8 @@ fn household_routes() -> Vec<(Method, String)> {
     let item = format!("/api/grocery-items/{ID}");
     vec![
         (Method::GET, "/api/voice-requests".into()),
+        (Method::GET, "/api/voice-list-changes".into()),
+        (Method::POST, format!("/api/voice-list-changes/{ID}/undo")),
         (Method::POST, format!("/api/voice-requests/{ID}/accept")),
         (Method::POST, format!("/api/voice-requests/{ID}/reject")),
         (Method::GET, "/api/grocery-items".into()),

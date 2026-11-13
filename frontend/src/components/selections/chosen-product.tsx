@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { DislikeMark } from "#/components/dislikes/dislike-mark";
 import { ProductImage } from "#/components/products/product-image";
 import { CountSelect } from "#/components/selections/count-select";
 import { Button } from "#/components/ui/button";
@@ -20,7 +21,8 @@ type OnSetCount = (
  * order buys, each with its count, and the item's choices at the other store.
  *
  * With two or more products to buy, each count is a dropdown; the counts
- * always add up to the item's quantity. With no choice it says so.
+ * always add up to the item's quantity. With no choice it says so. A
+ * product somebody dislikes carries a warning (inside a `DislikeMarksProvider`).
  * `onClear` and `onSetCount` are left out where changes are not allowed.
  */
 export function ChosenProduct({
@@ -138,6 +140,11 @@ function ChoiceRow({
 					)}
 					<span className="text-sm font-medium">{title}</span>
 					<span className="text-xs text-muted-foreground">{details}</span>
+					<DislikeMark
+						itemId={selection.grocery_item_id}
+						store={selection.store}
+						productId={selection.product_id}
+					/>
 				</div>
 			</div>
 			<div className="flex shrink-0 items-center gap-1">

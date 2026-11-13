@@ -53,4 +53,17 @@ describe("accessLogQuery", () => {
 			"hide_health_checks=false&before=42",
 		);
 	});
+
+	it("adds the user and path filters, trimmed, and leaves blank ones out", () => {
+		expect(
+			accessLogQuery({
+				hideHealthChecks: true,
+				user: " unauthenticated ",
+				path: "/api/voice",
+			}),
+		).toBe("hide_health_checks=true&user=unauthenticated&path=%2Fapi%2Fvoice");
+		expect(
+			accessLogQuery({ hideHealthChecks: true, user: " ", path: "" }),
+		).toBe("hide_health_checks=true");
+	});
 });

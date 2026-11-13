@@ -56,6 +56,9 @@ shrink the order. Each one is recorded so it can be reverted. Spec:
 
 - After a remove or reduce the session stays open, so a bare "undo" works
   straight away. Repeating "undo" steps further back.
+- The web app lists these changes on **Settings › Help**, under **Changed by
+  voice**. **Undo** there reverses one chosen change while it is under 30
+  minutes old.
 - Matching is the item name ignoring case and whitespace, plus the simple
   plural/singular form ("eggs" ↔ "egg"). No fuzzy matching: an unmatched name
   changes nothing, and Alexa says so.
@@ -244,7 +247,9 @@ first.
 user, source IP, method, path, status and duration (`FEATURE_ACCESS_LOGS.md`).
 
 1. Open **Settings › Logs**. **Load older** pages back; **Show health checks** adds the
-   container's `/api/health` probes, hidden by default.
+   container's `/api/health` probes, hidden by default. **User** (a user id,
+   or `unauthenticated`) and **Path starts with** narrow the list on
+   **Filter**; **Clear** removes both.
 2. **Not signed in** is expected for intake (Alexa, webhook) and health
    checks. Bursts of 401/404 from an unknown address suggest probing.
 

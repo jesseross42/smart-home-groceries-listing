@@ -11,13 +11,15 @@
 //! it is for the web app, so a change to one is a 409 that tells the
 //! household to release the list first.
 
+mod history;
 mod log;
 mod matching;
 mod plan;
 pub mod repository;
 mod undo;
 
-pub use undo::{undo_latest, UNDO_WINDOW};
+pub use history::{recent, RecentChange};
+pub use undo::{undo_latest, undo_one, UNDO_WINDOW};
 
 use sqlx::PgPool;
 

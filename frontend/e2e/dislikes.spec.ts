@@ -1,5 +1,13 @@
 import type { Page } from "@playwright/test";
-import { addItem, expect, gotoList, test, openSelectItem } from "./fixtures";
+import {
+	addItem,
+	backToList,
+	expect,
+	gotoList,
+	itemCard,
+	openSelectItem,
+	test,
+} from "./fixtures";
 
 /**
  * Disliking products, in a real browser against the real backend.
@@ -86,5 +94,34 @@ test.describe("disliking a product", () => {
 			.getByRole("button", { name: `Remove my dislike of ${COLES_MILK}` })
 			.click();
 		await expect(page.getByText(/Nobody dislikes a product yet/)).toBeVisible();
+	});
+
+	test("a disliked product keeps its warning on the list and the order", async ({
+		page,
+	}) => {
+		await gotoList(page);
+		await addItem(page, "milk");
+		const view = await openSelectItem(page, "milk");
+		await view.getByRole("button", { name: `Dislike ${COLES_MILK}` }).click();
+		await expect(colesMilk(page).getByTestId("dislike-notice")).toBeVisible();
+		await view.getByRole("button", { name: `Choose ${COLES_MILK}` }).click();
+		await expect(
+			view.getByRole("button", { name: `${COLES_MILK} is chosen` }),
+		).toBeVisible();
+
+		await backToList(page);
+		await expect(
+			itemCard(page, "milk").getByTestId("dislike-mark"),
+		).toContainText("You disliked this item previously.");
+
+		await page.getByRole("button", { name: "Ready to order" }).click();
+		await expect(itemCard(page, "milk").getByText("Committed")).toBeVisible();
+		await gotoList(page, "/order");
+		await expect(
+			page
+				.getByRole("region", { name: "Coles" })
+				.getByRole("listitem", { name: "milk" })
+				.getByTestId("dislike-mark"),
+		).toContainText("You disliked this item previously.");
 	});
 });

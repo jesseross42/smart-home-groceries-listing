@@ -41,6 +41,7 @@ export function StoreOrderCard({
 						<OrderLineRow
 							key={`${line.grocery_item_id}-${line.product_id}`}
 							line={line}
+							store={order.store}
 						/>
 					))}
 				</ul>

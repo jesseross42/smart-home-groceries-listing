@@ -1,11 +1,13 @@
-//! Undo: reversing the newest voice change, by voice.
+//! Undo: reversing the newest voice change by voice, or one chosen change
+//! from the web app.
 //!
 //! A removed item is put back as it was (same id, quantity, note and chips).
 //! A reduced item gets the amount taken off added back to whatever it holds
 //! now, so an edit made in the web app since is kept.
 
-use chrono::{Duration, Utc};
-use sqlx::PgPool;
+use chrono::{DateTime, Duration, Utc};
+use sqlx::{PgPool, Postgres, Transaction};
+use uuid::Uuid;
 
 use super::{log, repository};
 use crate::error::ApiError;
@@ -52,14 +54,64 @@ pub async fn undo_latest(
         ));
     };
 
+    revert(&mut tx, &change).await?;
+    let change = repository::mark_undone(&mut tx, change.id, external_id).await?;
+    tx.commit().await?;
+    log::undone(&change);
+    Ok((change, Delivery::Recorded))
+}
+
+/// Reverses the one change a household member picked in the web app, under
+/// the same rules as the spoken Undo.
+///
+/// Errors: [`ApiError::NotFound`] for an unknown id; [`ApiError::Conflict`]
+/// when the change is already undone, is older than [`UNDO_WINDOW`], or its
+/// reduced item has since been deleted or committed.
+pub async fn undo_one(pool: &PgPool, change_id: Uuid) -> Result<VoiceListChange, ApiError> {
+    let mut tx = pool.begin().await?;
+    repository::serialise(&mut tx).await?;
+
+    let Some(change) = repository::lock_by_id(&mut tx, change_id).await? else {
+        return Err(ApiError::NotFound("no such voice change".to_string()));
+    };
+    if change.undone_at.is_some() {
+        return Err(ApiError::Conflict(format!(
+            "the change to {} is already undone",
+            change.item_name
+        )));
+    }
+    if !within_window(&change, Utc::now()) {
+        return Err(ApiError::Conflict(format!(
+            "the change to {} is too old to undo — add it on the list instead",
+            change.item_name
+        )));
+    }
+
+    revert(&mut tx, &change).await?;
+    let change = repository::mark_undone(&mut tx, change.id, None).await?;
+    tx.commit().await?;
+    log::undone(&change);
+    Ok(change)
+}
+
+/// Whether `change` was made recently enough for Undo to reach it at `now`.
+pub fn within_window(change: &VoiceListChange, now: DateTime<Utc>) -> bool {
+    change.created_at >= now - UNDO_WINDOW
+}
+
+/// Puts the list back as it was before `change`. An error leaves the
+/// transaction to roll back when the caller drops it.
+async fn revert(
+    tx: &mut Transaction<'_, Postgres>,
+    change: &VoiceListChange,
+) -> Result<(), ApiError> {
     match change.kind {
         VoiceChangeKind::Removed => {
-            repository::restore_item(&mut tx, &change).await?;
+            repository::restore_item(tx, change).await?;
         }
         VoiceChangeKind::Reduced => {
-            let current = items::lock_item(&mut tx, change.grocery_item_id).await?;
+            let current = items::lock_item(tx, change.grocery_item_id).await?;
             let Some(item) = current.filter(|item| item.status == GroceryItemStatus::Active) else {
-                tx.rollback().await?;
                 return Err(ApiError::Conflict(format!(
                     "{} has been deleted or committed since, so it cannot be changed back",
                     change.item_name
@@ -67,12 +119,8 @@ pub async fn undo_latest(
             };
             let taken_off = change.quantity_before - change.quantity_after;
             let restored = item.quantity.saturating_add(taken_off).min(MAX_QUANTITY);
-            items::set_item_quantity(&mut tx, item.id, restored).await?;
+            items::set_item_quantity(tx, item.id, restored).await?;
         }
     }
-
-    let change = repository::mark_undone(&mut tx, change.id, external_id).await?;
-    tx.commit().await?;
-    log::undone(&change);
-    Ok((change, Delivery::Recorded))
+    Ok(())
 }

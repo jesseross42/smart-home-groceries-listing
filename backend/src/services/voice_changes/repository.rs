@@ -164,6 +164,42 @@ pub async fn lock_newest_standing(
     .await?)
 }
 
+/// Locks one change by id, or `None` when there is no such change.
+pub async fn lock_by_id(
+    tx: &mut Transaction<'_, Postgres>,
+    change_id: Uuid,
+) -> Result<Option<VoiceListChange>, ApiError> {
+    Ok(sqlx::query_as::<_, VoiceListChange>(
+        "SELECT id, source, external_id, kind, grocery_item_id, item_name, quantity_before,
+                quantity_after, item_source, item_note, item_filter_terms, item_added_by_user_id,
+                item_created_at, created_at, undone_at, undo_external_id
+         FROM voice_list_changes
+         WHERE id = $1
+         FOR UPDATE",
+    )
+    .bind(change_id)
+    .fetch_optional(&mut **tx)
+    .await?)
+}
+
+/// The newest `limit` changes from every source, undone or not.
+pub async fn list_recent<'e, E>(executor: E, limit: i64) -> Result<Vec<VoiceListChange>, ApiError>
+where
+    E: PgExecutor<'e>,
+{
+    Ok(sqlx::query_as::<_, VoiceListChange>(
+        "SELECT id, source, external_id, kind, grocery_item_id, item_name, quantity_before,
+                quantity_after, item_source, item_note, item_filter_terms, item_added_by_user_id,
+                item_created_at, created_at, undone_at, undo_external_id
+         FROM voice_list_changes
+         ORDER BY created_at DESC, id
+         LIMIT $1",
+    )
+    .bind(limit)
+    .fetch_all(executor)
+    .await?)
+}
+
 /// Marks a change as reversed by the Undo with `undo_external_id`.
 pub async fn mark_undone(
     tx: &mut Transaction<'_, Postgres>,

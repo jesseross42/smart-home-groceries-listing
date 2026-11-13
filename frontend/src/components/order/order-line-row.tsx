@@ -1,7 +1,8 @@
+import { DislikeMark } from "#/components/dislikes/dislike-mark";
 import { PriceChangeBadge } from "#/components/order/price-change-badge";
 import { ProductImage } from "#/components/products/product-image";
 import { Badge } from "#/components/ui/badge";
-import type { OrderLine } from "#/lib/api";
+import type { OrderLine, StoreId } from "#/lib/api";
 import { formatMoney } from "#/lib/money";
 
 /**
@@ -9,9 +10,17 @@ import { formatMoney } from "#/lib/money";
  * for it (its picture, linked to the store's page), and what it costs today.
  *
  * A line that cannot be bought as it is shows "No price" and the reason, so
- * the household knows to choose again on the list.
+ * the household knows to choose again on the list. A product somebody
+ * dislikes carries a warning (inside a `DislikeMarksProvider`).
  */
-export function OrderLineRow({ line }: { line: OrderLine }) {
+export function OrderLineRow({
+	line,
+	store,
+}: {
+	line: OrderLine;
+	/** The store the line is bought at. */
+	store: StoreId;
+}) {
 	const product = [line.brand, line.product_name].filter(Boolean).join(" ");
 
 	return (
@@ -56,6 +65,11 @@ export function OrderLineRow({ line }: { line: OrderLine }) {
 				<PriceChangeBadge line={line} />
 				{line.deal_applied && <Badge variant="secondary">Deal applied</Badge>}
 			</div>
+			<DislikeMark
+				itemId={line.grocery_item_id}
+				store={store}
+				productId={line.product_id}
+			/>
 			{line.problem && (
 				<p className="text-xs text-destructive">{line.problem}</p>
 			)}

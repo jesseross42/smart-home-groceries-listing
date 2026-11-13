@@ -52,13 +52,22 @@ request ─▶ access-log middleware (outermost layer, lib.rs)
 
 | Method | Path | Auth | Answer |
 |---|---|---|---|
-| `GET` | `/api/access-logs?before=&limit=&hide_health_checks=` | Clerk | 200 `{ entries, next_before }`, newest first; 400 bad parameter |
+| `GET` | `/api/access-logs?before=&limit=&hide_health_checks=&user=&path=` | session | 200 `{ entries, next_before }`, newest first; 400 bad parameter |
 
 - `limit` defaults to 100, clamped to 1–500.
 - `before` is the previous page's `next_before`; `next_before` is `null` when
   the page was not full.
 - `hide_health_checks` defaults to `true`: the container asks `/api/health`
   every 10 seconds (8,640 rows a day), which would bury everything else.
+- `user` keeps one exact `user_id` (`unauthenticated` for requests with no
+  session). `path` keeps paths that start with it; it is plain text, not a
+  pattern. Both are trimmed, blank means any, and both combine with paging.
+
+## Retention
+`ACCESS_LOG_RETENTION_DAYS` (default `90`) is how long a table row is kept.
+A background task deletes older rows at startup and then every 24 hours
+(`services/access_log/retention.rs`); a failed run is a warning and is tried
+again the next day. `0` keeps rows forever. The files keep their own 30 days.
 
 There is no admin role in this POC: every signed-in member may read the log.
 
@@ -66,13 +75,8 @@ There is no admin role in this POC: every signed-in member may read the log.
 Newest first. Each row: status badge (red for 5xx, outlined for 4xx), method,
 path, time, who ("Not signed in" for `unauthenticated`), source (with any
 forwarded claim in brackets) and duration. **Show health checks** reloads from
-the newest row; **Load older** appends the next page. `/logs` redirects here.
-
-## Not built
-- **Retention for the table.** Rows are never deleted. At ~10,000 rows a day
-  (mostly health checks) PostgreSQL copes for years, but a clean-up job would
-  be the next step if the table grows.
-- **Filtering by user or path** on the page.
+the newest row; **Load older** appends the next page. **User** and **Path
+starts with** narrow the list on **Filter**; **Clear** shows everything again. `/logs` redirects here.
 
 ## Code
 | Part | File |
@@ -80,8 +84,8 @@ the newest row; **Load older** appends the next page. `/logs` redirects here.
 | Table | `backend/migrations/0008_access_logs.sql` |
 | Middleware | `backend/src/middleware/access_log/` (`request_info.rs`: IP, headers, path) |
 | User slot | `backend/src/auth/request_user.rs` |
-| Record + page rules | `backend/src/services/access_log/` |
+| Record + page rules | `backend/src/services/access_log/` (`filter.rs`, `retention.rs`) |
 | File set-up | `backend/src/logging.rs`, `backend/src/config/access_log.rs` |
 | Route | `backend/src/routes/access_logs.rs` |
 | Page | `frontend/src/routes/settings/logs.tsx`, `components/access-logs/`, `hooks/useAccessLogPages.ts` |
-| Tests | `backend/tests/access_logs.rs`, `frontend/e2e/access-logs.spec.ts` |
+| Tests | `backend/tests/access_logs.rs`, `access_log_filters.rs`, `access_log_retention.rs`, `frontend/e2e/access-logs.spec.ts` |

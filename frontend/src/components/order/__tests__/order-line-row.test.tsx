@@ -1,13 +1,15 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { dislikeFixture } from "#/components/dislikes/__tests__/fixtures";
+import { DislikeMarksProvider } from "#/components/dislikes/dislike-mark";
 import { lineFixture } from "#/components/order/__tests__/fixtures";
 import { OrderLineRow } from "#/components/order/order-line-row";
 
 function renderLine(overrides = {}) {
 	render(
 		<ul>
-			<OrderLineRow line={lineFixture(overrides)} />
+			<OrderLineRow line={lineFixture(overrides)} store="coles" />
 		</ul>,
 	);
 	return screen.getByRole("listitem", { name: "milk" });
@@ -72,5 +74,39 @@ describe("OrderLineRow", () => {
 			"src",
 			"https://productimages.coles.com.au/productimages/8/8150288.jpg",
 		);
+	});
+});
+
+describe("OrderLineRow dislikes", () => {
+	it("warns when somebody dislikes the line's product", () => {
+		render(
+			<DislikeMarksProvider
+				value={{ dislikes: [dislikeFixture()], overrides: [] }}
+			>
+				<ul>
+					<OrderLineRow line={lineFixture()} store="coles" />
+				</ul>
+			</DislikeMarksProvider>,
+		);
+
+		expect(
+			within(screen.getByRole("listitem", { name: "milk" })).getByRole(
+				"status",
+			),
+		).toHaveTextContent("Phu disliked this item previously.");
+	});
+
+	it("does not warn for the same product id at another store", () => {
+		render(
+			<DislikeMarksProvider
+				value={{ dislikes: [dislikeFixture()], overrides: [] }}
+			>
+				<ul>
+					<OrderLineRow line={lineFixture()} store="woolworths" />
+				</ul>
+			</DislikeMarksProvider>,
+		);
+
+		expect(screen.queryByTestId("dislike-mark")).not.toBeInTheDocument();
 	});
 });

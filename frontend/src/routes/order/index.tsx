@@ -6,14 +6,17 @@ import {
 } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { DislikeMarksProvider } from "#/components/dislikes/dislike-mark";
 import { OrderReview } from "#/components/order/order-review";
 import { ModePicker } from "#/components/order-options/mode-picker";
 import { OrderOptions } from "#/components/order-options/order-options";
 import { SendToStore } from "#/components/trolley/send-to-store";
 import { Button } from "#/components/ui/button";
+import { useListSync } from "#/hooks/useListSync";
 import { useOrderStores } from "#/hooks/useOrderStores";
 import { api, type OrderMode, selectionsByItem } from "#/lib/api";
 import { chosenAtStore } from "#/lib/chosen-at-store";
+import { loadDislikeMarks } from "#/lib/dislike-marks";
 import { ORDER_MODES } from "#/lib/order-modes";
 
 /** `?mode=` ranks the options another way for this visit. */
@@ -30,17 +33,19 @@ export const Route = createFileRoute("/order/")({
 	// The order re-priced now, its options with delivery, plus the list and
 	// choices so the Send button counts exactly what a handoff would send.
 	loader: async ({ deps }) => {
-		const [review, plan, items, selections] = await Promise.all([
+		const [review, plan, items, selections, dislikeMarks] = await Promise.all([
 			api.orderReview.get(),
 			api.orderOptions.get(deps.mode),
 			api.grocery.list(),
 			api.selections.list(),
+			loadDislikeMarks(),
 		]);
 		const chosen = selectionsByItem(selections);
 		return {
 			review,
 			plan,
 			chosen,
+			dislikeMarks,
 			chosenAtWoolworths: chosenAtStore(items, chosen, "woolworths"),
 			chosenAtColes: chosenAtStore(items, chosen, "coles"),
 		};
@@ -67,9 +72,16 @@ export const Route = createFileRoute("/order/")({
  * from its 10-minute search cache.
  */
 function OrderPage() {
-	const { review, plan, chosen, chosenAtWoolworths, chosenAtColes } =
-		Route.useLoaderData();
+	const {
+		review,
+		plan,
+		chosen,
+		dislikeMarks,
+		chosenAtWoolworths,
+		chosenAtColes,
+	} = Route.useLoaderData();
 	const router = useRouter();
+	useListSync();
 	const navigate = useNavigate({ from: Route.fullPath });
 	const orderStores = useOrderStores(chosen);
 	const [checking, setChecking] = useState(false);
@@ -117,31 +129,33 @@ function OrderPage() {
 				<h2 className="text-base font-semibold">What the order buys now</h2>
 			)}
 
-			<OrderReview review={review}>
-				<OrderReview.Empty>
-					<Button asChild variant="outline">
-						<Link to="/">Go to the grocery list</Link>
-					</Button>
-				</OrderReview.Empty>
-				<OrderReview.Unchosen>
-					<Button asChild variant="outline" className="w-full sm:w-auto">
-						<Link to="/">Choose products on the list</Link>
-					</Button>
-				</OrderReview.Unchosen>
-				<OrderReview.Store store="woolworths">
-					<SendToStore store="woolworths" chosenCount={chosenAtWoolworths}>
-						<SendToStore.Trigger />
-						<SendToStore.Content />
-					</SendToStore>
-				</OrderReview.Store>
-				<OrderReview.Store store="coles">
-					<SendToStore store="coles" chosenCount={chosenAtColes}>
-						<SendToStore.Trigger />
-						<SendToStore.Content />
-					</SendToStore>
-				</OrderReview.Store>
-				<OrderReview.Total />
-			</OrderReview>
+			<DislikeMarksProvider value={dislikeMarks}>
+				<OrderReview review={review}>
+					<OrderReview.Empty>
+						<Button asChild variant="outline">
+							<Link to="/">Go to the grocery list</Link>
+						</Button>
+					</OrderReview.Empty>
+					<OrderReview.Unchosen>
+						<Button asChild variant="outline" className="w-full sm:w-auto">
+							<Link to="/">Choose products on the list</Link>
+						</Button>
+					</OrderReview.Unchosen>
+					<OrderReview.Store store="woolworths">
+						<SendToStore store="woolworths" chosenCount={chosenAtWoolworths}>
+							<SendToStore.Trigger />
+							<SendToStore.Content />
+						</SendToStore>
+					</OrderReview.Store>
+					<OrderReview.Store store="coles">
+						<SendToStore store="coles" chosenCount={chosenAtColes}>
+							<SendToStore.Trigger />
+							<SendToStore.Content />
+						</SendToStore>
+					</OrderReview.Store>
+					<OrderReview.Total />
+				</OrderReview>
+			</DislikeMarksProvider>
 		</div>
 	);
 }

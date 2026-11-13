@@ -29,6 +29,10 @@ pub enum ServerEvent {
     /// The held-for-review count changed (triage held an item, or a person
     /// moved or rejected one). Drives the Triage nav badge and its toast.
     TriageHeld { count: i64 },
+    /// The grocery list, its chosen products or its order may have changed;
+    /// open pages read them again. Carries nothing: the list is re-read, so a
+    /// missed or repeated event does no harm.
+    GroceryListChanged,
 }
 
 /// Queue counts keyed by the corresponding live event types.
@@ -98,6 +102,12 @@ mod tests {
             json,
             serde_json::json!({ "type": "triage_held", "count": 2 })
         );
+    }
+
+    #[test]
+    fn list_changed_serialises_as_a_bare_type() {
+        let json = serde_json::to_value(ServerEvent::GroceryListChanged).unwrap();
+        assert_eq!(json, serde_json::json!({ "type": "grocery_list_changed" }));
     }
 
     #[tokio::test]

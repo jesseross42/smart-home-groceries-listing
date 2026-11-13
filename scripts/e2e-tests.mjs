@@ -61,7 +61,7 @@ try {
       DEV_AUTH_BYPASS: 'true', STORE_CLIENTS: 'fake', INTAKE_LLM_PROVIDER: 'fake',
       GOOGLE_TASKS_CLIENT: 'fake', GOOGLE_TASKS_NO_BACKGROUND_POLL: 'true',
       GOOGLE_REDIRECT_URI: `${webUrl}/settings/help`,
-      VOICE_WEBHOOK_SECRET: 'e2e-webhook-secret', STORE_TAB_SECRET: 'e2e-store-tab-secret',
+      VOICE_WEBHOOK_SECRET: 'e2e-webhook-secret', ALEXA_BRIDGE_SECRET: 'e2e-bridge-secret', STORE_TAB_SECRET: 'e2e-store-tab-secret',
       CREDENTIAL_ENCRYPTION_KEY: Buffer.from(Array.from({ length: 32 }, (_, i) => i)).toString('base64'),
       ACCESS_LOG_DIR: join(dir, 'access-logs'),
       VITE_AUTH_MODE: 'off',

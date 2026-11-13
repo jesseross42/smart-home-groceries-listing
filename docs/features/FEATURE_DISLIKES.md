@@ -13,6 +13,10 @@ How a person uses it: [`using-the-app.md` › Product dislikes](../using-the-app
 - **Household view.** Everyone sees everyone's dislikes:
   - on the Select item page, a disliked product shows *"Phu disliked this
     item previously."* (*"You …"* for your own);
+  - on the grocery list and on `/order`, a chosen product that somebody
+    dislikes shows the same sentence, and *"OK to buy it this time."* when
+    the dislike is set aside for the item. Read-only: the dislike is changed
+    on the Select item page;
   - **Dislikes** (`/settings/dislikes`) lists every member's dislikes, yours
     first.
 - **Manual choice is never blocked.** A disliked product keeps its
@@ -105,7 +109,10 @@ Migration `20261002140000_product_dislikes.sql`:
   the warning sentence, grouping); `hooks/useItemDislikes.ts`;
   `components/dislikes/` — `product-dislikes.tsx` (context scoped to one
   `<ProductResults>`), `dislike-button.tsx`, `dislike-notice.tsx`,
-  `household-dislikes.tsx`; `routes/settings/dislikes.tsx`.
+  `household-dislikes.tsx`; `routes/settings/dislikes.tsx`. The list and
+  `/order`: `lib/dislike-marks.ts` (read by both route loaders; a failed read
+  shows no marks) and `components/dislikes/dislike-mark.tsx` (provider + mark,
+  used by `selections/chosen-product.tsx` and `order/order-line-row.tsx`).
 
 ## Logs
 `product disliked`, `product dislike removed`, `dislike overridden for this
@@ -114,9 +121,8 @@ order`, `dislike override cleared`, `dislike override refused` (warn).
 ## Not built yet
 - The optimiser itself, and so the "warn before the order is confirmed"
   screen (`FEATURE_ORDER_OPTIMISATION.md`).
-- Dislike badges on the order review and on the chosen product on the list.
 
-Track planner integration in [issue #76](https://github.com/jesseross42/smart-home-groceries-listing/issues/76), and the remaining badges in [issue #77](https://github.com/jesseross42/smart-home-groceries-listing/issues/77).
+Track planner integration in [issue #76](https://github.com/jesseross42/smart-home-groceries-listing/issues/76).
 
 ## Tests
 - `backend/src/services/dislikes/skip_tests.rs` — every scope and override

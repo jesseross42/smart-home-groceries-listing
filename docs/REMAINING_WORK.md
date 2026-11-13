@@ -41,17 +41,13 @@ behavioral contract.
 ### Household workflows
 
 - [#76 — Use product dislikes in automated order planning](https://github.com/jesseross42/smart-home-groceries-listing/issues/76)
-- [#77 — Show dislike warnings on chosen products and order review](https://github.com/jesseross42/smart-home-groceries-listing/issues/77)
 - [#82 — Improve item rules and add a settings index](https://github.com/jesseross42/smart-home-groceries-listing/issues/82)
-- [#81 — Sync grocery list changes across open tabs](https://github.com/jesseross42/smart-home-groceries-listing/issues/81)
-- [#93 — Show and undo past Alexa list changes in the web app](https://github.com/jesseross42/smart-home-groceries-listing/issues/93)
 
 ### Integration follow-ups and maintenance
 
 - [#86 — Handle Google Tasks subtasks, notes, and disconnect revocation](https://github.com/jesseross42/smart-home-groceries-listing/issues/86)
 - [#89 — Store the OpenAI triage key encrypted in application settings](https://github.com/jesseross42/smart-home-groceries-listing/issues/89)
 - [#85 — Verify live store and voice integrations end to end](https://github.com/jesseross42/smart-home-groceries-listing/issues/85)
-- [#88 — Add access-log retention and filters](https://github.com/jesseross42/smart-home-groceries-listing/issues/88)
 
 ## Deliberately out of the roadmap
 

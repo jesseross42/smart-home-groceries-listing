@@ -82,6 +82,11 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
         encryptor,
     };
 
+    services::access_log::retention::spawn(
+        state.pool.clone(),
+        state.settings.access_log_retention_days,
+    );
+
     if state.settings.google_tasks.poll_in_background {
         services::google_tasks::schedule::spawn(state.clone());
     }
