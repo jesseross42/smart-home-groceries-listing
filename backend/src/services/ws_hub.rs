@@ -10,6 +10,7 @@
 
 use serde::Serialize;
 use tokio::sync::broadcast;
+use uuid::Uuid;
 
 /// How many undelivered events a connection may fall behind by before it is
 /// dropped from the channel. Events are small and clients only need the latest
@@ -33,6 +34,17 @@ pub enum ServerEvent {
     /// open pages read them again. Carries nothing: the list is re-read, so a
     /// missed or repeated event does no harm.
     GroceryListChanged,
+    /// A store tab finished filling a trolley. Sent once per handoff, when
+    /// its report is recorded; the desktop app turns it into a notification
+    /// even when the handoff's sheet is closed.
+    TrolleyFilled {
+        handoff_id: Uuid,
+        store_name: String,
+        /// Products that went into the trolley.
+        added: usize,
+        /// Products the store refused.
+        failed: usize,
+    },
 }
 
 /// Queue counts keyed by the corresponding live event types.
@@ -108,6 +120,28 @@ mod tests {
     fn list_changed_serialises_as_a_bare_type() {
         let json = serde_json::to_value(ServerEvent::GroceryListChanged).unwrap();
         assert_eq!(json, serde_json::json!({ "type": "grocery_list_changed" }));
+    }
+
+    #[test]
+    fn trolley_filled_serialises_with_its_counts() {
+        let handoff_id = Uuid::nil();
+        let json = serde_json::to_value(ServerEvent::TrolleyFilled {
+            handoff_id,
+            store_name: "Woolworths".to_string(),
+            added: 2,
+            failed: 1,
+        })
+        .unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "type": "trolley_filled",
+                "handoff_id": handoff_id,
+                "store_name": "Woolworths",
+                "added": 2,
+                "failed": 1
+            })
+        );
     }
 
     #[tokio::test]

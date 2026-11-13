@@ -29,7 +29,7 @@ use crate::services::purchases;
 use crate::services::stores::Store;
 use crate::services::trolley_handoffs::delivery::ReportedDelivery;
 use crate::services::trolley_handoffs::store_tab::ReportedLine;
-use crate::services::trolley_handoffs::TrolleyHandoffService;
+use crate::services::trolley_handoffs::{self, TrolleyHandoffService};
 use crate::state::AppState;
 
 /// `/api/store-tab/trolley-handoffs/*`, authenticated by `STORE_TAB_SECRET`.
@@ -78,6 +78,10 @@ async fn report_handoff(
         .record_store_tab_report(handoff_id, &report, delivery.as_ref())
         .await?;
     purchases::record_in_background(state.pool.clone(), state.stores.clone(), handoff_id);
+    // A second report is a 409 above, so each handoff is announced once.
+    state
+        .hub
+        .broadcast(trolley_handoffs::event::filled(&closed));
     Ok(Json(closed.into()))
 }
 

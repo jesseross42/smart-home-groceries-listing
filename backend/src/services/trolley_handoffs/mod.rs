@@ -20,6 +20,7 @@
 //! SQL lives in [`repository`]; the store-tab rules in [`store_tab`].
 
 pub mod delivery;
+pub mod event;
 pub mod line_repository;
 mod log;
 pub mod repository;
