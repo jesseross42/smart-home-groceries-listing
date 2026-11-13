@@ -21,7 +21,7 @@ pub mod state;
 use std::sync::Arc;
 use std::time::Duration;
 
-use axum::http::{header, HeaderValue, Method, StatusCode};
+use axum::http::{header, HeaderName, HeaderValue, Method, StatusCode};
 use axum::Router;
 use sqlx::PgPool;
 use tower::ServiceBuilder;
@@ -142,7 +142,13 @@ fn cors_layer(settings: &Settings) -> CorsLayer {
             Method::PATCH,
             Method::DELETE,
         ])
-        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
+        .allow_headers([
+            header::AUTHORIZATION,
+            header::CONTENT_TYPE,
+            // SuperTokens adds these when it intercepts grocery API requests.
+            HeaderName::from_static("rid"),
+            HeaderName::from_static("st-auth-mode"),
+        ])
 }
 
 /// Checks, once at startup, any intake request a restart left `unchecked`.
