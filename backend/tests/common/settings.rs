@@ -24,6 +24,8 @@ pub fn test_settings() -> Settings {
         credential_encryption_key: String::new(),
         cors_origins: vec!["http://localhost:3000".to_string()],
         dev_auth_bypass: true,
+        // Tests purge by hand so nothing races them.
+        access_log_retention_days: 0,
         stores: fake_store_settings(),
         triage: triage_settings(TriageProvider::Off, ""),
         google_tasks: google_tasks_settings(GoogleTasksMode::Fake, "http://127.0.0.1:9"),

@@ -14,7 +14,7 @@ mod access_log;
 mod google_tasks;
 mod triage;
 
-pub use access_log::access_log_dir;
+pub use access_log::{access_log_dir, DEFAULT_ACCESS_LOG_RETENTION_DAYS};
 pub use google_tasks::{GoogleTasksMode, GoogleTasksSettings};
 pub use triage::{TriageProvider, TriageSettings};
 
@@ -51,6 +51,10 @@ pub struct Settings {
     /// When true, auth is bypassed and a fixed development user is injected.
     /// Never enable this on a host reachable from the internet.
     pub dev_auth_bypass: bool,
+
+    /// `ACCESS_LOG_RETENTION_DAYS`: how long `access_logs` rows are kept.
+    /// `0` keeps them forever.
+    pub access_log_retention_days: u32,
 
     /// How the backend reaches Woolworths and Coles.
     pub stores: StoreSettings,
@@ -148,6 +152,8 @@ impl Settings {
             ),
 
             dev_auth_bypass: parse_bool("DEV_AUTH_BYPASS"),
+
+            access_log_retention_days: access_log::retention_days()?,
 
             stores: StoreSettings::from_env()?,
 

@@ -54,3 +54,15 @@ pub async fn list_page(
     .fetch_all(pool)
     .await?)
 }
+
+/// Deletes every request stored more than `days` days ago; returns how many.
+pub async fn delete_older_than(pool: &PgPool, days: i32) -> Result<u64, sqlx::Error> {
+    let deleted = sqlx::query(
+        "DELETE FROM access_logs
+         WHERE occurred_at < now() - make_interval(days => $1)",
+    )
+    .bind(days)
+    .execute(pool)
+    .await?;
+    Ok(deleted.rows_affected())
+}

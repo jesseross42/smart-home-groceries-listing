@@ -3,12 +3,13 @@
 //! Every answered request is written twice: a line in the rotating log file
 //! ([`file`]) and a row in `access_logs` ([`repository`]) for the `/logs`
 //! page. The middleware that gathers each [`AccessLogEntry`] lives in
-//! `crate::middleware::access_log`.
+//! `crate::middleware::access_log`. Old rows are deleted by [`retention`].
 
 mod entry;
 pub mod file;
 mod filter;
 mod repository;
+pub mod retention;
 
 use sqlx::PgPool;
 
