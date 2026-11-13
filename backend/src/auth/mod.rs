@@ -6,10 +6,10 @@
 //! [`AuthProvider`] and choose it in [`build_provider`]; nothing else in the
 //! application changes.
 
-pub mod clerk;
 pub mod request_user;
 pub mod secret;
 pub mod socket;
+mod supertokens;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -49,8 +49,9 @@ pub trait AuthProvider: Send + Sync + std::fmt::Debug {
 
 /// Chooses the provider for this process. The one place a provider is named.
 pub fn build_provider(settings: &Settings) -> Arc<dyn AuthProvider> {
-    Arc::new(clerk::ClerkAuthProvider::new(
-        settings.clerk_jwks_url.clone(),
+    Arc::new(supertokens::SuperTokensAuthProvider::new(
+        settings.auth_verifier_url.clone(),
+        settings.auth_verifier_secret.clone(),
     ))
 }
 

@@ -6,7 +6,7 @@ describe("public startup settings", () => {
 		expect(
 			selectPublicConfig({
 				VITE_API_BASE_URL: "",
-				CLERK_SECRET_KEY: "private",
+				AUTH_OIDC_CLIENT_SECRET: "private",
 				OP_SERVICE_ACCOUNT_TOKEN: "private",
 				VITE_UNREVIEWED_SECRET: "private",
 			}),

@@ -64,8 +64,7 @@ try {
       VOICE_WEBHOOK_SECRET: 'e2e-webhook-secret', STORE_TAB_SECRET: 'e2e-store-tab-secret',
       CREDENTIAL_ENCRYPTION_KEY: Buffer.from(Array.from({ length: 32 }, (_, i) => i)).toString('base64'),
       ACCESS_LOG_DIR: join(dir, 'access-logs'),
-      CLERK_SECRET_KEY: '', CLERK_PUBLISHABLE_KEY: '', CLERK_JWKS_URL: '',
-      VITE_CLERK_PUBLISHABLE_KEY: '', VITE_AUTH_MODE: 'off',
+      VITE_AUTH_MODE: 'off',
       VITE_API_BASE_URL: apiUrl, VITE_WS_URL: `${apiUrl.replace('http:', 'ws:')}/ws`,
       E2E_API_BASE_URL: apiUrl, E2E_BASE_URL: webUrl,
     };

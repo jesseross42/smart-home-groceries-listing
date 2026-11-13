@@ -51,8 +51,6 @@ behavioral contract.
 - [#86 — Handle Google Tasks subtasks, notes, and disconnect revocation](https://github.com/jesseross42/smart-home-groceries-listing/issues/86)
 - [#89 — Store the OpenAI triage key encrypted in application settings](https://github.com/jesseross42/smart-home-groceries-listing/issues/89)
 - [#85 — Verify live store and voice integrations end to end](https://github.com/jesseross42/smart-home-groceries-listing/issues/85)
-- [#83 — Check the authorized party in Clerk tokens](https://github.com/jesseross42/smart-home-groceries-listing/issues/83)
-- [#94 — Plan a production Clerk instance before external exposure](https://github.com/jesseross42/smart-home-groceries-listing/issues/94)
 - [#88 — Add access-log retention and filters](https://github.com/jesseross42/smart-home-groceries-listing/issues/88)
 
 ## Deliberately out of the roadmap

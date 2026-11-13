@@ -2,8 +2,7 @@
 
 ## Stack
 Rust 1.85+ (edition 2021) · Axum 0.8 (REST + WebSocket) · sqlx 0.9 (async,
-compile-time-safe queries, embedded migrations) · PostgreSQL · Clerk JWT via
-`jsonwebtoken` · `tower-http` middleware · `aes-gcm` · `tracing` ·
+compile-time-safe queries, embedded migrations) · PostgreSQL · SuperTokens session verification · `tower-http` middleware · `aes-gcm` · `tracing` ·
 `wreq` (store search, Chrome TLS emulation) · `rust_decimal` (money) ·
 `chromiumoxide` (checkout automation, not yet built).
 
@@ -50,9 +49,9 @@ src/
 │   └── extract.rs       # ValidatedJson / OptionalValidatedJson / ValidatedQuery extractors
 ├── auth/
 │   ├── mod.rs           # AuthUser extractor, AuthProvider trait, build_provider()
-│   ├── clerk.rs         # Clerk JWKS verification (current implementation)
+│   ├── supertokens.rs   # calls the server-side SuperTokens verifier
 │   ├── request_user.rs  # slot the extractor fills so the access log knows the user
-│   ├── socket.rs        # SocketUser: the /ws check, token from header or ?token=
+│   ├── socket.rs        # SocketUser: the /ws check, bearer header or WebSocket subprotocol
 │   └── secret.rs        # constant-time shared-secret comparison
 ├── models/
 │   ├── db.rs            # row types + status/source enums

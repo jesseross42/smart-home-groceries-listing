@@ -17,17 +17,17 @@ test('loads literals without a secret provider and preserves exported overrides'
   const dir = mkdtempSync(join(tmpdir(), 'grocery-env-'));
   try {
     const file = join(dir, '.env');
-    writeFileSync(file, "DATABASE_URL='postgres://user:pw@db/grocery'\nCLERK_SECRET_KEY=op://Development/clerk/secret\n");
-    const result = loadEnvironment({ file, inherited: { CLERK_SECRET_KEY: 'exported' }, resolve: () => { throw Error('unexpected provider access'); } });
+    writeFileSync(file, "DATABASE_URL='postgres://user:pw@db/grocery'\nAUTH_OIDC_CLIENT_SECRET=op://Development/auth/secret\n");
+    const result = loadEnvironment({ file, inherited: { AUTH_OIDC_CLIENT_SECRET: 'exported' }, resolve: () => { throw Error('unexpected provider access'); } });
     assert.equal(result.DATABASE_URL, 'postgres://user:pw@db/grocery');
-    assert.equal(result.CLERK_SECRET_KEY, 'exported');
+    assert.equal(result.AUTH_OIDC_CLIENT_SECRET, 'exported');
   } finally { rmSync(dir, { recursive: true }); }
 });
 
 test('startup command resolves every requested key with desktop or service-account authentication', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-env-'));
   try {
-    const keys = ['DATABASE_URL', 'POSTGRES_USER', 'POSTGRES_PASSWORD', 'CLERK_SECRET_KEY', 'CLERK_PUBLISHABLE_KEY', 'VITE_CLERK_PUBLISHABLE_KEY', 'CLERK_JWKS_URL', 'ALEXA_SKILL_ID'];
+    const keys = ['DATABASE_URL', 'POSTGRES_USER', 'POSTGRES_PASSWORD', 'AUTH_OIDC_CLIENT_SECRET', 'AUTH_OIDC_CLIENT_ID', 'VITE_AUTH_MODE', 'AUTH_VERIFIER_URL', 'ALEXA_SKILL_ID'];
     writeFileSync(join(dir, '.env'), keys.map(key => `${key}=op://Development/test/${key}`).join('\n'));
     writeFileSync(join(dir, 'op'), '#!/bin/sh\n[ "$1" = read ] && [ "$2" = --no-newline ] || exit 2\nprintf "%s-%s" "${OP_SERVICE_ACCOUNT_TOKEN:+service}" "${3##*/}"\n', { mode: 0o700 });
     for (const token of ['', 'fixture-token']) {
@@ -43,11 +43,11 @@ test('startup command resolves every requested key with desktop or service-accou
 test('application scope excludes unrelated provider failures and preserves literal punctuation', () => {
   const result = loadEnvironment({
     file: '/nonexistent/fixture.env', required: false,
-    inherited: { CLERK_SECRET_KEY: 'op://Development/clerk/secret', DATABASE_URL: 'op://Development/missing/url', VITE_EXAMPLE: 'a$#@ b' },
-    accepts: key => key.startsWith('CLERK_') || key.startsWith('VITE_'),
-    resolve: reference => { assert.equal(reference, 'op://Development/clerk/secret'); return 'resolved-secret'; },
+    inherited: { AUTH_OIDC_CLIENT_SECRET: 'op://Development/auth/secret', DATABASE_URL: 'op://Development/missing/url', VITE_EXAMPLE: 'a$#@ b' },
+    accepts: key => key === 'AUTH_OIDC_CLIENT_SECRET' || key.startsWith('VITE_'),
+    resolve: reference => { assert.equal(reference, 'op://Development/auth/secret'); return 'resolved-secret'; },
   });
-  assert.deepEqual(result, { CLERK_SECRET_KEY: 'resolved-secret', VITE_EXAMPLE: 'a$#@ b' });
+  assert.deepEqual(result, { AUTH_OIDC_CLIENT_SECRET: 'resolved-secret', VITE_EXAMPLE: 'a$#@ b' });
 });
 
 for (const failure of ['denied', 'empty', 'unresolved']) {
@@ -72,14 +72,14 @@ printf 'desktop\n' >> "$AUTH_TRACE"
 printf desktop-secret
 `, { mode: 0o700 });
     const inherited = {
-      PATH: dir, CLERK_SECRET_KEY: 'op://Development/test/secret',
+      PATH: dir, AUTH_OIDC_CLIENT_SECRET: 'op://Development/test/secret',
       OP_SERVICE_ACCOUNT_TOKEN: 'denied-fixture-token', OP_CONNECT_HOST: 'unrelated',
       OP_CONNECT_TOKEN: 'unrelated', OP_SESSION: 'stale', OP_SESSION_fixture: 'stale',
       OP_BIOMETRIC_UNLOCK_ENABLED: 'false', AUTH_TRACE: join(dir, 'trace'),
       SERVICE_RESULT: failure,
     };
     const result = loadEnvironment({ file: join(dir, '.env'), required: false, inherited });
-    assert.equal(result.CLERK_SECRET_KEY, 'desktop-secret');
+    assert.equal(result.AUTH_OIDC_CLIENT_SECRET, 'desktop-secret');
     assert.equal(readFileSync(join(dir, 'trace'), 'utf8'), 'service\ndesktop\n');
     assert.equal(inherited.OP_SERVICE_ACCOUNT_TOKEN, 'denied-fixture-token');
   } finally { rmSync(dir, { recursive: true }); }
@@ -87,13 +87,13 @@ printf desktop-secret
 }
 
 test('provider failures expose only the variable name', () => {
-  assert.throws(() => loadEnvironment({ file: '/nonexistent/fixture.env', required: false, inherited: { CLERK_SECRET_KEY: 'op://private/reference/secret' }, resolve: () => { throw Error('sensitive provider output'); } }), { message: 'Cannot load CLERK_SECRET_KEY from 1Password; check CLI access and the reference' });
+  assert.throws(() => loadEnvironment({ file: '/nonexistent/fixture.env', required: false, inherited: { AUTH_OIDC_CLIENT_SECRET: 'op://private/reference/secret' }, resolve: () => { throw Error('sensitive provider output'); } }), { message: 'Cannot load AUTH_OIDC_CLIENT_SECRET from 1Password; check CLI access and the reference' });
 });
 
 test('denied CLI access stops the command without exposing provider output or changing dotenv', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-denied-'));
   try {
-    const content = 'CLERK_SECRET_KEY=op://Development/test/secret\n';
+    const content = 'AUTH_OIDC_CLIENT_SECRET=op://Development/test/secret\n';
     writeFileSync(join(dir, '.env'), content);
     writeFileSync(join(dir, 'op'), '#!/bin/sh\necho provider-secret >&2\nexit 7\n', { mode: 0o700 });
     const result = spawnSync(process.execPath, ['scripts/run-env.mjs', process.execPath, '-e', 'console.log("application started")'], {
@@ -101,7 +101,7 @@ test('denied CLI access stops the command without exposing provider output or ch
     });
     assert.equal(result.status, 1);
     assert.equal(result.stdout, '');
-    assert.equal(result.stderr.trim(), 'Cannot load CLERK_SECRET_KEY from 1Password; check CLI access and the reference');
+    assert.equal(result.stderr.trim(), 'Cannot load AUTH_OIDC_CLIENT_SECRET from 1Password; check CLI access and the reference');
     assert.equal(readFileSync(join(dir, '.env'), 'utf8'), content);
   } finally { rmSync(dir, { recursive: true }); }
 });
@@ -110,7 +110,7 @@ test('Compose passes resolved backend and Alexa settings without provider creden
   const dir = mkdtempSync(join(tmpdir(), 'grocery-compose-'));
   try {
     copyFileSync('docker-compose.yml', join(dir, 'docker-compose.yml'));
-    writeFileSync(join(dir, '.env'), 'COMPOSE_PROFILES=db\nDATABASE_URL=op://Development/test/DATABASE_URL\nCLERK_JWKS_URL=op://Development/test/CLERK_JWKS_URL\nALEXA_SKILL_ID=op://Development/test/ALEXA_SKILL_ID\nPOSTGRES_PASSWORD=op://Development/test/POSTGRES_PASSWORD\n');
+    writeFileSync(join(dir, '.env'), 'COMPOSE_PROFILES=db\nDATABASE_URL=op://Development/test/DATABASE_URL\nAUTH_VERIFIER_URL=op://Development/test/AUTH_VERIFIER_URL\nALEXA_SKILL_ID=op://Development/test/ALEXA_SKILL_ID\nPOSTGRES_PASSWORD=op://Development/test/POSTGRES_PASSWORD\n');
     writeFileSync(join(dir, 'op'), '#!/bin/sh\nprintf "resolved-%s" "${3##*/}"\n', { mode: 0o700 });
     const result = spawnSync(process.execPath, ['scripts/run-env.mjs', 'docker', 'compose', '--project-directory', dir, 'config', '--format', 'json'], {
       env: { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: join(dir, '.env'), OP_SERVICE_ACCOUNT_TOKEN: 'fixture-token' }, encoding: 'utf8',
@@ -118,7 +118,7 @@ test('Compose passes resolved backend and Alexa settings without provider creden
     assert.equal(result.status, 0, result.stderr);
     const services = JSON.parse(result.stdout).services;
     assert.equal(services.backend.environment.DATABASE_URL, 'resolved-DATABASE_URL');
-    assert.equal(services.backend.environment.CLERK_JWKS_URL, 'resolved-CLERK_JWKS_URL');
+    assert.equal(services.backend.environment.AUTH_VERIFIER_URL, 'resolved-AUTH_VERIFIER_URL');
     assert.equal(services['alexa-bridge'].environment.ALEXA_SKILL_ID, 'resolved-ALEXA_SKILL_ID');
     assert.equal(services.db.environment.POSTGRES_PASSWORD, 'resolved-POSTGRES_PASSWORD');
     for (const service of Object.values(services)) assert.equal(service.environment?.OP_SERVICE_ACCOUNT_TOKEN, undefined);

@@ -4,7 +4,7 @@ HUMAN = $(if $(filter 1 true,$(human)),--human,)
 RUN = node scripts/command.mjs $(HUMAN) $@ --
 COMPONENTS := backend frontend alexa desktop
 bundle ?= $(CURDIR)/build/grocery-linux-$(shell node -p process.arch).json.gz
-.PHONY: all setup setup-env run-env dev dev-stop stop-all hm-compose hm-dev-frontend \
+.PHONY: all setup setup-env run-env dev dev-stop stop-all hm-compose hm-auth-core hm-dev-frontend \
         test test-tooling test-frontend-playwright update-db reset-db migration-new \
         check check-format check-file-length check-desktop format lint hm-fix \
         type-backend type-frontend type-desktop build package-server install-server uninstall-server \
@@ -42,6 +42,9 @@ dev-stop:
 	@node scripts/dev-compose.mjs down
 
 stop-all: dev-stop
+
+hm-auth-core:
+	@node scripts/auth-core.mjs
 
 hm-compose:
 	@node scripts/dev-compose.mjs $(args)

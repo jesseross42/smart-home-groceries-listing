@@ -11,13 +11,7 @@ import {
 import { accepts, component } from "../scripts/service-components.mjs";
 
 /**
- * The repository root, where the one `.env` lives (`docs/human-setup.md`).
- * `VITE_*` values in it reach the browser; nothing else does.
- */
-const ENV_DIR = "..";
-
-/**
- * Resolve frontend configuration before Vite or Clerk reads it. The keys are
+ * Resolve frontend configuration before Vite or the auth server reads it. The keys are
  * the production `frontend` component's (`scripts/service-components.mjs`);
  * backend and tunnel credentials are outside this process's boundary.
  */
@@ -34,10 +28,9 @@ function loadFrontendEnvironment(): void {
 
 const config = defineConfig(() => {
 	loadFrontendEnvironment();
-	const envDir: string | false = process.env.GROCERY_ENV_FILE ? false : ENV_DIR;
 	return {
-		// An explicit file is already loaded above; Vite must not merge another .env.
-		envDir,
+		// The component loader is the only dotenv source.
+		envDir: false as const,
 		resolve: { tsconfigPaths: true },
 		plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact(), nitro()],
 	};

@@ -5,6 +5,7 @@ services:
       - "127.0.0.1:${BACKEND_PORT}:8000"
     environment:
       CORS_ORIGINS: http://localhost:${WEB_PORT}
+      AUTH_VERIFIER_URL: http://frontend:3000/api/auth/internal/verify
     develop:
       watch:
         - action: rebuild
@@ -23,15 +24,22 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+      supertokens:
+        condition: service_healthy
+        required: false
     environment:
       GROCERY_ENV_FILE: /dev/null
       SERVER_API_BASE_URL: http://backend:8000
       VITE_API_BASE_URL: http://localhost:${BACKEND_PORT}
       VITE_WS_URL: ws://localhost:${BACKEND_PORT}/ws
-      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
       VITE_AUTH_MODE: ${VITE_AUTH_MODE:-}
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
-      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+      AUTH_PUBLIC_ORIGIN: http://localhost:${WEB_PORT}
+      AUTH_OIDC_DISCOVERY_URL: ${AUTH_OIDC_DISCOVERY_URL:-}
+      AUTH_OIDC_CLIENT_ID: ${AUTH_OIDC_CLIENT_ID:-}
+      AUTH_OIDC_CLIENT_SECRET: ${AUTH_OIDC_CLIENT_SECRET:-}
+      AUTH_VERIFIER_SECRET: ${AUTH_VERIFIER_SECRET:-}
+      SUPERTOKENS_CONNECTION_URI: ${SUPERTOKENS_CONNECTION_URI:-}
+      SUPERTOKENS_API_KEY: ${SUPERTOKENS_API_KEY:-}
     ports:
       - "127.0.0.1:${WEB_PORT}:3000"
     healthcheck:

@@ -19,7 +19,7 @@ use crate::routes::extract::ValidatedJson;
 use crate::services::trolley_handoffs::TrolleyHandoffService;
 use crate::state::AppState;
 
-/// `/api/trolley-handoffs/*`, all behind a Clerk session.
+/// `/api/trolley-handoffs/*`, all behind a household session.
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/trolley-handoffs", post(create_handoff))

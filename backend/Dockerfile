@@ -31,7 +31,7 @@ RUN touch src/main.rs src/lib.rs \
 
 FROM debian:bookworm-slim AS runtime
 
-# ca-certificates: the process fetches Clerk's JWKS over HTTPS. (The store
+# ca-certificates: the process makes HTTPS requests. (The store
 # client carries its own root store and needs nothing extra.)
 RUN apt-get update -qq \
  && apt-get install -y --no-install-recommends ca-certificates \

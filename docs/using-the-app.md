@@ -18,7 +18,7 @@ and API details are in [`features/`](features/).
 | [Spending analysis](#spending-analysis) | Web app **Order › History** |
 | [Product dislikes](#product-dislikes) | Web app, **Select item** page and `/settings/dislikes` |
 | [Access log review](#access-log-review) | Web app **Settings › Logs** |
-| [Add a household member](#add-a-household-member) | Clerk dashboard |
+| [Add a household member](#add-a-household-member) | Authentik |
 | [After an update](#after-an-update) | Varies |
 | [Desktop connection and shopping](#desktop-connection-and-shopping) | Desktop app |
 | [Troubleshooting](#troubleshooting) | — |
@@ -255,9 +255,11 @@ volume (`/var/log/grocery`), kept 30 days.
 
 ## Add a household member
 
-In [dashboard.clerk.com](https://dashboard.clerk.com), open the application's
-**Allowlist**, add their email address and **Save**. They then use **Sign
-up** on `/sign-in`. All members share one list (`FEATURE_AUTH.md`).
+Add the member to the household group bound to the Grocery List application
+in Authentik. They can then choose **Continue with household account** on
+`/sign-in`. All members share one list. To remove access immediately, remove
+the member from the Authentik group and revoke their active SuperTokens
+sessions through the private Core.
 
 ---
 

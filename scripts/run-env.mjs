@@ -2,14 +2,17 @@
 import { cancellation, runProcess } from './test-process.mjs';
 import { loadEnvironment, selectedEnvironmentFile } from './environment.mjs';
 
+import { accepts, component } from './service-components.mjs';
+
 try {
   const argv = process.argv.slice(2);
   const prefixes = argv[0] === '--prefix' ? (argv.splice(0, 2)[1] ?? '').split(',') : null;
+  const spec = argv[0] === '--component' ? component(argv.splice(0, 2)[1]) : null;
   const [command, ...args] = argv;
   if (!command) throw new Error('Usage: node scripts/run-env.mjs COMMAND [ARGS...]');
   const env = loadEnvironment({
     ...selectedEnvironmentFile(),
-    accepts: key => !prefixes || prefixes.some(prefix => key.startsWith(prefix)),
+    accepts: key => spec ? accepts(spec, key) : !prefixes || prefixes.some(prefix => key.startsWith(prefix)),
   });
   const childEnv = { ...process.env, ...env };
   // These credentials authorize the loader, not the application or containers.

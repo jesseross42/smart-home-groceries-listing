@@ -37,7 +37,7 @@ not built.
 
 | You want to | Read |
 |---|---|
-| Set up Clerk, Cloudflare, Alexa and the store bookmarks | [`docs/human-setup.md`](docs/human-setup.md) |
+| Set up SuperTokens, Cloudflare, Alexa and the store bookmarks | [`docs/human-setup.md`](docs/human-setup.md) |
 | Install the app on the home server | [`docs/production.md`](docs/production.md) |
 | Do a shop, undo a mistake, or fix a problem | [`docs/using-the-app.md`](docs/using-the-app.md) |
 | Know how one feature works | [`docs/features/`](docs/features/) |
@@ -66,7 +66,7 @@ the random secrets. Values can be plain text or 1Password `op://` references.
 | Part | Variables |
 |---|---|
 | Database | `DATABASE_URL`, and `POSTGRES_PASSWORD` for the Docker database |
-| Sign-in | `CLERK_JWKS_URL`, `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` |
+| Sign-in | `AUTH_*` and `SUPERTOKENS_*` (see [human setup](docs/human-setup.md#2-supertokens-and-authentik)) |
 | Stored secrets | `CREDENTIAL_ENCRYPTION_KEY` |
 | Intake and bookmarks | `VOICE_WEBHOOK_SECRET`, `ALEXA_BRIDGE_SECRET`, `STORE_TAB_SECRET` |
 | Alexa | `ALEXA_SKILL_ID` |

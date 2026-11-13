@@ -15,7 +15,7 @@ test('desktop processes receive their public URL and toolchain environment only'
   const env = desktopEnvironment({
     PATH: '/bin', HOME: '/home/developer', CARGO_HOME: '/cache/cargo',
     OP_SERVICE_ACCOUNT_TOKEN: 'bootstrap', DATABASE_URL: 'private',
-    CLERK_SECRET_KEY: 'private', VITE_CLERK_PUBLISHABLE_KEY: 'unused',
+    AUTH_OIDC_CLIENT_SECRET: 'private', VITE_AUTH_MODE: 'unused',
     STORE_TAB_SECRET: 'private', GROCERY_ENV_FILE: '/private/config',
     GROCERY_DESKTOP_SERVER_URL: 'https://groceries.example.test',
   });
@@ -48,13 +48,13 @@ test('the real launcher resolves only the selected public setting and strips sec
     writeFileSync(join(dir, 'pnpm'), '#!/usr/bin/env node\nconsole.log(JSON.stringify({args:process.argv.slice(2),keys:Object.keys(process.env),url:process.env.GROCERY_DESKTOP_SERVER_URL}))\n', { mode: 0o700 });
     const output = execFileSync(process.execPath, [new URL('./desktop.mjs', import.meta.url).pathname, 'dev'], {
       encoding: 'utf8', env: { PATH: `${dir}:${process.env.PATH}`, HOME: process.env.HOME,
-        GROCERY_ENV_FILE: file, OP_SERVICE_ACCOUNT_TOKEN: 'private', CLERK_SECRET_KEY: 'private' },
+        GROCERY_ENV_FILE: file, OP_SERVICE_ACCOUNT_TOKEN: 'private', AUTH_OIDC_CLIENT_SECRET: 'private' },
     });
     const result = JSON.parse(output);
     assert.equal(result.url, 'https://groceries.test');
     assert.deepEqual(result.args.slice(0, 3), ['exec', 'tauri', 'dev']);
     assert.match(JSON.parse(result.args[4]).identifier, /^com\.sora4222\.grocerylist\.dev\.w/);
-    for (const key of ['OP_SERVICE_ACCOUNT_TOKEN', 'CLERK_SECRET_KEY', 'DATABASE_URL', 'GROCERY_ENV_FILE']) {
+    for (const key of ['OP_SERVICE_ACCOUNT_TOKEN', 'AUTH_OIDC_CLIENT_SECRET', 'DATABASE_URL', 'GROCERY_ENV_FILE']) {
       assert.equal(result.keys.includes(key), false, key);
     }
   } finally { rmSync(dir, { recursive: true }); }

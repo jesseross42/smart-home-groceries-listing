@@ -34,8 +34,8 @@ test('an unavailable Docker database stops before running tests', async () => {
 
 test('test servers retain toolchains but cannot inherit application or provider credentials', () => {
   assert.deepEqual(testEnvironment({ PATH: '/tools', CARGO_HOME: '/cache', DATABASE_URL: 'private',
-    OP_SERVICE_ACCOUNT_TOKEN: 'private', CLERK_SECRET_KEY: 'private', OPENAI_API_KEY: 'private',
-    VITE_CLERK_PUBLISHABLE_KEY: 'private', E2E_API_BASE_URL: 'https://household.invalid',
+    OP_SERVICE_ACCOUNT_TOKEN: 'private', AUTH_OIDC_CLIENT_SECRET: 'private', OPENAI_API_KEY: 'private',
+    VITE_AUTH_MODE: 'private', E2E_API_BASE_URL: 'https://household.invalid',
   }), { PATH: '/tools', CARGO_HOME: '/cache' });
 });
 

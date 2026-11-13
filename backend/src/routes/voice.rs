@@ -67,7 +67,7 @@ impl AcceptQuery {
 /// `POST /api/voice-requests` — the generic intake webhook.
 ///
 /// Authenticated by a shared secret rather than a session JWT, because the
-/// callers (Home Assistant, IFTTT, `curl`) cannot hold a Clerk session.
+/// callers (Home Assistant, IFTTT, `curl`) cannot hold a household session.
 async fn create_voice_request(
     State(state): State<AppState>,
     headers: HeaderMap,

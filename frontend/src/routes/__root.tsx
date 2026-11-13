@@ -11,18 +11,16 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
-import { AuthProvider } from "#/components/auth/auth-provider";
 import { SignInOffNotice } from "#/components/auth/sign-in-off-notice";
 import { Nav } from "#/components/nav";
 import { useDesktopNotifications } from "#/hooks/useDesktopNotifications";
 import { useHydrated } from "#/hooks/useHydrated";
 import { useTriageToasts } from "#/hooks/useTriageToasts";
 import { useVoiceRequestToasts } from "#/hooks/useVoiceRequestToasts";
+import { getAuthToken } from "#/lib/auth";
 import { AUTH_MODE } from "#/lib/auth-mode";
-import { fetchSignedIn } from "#/lib/auth-state";
 import { publicConfig, publicConfigScript } from "#/lib/public-config";
 import {
-	guardDecision,
 	isAuthPath,
 	needsSessionCheck,
 	SIGN_IN_PATH,
@@ -44,6 +42,8 @@ export const Route = createRootRoute({
 			{ rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
 		],
 	}),
+	ssr: AUTH_MODE === "off",
+	shellComponent: RootDocument,
 	beforeLoad: requireSignIn,
 	component: RootComponent,
 });
@@ -55,30 +55,39 @@ export const Route = createRootRoute({
  */
 async function requireSignIn({ location }: { location: { pathname: string } }) {
 	if (!needsSessionCheck(AUTH_MODE, location.pathname)) return;
-	const signedIn = await fetchSignedIn();
-	if (guardDecision(AUTH_MODE, location.pathname, signedIn) === "sign-in") {
+	if (!(await getAuthToken())) {
 		throw redirect({ href: SIGN_IN_PATH });
 	}
 }
 
 function RootComponent() {
 	const { pathname } = useLocation();
+	if (isAuthPath(pathname))
+		return (
+			<main>
+				<Outlet />
+			</main>
+		);
+	return <Household />;
+}
+
+function Household() {
+	useVoiceRequestToasts();
+	useTriageToasts();
+	useDesktopNotifications();
 	return (
-		<RootDocument>
+		<>
 			<SignInOffNotice />
-			{!isAuthPath(pathname) && <Nav />}
+			<Nav />
 			<main className="mx-auto w-full max-w-5xl p-4">
 				<Outlet />
 			</main>
 			<Toaster richColors position="top-right" />
-		</RootDocument>
+		</>
 	);
 }
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
-	useVoiceRequestToasts();
-	useTriageToasts();
-	useDesktopNotifications();
 	const hydrated = useHydrated();
 
 	return (
@@ -88,11 +97,9 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 				<HeadContent />
 			</head>
 			<body>
-				<AuthProvider>
-					<div id="app" data-hydrated={hydrated}>
-						{children}
-					</div>
-				</AuthProvider>
+				<div id="app" data-hydrated={hydrated}>
+					{children}
+				</div>
 				<TanStackDevtools
 					config={{ position: "bottom-right" }}
 					plugins={[

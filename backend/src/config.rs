@@ -18,11 +18,8 @@ pub use access_log::access_log_dir;
 pub use google_tasks::{GoogleTasksMode, GoogleTasksSettings};
 pub use triage::{TriageProvider, TriageSettings};
 
-/// How long a fetched Clerk JWKS document is reused before being re-fetched.
-pub const JWKS_CACHE_TTL_SECONDS: u64 = 3600;
-
 /// Configuration for the backend process.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Settings {
     /// PostgreSQL connection string, e.g. `postgres://user:pw@host:5432/db`.
     pub database_url: String,
@@ -31,8 +28,10 @@ pub struct Settings {
     /// Address the HTTP server binds to.
     pub bind_address: String,
 
-    /// Clerk JWKS document URL, used to verify session JWTs.
-    pub clerk_jwks_url: String,
+    /// Private server-to-server SuperTokens verification endpoint.
+    pub auth_verifier_url: String,
+    /// Shared credential for the verification endpoint.
+    pub auth_verifier_secret: String,
 
     /// Shared secret authenticating the generic intake webhook.
     pub voice_webhook_secret: String,
@@ -135,7 +134,8 @@ impl Settings {
             database_max_connections: parse_or("DATABASE_MAX_CONNECTIONS", 10)?,
             bind_address: optional("BIND_ADDRESS").unwrap_or_else(|| "0.0.0.0:8000".to_string()),
 
-            clerk_jwks_url: optional("CLERK_JWKS_URL").unwrap_or_default(),
+            auth_verifier_url: optional("AUTH_VERIFIER_URL").unwrap_or_default(),
+            auth_verifier_secret: optional("AUTH_VERIFIER_SECRET").unwrap_or_default(),
 
             voice_webhook_secret: optional("VOICE_WEBHOOK_SECRET").unwrap_or_default(),
             alexa_bridge_secret: optional("ALEXA_BRIDGE_SECRET").unwrap_or_default(),

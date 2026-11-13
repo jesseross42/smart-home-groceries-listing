@@ -3,7 +3,6 @@ export const PUBLIC_KEYS = [
 	"VITE_API_BASE_URL",
 	"VITE_WS_URL",
 	"VITE_AUTH_MODE",
-	"VITE_CLERK_PUBLISHABLE_KEY",
 ] as const;
 
 export type PublicConfig = Partial<
