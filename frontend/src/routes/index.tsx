@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { DislikeMarksProvider } from "#/components/dislikes/dislike-mark";
 import { AddItemForm } from "#/components/grocery/add-item-form";
 import { CommitBar } from "#/components/grocery/commit-bar";
 import { DuplicatePrompt } from "#/components/grocery/duplicate-prompt";
@@ -18,16 +19,18 @@ import {
 	selectionsByItem,
 } from "#/lib/api";
 import { chosenAtStore } from "#/lib/chosen-at-store";
+import { loadDislikeMarks } from "#/lib/dislike-marks";
 
 export const Route = createFileRoute("/")({
 	// The list and every item's chosen product, read together so a card never
-	// shows an item without knowing its choice.
+	// shows an item without knowing its choice, or who dislikes it.
 	loader: async () => {
-		const [items, selections] = await Promise.all([
+		const [items, selections, dislikeMarks] = await Promise.all([
 			api.grocery.list(),
 			api.selections.list(),
+			loadDislikeMarks(),
 		]);
-		return { items, selections: selectionsByItem(selections) };
+		return { items, selections: selectionsByItem(selections), dislikeMarks };
 	},
 	component: GroceryListPage,
 });
@@ -49,7 +52,7 @@ interface HeldAddition {
  * the single source of truth.
  */
 function GroceryListPage() {
-	const { items, selections } = Route.useLoaderData();
+	const { items, selections, dislikeMarks } = Route.useLoaderData();
 	const choices = useProductChoices();
 	const actions = useGroceryListActions(items);
 	const [held, setHeld] = useState<HeldAddition | null>(null);
@@ -79,67 +82,69 @@ function GroceryListPage() {
 	}
 
 	return (
-		<div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-			<h1 className="text-lg font-semibold">Grocery List</h1>
+		<DislikeMarksProvider value={dislikeMarks}>
+			<div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+				<h1 className="text-lg font-semibold">Grocery List</h1>
 
-			<AddItemForm onAdd={(item) => addItem(item)} />
+				<AddItemForm onAdd={(item) => addItem(item)} />
 
-			{held && (
-				<DuplicatePrompt
-					detail={held.detail}
-					onMerge={() => addItem(held.item, "merge")}
-					onSeparate={() => addItem(held.item, "separate")}
-					onCancel={() => setHeld(null)}
-				/>
-			)}
-
-			<GroceryItemSection
-				items={underReview}
-				selections={selections}
-				onSave={actions.save}
-				onRemove={actions.remove}
-				onClearChoice={choices.clear}
-				onSetCount={choices.setCount}
-				empty={
-					committed.length > 0
-						? "Nothing new since the list was committed."
-						: "Nothing on the list yet."
-				}
-			/>
-
-			<CommitBar
-				activeCount={underReview.length}
-				committedCount={committed.length}
-				onCommit={actions.commit}
-				onRelease={actions.release}
-			/>
-
-			<div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-				<SendToStore store="woolworths" chosenCount={chosenAtWoolworths}>
-					<SendToStore.Trigger />
-					<SendToStore.Content />
-				</SendToStore>
-				<SendToStore store="coles" chosenCount={chosenAtColes}>
-					<SendToStore.Trigger />
-					<SendToStore.Content />
-				</SendToStore>
-			</div>
-
-			{committed.length > 0 && (
-				<>
-					<h2 className="text-sm font-semibold text-muted-foreground">
-						Committed for purchase
-					</h2>
-					<GroceryItemSection
-						items={committed}
-						selections={selections}
-						onSave={actions.save}
-						onRemove={actions.remove}
-						onClearChoice={choices.clear}
-						onSetCount={choices.setCount}
+				{held && (
+					<DuplicatePrompt
+						detail={held.detail}
+						onMerge={() => addItem(held.item, "merge")}
+						onSeparate={() => addItem(held.item, "separate")}
+						onCancel={() => setHeld(null)}
 					/>
-				</>
-			)}
-		</div>
+				)}
+
+				<GroceryItemSection
+					items={underReview}
+					selections={selections}
+					onSave={actions.save}
+					onRemove={actions.remove}
+					onClearChoice={choices.clear}
+					onSetCount={choices.setCount}
+					empty={
+						committed.length > 0
+							? "Nothing new since the list was committed."
+							: "Nothing on the list yet."
+					}
+				/>
+
+				<CommitBar
+					activeCount={underReview.length}
+					committedCount={committed.length}
+					onCommit={actions.commit}
+					onRelease={actions.release}
+				/>
+
+				<div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+					<SendToStore store="woolworths" chosenCount={chosenAtWoolworths}>
+						<SendToStore.Trigger />
+						<SendToStore.Content />
+					</SendToStore>
+					<SendToStore store="coles" chosenCount={chosenAtColes}>
+						<SendToStore.Trigger />
+						<SendToStore.Content />
+					</SendToStore>
+				</div>
+
+				{committed.length > 0 && (
+					<>
+						<h2 className="text-sm font-semibold text-muted-foreground">
+							Committed for purchase
+						</h2>
+						<GroceryItemSection
+							items={committed}
+							selections={selections}
+							onSave={actions.save}
+							onRemove={actions.remove}
+							onClearChoice={choices.clear}
+							onSetCount={choices.setCount}
+						/>
+					</>
+				)}
+			</div>
+		</DislikeMarksProvider>
 	);
 }

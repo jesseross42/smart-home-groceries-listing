@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { dislikeFixture } from "#/components/dislikes/__tests__/fixtures";
+import { DislikeMarksProvider } from "#/components/dislikes/dislike-mark";
 import { selectionFixture } from "#/components/selections/__tests__/fixtures";
 import { ChosenProduct } from "#/components/selections/chosen-product";
 
@@ -134,5 +136,23 @@ describe("ChosenProduct", () => {
 		]);
 		await userEvent.click(screen.getByRole("option", { name: "×1" }));
 		expect(onSetCount).toHaveBeenCalledWith("coles", "c-milk-3l", 1);
+	});
+});
+
+describe("ChosenProduct dislikes", () => {
+	it("warns on a chosen product somebody dislikes", () => {
+		render(
+			<DislikeMarksProvider
+				value={{ dislikes: [dislikeFixture()], overrides: [] }}
+			>
+				<ChosenProduct itemName="milk" selection={selectionFixture()} />
+			</DislikeMarksProvider>,
+		);
+
+		expect(
+			within(
+				screen.getByRole("region", { name: "Chosen product for milk" }),
+			).getByRole("status"),
+		).toHaveTextContent("Phu disliked this item previously.");
 	});
 });
