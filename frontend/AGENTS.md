@@ -117,6 +117,7 @@ Use `VITE_AUTH_MODE=off` and `DEV_AUTH_BYPASS=true` together for local e2e.
 // lib/ws.ts — connect on app mount, reconnect on disconnect
 // Events: { type: 'voice_request_added', count } — Pending Requests badge
 //         { type: 'triage_held', count }         — Triage badge
+//         { type: 'grocery_list_changed' }       — hooks/useListSync re-runs the / and /order loaders
 // Badges: hooks/useLiveCount (usePendingCount, useHeldCount)
 // Toasts: hooks/useCountRiseToast — fires only when a count rises
 // Both read counts with countIn(event, type) from lib/ws.ts (snapshot or live event)

@@ -42,7 +42,6 @@ behavioral contract.
 
 - [#76 — Use product dislikes in automated order planning](https://github.com/jesseross42/smart-home-groceries-listing/issues/76)
 - [#82 — Improve item rules and add a settings index](https://github.com/jesseross42/smart-home-groceries-listing/issues/82)
-- [#81 — Sync grocery list changes across open tabs](https://github.com/jesseross42/smart-home-groceries-listing/issues/81)
 
 ### Integration follow-ups and maintenance
 

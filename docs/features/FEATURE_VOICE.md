@@ -138,8 +138,6 @@ since. Both routes need a household session.
   item cannot be changed back.
 
 ### Known gaps
-- No WebSocket event for list changes, so an open Grocery List page shows a
-  voice change only after reload.
 - A web Undo has no "undo the Undo"; say the removal again or edit the list.
 
 ## Backend

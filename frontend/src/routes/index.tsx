@@ -9,6 +9,7 @@ import { DuplicatePrompt } from "#/components/grocery/duplicate-prompt";
 import { GroceryItemSection } from "#/components/grocery/grocery-item-section";
 import { SendToStore } from "#/components/trolley/send-to-store";
 import { useGroceryListActions } from "#/hooks/useGroceryListActions";
+import { useListSync } from "#/hooks/useListSync";
 import { useProductChoices } from "#/hooks/useProductChoices";
 import {
 	api,
@@ -53,6 +54,7 @@ interface HeldAddition {
  */
 function GroceryListPage() {
 	const { items, selections, dislikeMarks } = Route.useLoaderData();
+	useListSync();
 	const choices = useProductChoices();
 	const actions = useGroceryListActions(items);
 	const [held, setHeld] = useState<HeldAddition | null>(null);

@@ -143,5 +143,16 @@ on blur and on submit.
   `FEATURE_ORDER_OPTIMISATION.md`), which reads only `committed` items.
 - No per-item ownership: any household member can change or remove any item,
   which matches the spec's "no admin roles in this POC".
-- The list does not update live between tabs. Intake events already have a
-  WebSocket; list changes could reuse it.
+
+## Live updates between tabs
+After a successful write (any method but `GET`/`HEAD`/`OPTIONS`) on a route
+that can change the list, its chosen products or its order, the backend
+broadcasts `{ "type": "grocery_list_changed" }` on `/ws`
+(`backend/src/middleware/list_changed.rs`, layered on the list, selection,
+dislike, voice, Alexa change, triage, purchase and trolley routers in
+`routes/mod.rs`). The event carries nothing; `/` and `/order` re-run their
+loaders on it (`frontend/src/hooks/useListSync.ts`, bursts within 200 ms are
+one read). A write that changed nothing may still send it. A page that was
+disconnected reads fresh data on its next navigation, not on reconnect.
+Tests: `backend/tests/websocket_list_changes.rs`,
+`frontend/src/hooks/__tests__/useListSync.test.ts`, `frontend/e2e/list-sync.spec.ts`.

@@ -12,6 +12,7 @@ import { ModePicker } from "#/components/order-options/mode-picker";
 import { OrderOptions } from "#/components/order-options/order-options";
 import { SendToStore } from "#/components/trolley/send-to-store";
 import { Button } from "#/components/ui/button";
+import { useListSync } from "#/hooks/useListSync";
 import { useOrderStores } from "#/hooks/useOrderStores";
 import { api, type OrderMode, selectionsByItem } from "#/lib/api";
 import { chosenAtStore } from "#/lib/chosen-at-store";
@@ -80,6 +81,7 @@ function OrderPage() {
 		chosenAtColes,
 	} = Route.useLoaderData();
 	const router = useRouter();
+	useListSync();
 	const navigate = useNavigate({ from: Route.fullPath });
 	const orderStores = useOrderStores(chosen);
 	const [checking, setChecking] = useState(false);
