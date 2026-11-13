@@ -1,15 +1,15 @@
 # Feature: Purchase History
 
-Status: **implemented** for shops filled by the Woolworths bookmark. Every
-product the bookmark added is saved as bought, with its price, so the
+Status: **implemented** for Woolworths and Coles handoffs. Every product
+reported as added by the store tab is saved as bought, with its price, so the
 product picker can show past purchases and Order › History can show spending
 (`FEATURE_SPENDING_ANALYSIS.md`). Steps for people: `docs/using-the-app.md`
 ("Do a Woolworths shop", "Undo a shop saved by mistake") — keep those in
-step with this spec. Dislikes are not built.
+step with this spec.
 
 ## When a shop counts as bought
 The app cannot see payment. Jesse chose (2026-10-02): **a shop is bought
-when the bookmark reports a filled trolley.** He wants this as automatic as
+when the store tab reports a filled trolley.** He wants this as automatic as
 possible, and **every save must be easy to undo**. Importing the stores'
 own order history later is the goal; `purchase_orders.source` leaves room
 for it (only `trolley_fill` today).
@@ -80,9 +80,8 @@ delivery_fee_share, store_category, category, category_source, bought_at).
   comparison), `components/trolley/saved-purchase.tsx` (Undo in the sheet).
 
 ## Not built
-- Importing order history from Woolworths or Coles.
-- Dislikes.
-- Coles trolley fill (so no Coles purchases yet, except by import later).
+- Importing past orders from Woolworths or Coles
+  ([issue #78](https://github.com/jesseross42/smart-home-groceries-listing/issues/78)).
 
 ## Tests
 - `backend/tests/purchase_history.rs` — save after fill, once per handoff,

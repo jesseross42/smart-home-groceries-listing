@@ -115,7 +115,8 @@ order`, `dislike override cleared`, `dislike override refused` (warn).
 - The optimiser itself, and so the "warn before the order is confirmed"
   screen (`FEATURE_ORDER_OPTIMISATION.md`).
 - Dislike badges on the order review and on the chosen product on the list.
-- Purchase history in the comparison (spec "Purchase History").
+
+Track planner integration in [issue #76](https://github.com/jesseross42/smart-home-groceries-listing/issues/76), and the remaining badges in [issue #77](https://github.com/jesseross42/smart-home-groceries-listing/issues/77).
 
 ## Tests
 - `backend/src/services/dislikes/skip_tests.rs` — every scope and override

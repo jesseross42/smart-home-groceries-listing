@@ -69,6 +69,13 @@ contains no business logic and holds no database credentials. See "Sidecars".
 `make dev`, `make check` and `make test` are the common ones. The README lists
 the rest, and the `Makefile` is the source of truth.
 
+## Work tracking
+
+Track future implementation, verification, and product decision work in
+GitHub Issues. Create an issue before adding future work to
+`docs/REMAINING_WORK.md`, and link each roadmap entry to its issue. Keep the
+feature specification as the source of the behavior and acceptance criteria.
+
 ## Rules (non-negotiable)
 
 1. **File length.** Rust ≤ 500 lines · Python ≤ 500 lines · TypeScript ≤ 500 lines
