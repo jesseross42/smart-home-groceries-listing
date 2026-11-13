@@ -3,6 +3,8 @@
 
 mod common;
 // Not in `common/mod.rs`: only the access-log tests read these rows.
+// This file only waits for rows; it never reads their columns.
+#[allow(dead_code)]
 #[path = "common/access_logs.rs"]
 mod logged;
 
