@@ -7,11 +7,13 @@
 
 mod entry;
 pub mod file;
+mod filter;
 mod repository;
 
 use sqlx::PgPool;
 
 pub use entry::{user_label, AccessLogEntry, UNAUTHENTICATED};
+pub use filter::AccessLogFilter;
 
 use crate::error::ApiError;
 use crate::models::access_log_rows::AccessLogRow;
@@ -51,17 +53,16 @@ pub struct AccessLogPage {
 
 /// One page of the access log, newest first.
 ///
-/// `limit` is clamped to `1..=MAX_PAGE_SIZE`; `hide_health_checks` leaves out
-/// the container's health probe.
+/// `limit` is clamped to `1..=MAX_PAGE_SIZE`; `filter` says which requests
+/// the page may hold.
 pub async fn recent(
     pool: &PgPool,
     before: Option<i64>,
     limit: Option<i64>,
-    hide_health_checks: bool,
+    filter: &AccessLogFilter,
 ) -> Result<AccessLogPage, ApiError> {
     let limit = page_size(limit);
-    let skip_path = hide_health_checks.then_some(HEALTH_CHECK_PATH);
-    let rows = repository::list_page(pool, before, limit, skip_path).await?;
+    let rows = repository::list_page(pool, before, limit, filter).await?;
     Ok(AccessLogPage {
         next_before: next_before(&rows, limit),
         rows,

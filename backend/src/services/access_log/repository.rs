@@ -3,7 +3,7 @@
 
 use sqlx::PgPool;
 
-use super::AccessLogEntry;
+use super::{AccessLogEntry, AccessLogFilter};
 use crate::error::ApiError;
 use crate::models::access_log_rows::AccessLogRow;
 
@@ -27,12 +27,13 @@ pub async fn insert(pool: &PgPool, entry: &AccessLogEntry) -> Result<(), sqlx::E
 }
 
 /// Up to `limit` requests, newest first, older than `before` when given.
-/// `skip_path`, when given, leaves out requests to that exact path.
+/// `filter` leaves out the health probe and keeps one user or one path
+/// prefix, each only when asked.
 pub async fn list_page(
     pool: &PgPool,
     before: Option<i64>,
     limit: i64,
-    skip_path: Option<&str>,
+    filter: &AccessLogFilter,
 ) -> Result<Vec<AccessLogRow>, ApiError> {
     Ok(sqlx::query_as::<_, AccessLogRow>(
         "SELECT id, occurred_at, source_ip, forwarded_for, user_id, method, path,
@@ -40,12 +41,16 @@ pub async fn list_page(
          FROM access_logs
          WHERE ($1::bigint IS NULL OR id < $1)
            AND ($3::text IS NULL OR path <> $3)
+           AND ($4::text IS NULL OR user_id = $4)
+           AND ($5::text IS NULL OR starts_with(path, $5))
          ORDER BY id DESC
          LIMIT $2",
     )
     .bind(before)
     .bind(limit)
-    .bind(skip_path)
+    .bind(filter.skip_path())
+    .bind(filter.user())
+    .bind(filter.path_prefix())
     .fetch_all(pool)
     .await?)
 }

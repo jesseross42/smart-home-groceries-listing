@@ -11,7 +11,7 @@ use axum::{Json, Router};
 use crate::auth::AuthUser;
 use crate::error::ApiError;
 use crate::models::schemas::{AccessLogPageResponse, AccessLogQuery};
-use crate::services::access_log;
+use crate::services::access_log::{self, AccessLogFilter};
 use crate::state::AppState;
 
 /// Routes under `/api/access-logs`.
@@ -19,20 +19,19 @@ pub fn router() -> Router<AppState> {
     Router::new().route("/api/access-logs", get(list_page))
 }
 
-/// `GET /api/access-logs?before=&limit=&hide_health_checks=` — one page of
-/// answered requests, newest first. Health checks are hidden unless
-/// `hide_health_checks=false`.
+/// `GET /api/access-logs?before=&limit=&hide_health_checks=&user=&path=` —
+/// one page of answered requests, newest first. Health checks are hidden
+/// unless `hide_health_checks=false`; `user` and `path` narrow the page.
 async fn list_page(
     State(state): State<AppState>,
     _user: AuthUser,
     Query(query): Query<AccessLogQuery>,
 ) -> Result<Json<AccessLogPageResponse>, ApiError> {
-    let page = access_log::recent(
-        &state.pool,
-        query.before,
-        query.limit,
+    let filter = AccessLogFilter::new(
         query.hide_health_checks.unwrap_or(true),
-    )
-    .await?;
+        query.user,
+        query.path,
+    );
+    let page = access_log::recent(&state.pool, query.before, query.limit, &filter).await?;
     Ok(Json(page.into()))
 }
