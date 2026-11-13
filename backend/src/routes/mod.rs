@@ -26,6 +26,7 @@ pub mod store_tab;
 pub mod triage;
 pub mod trolley_handoffs;
 pub mod voice;
+pub mod voice_list_changes;
 pub mod ws;
 
 use axum::Router;
@@ -42,6 +43,7 @@ pub fn api_router(state: &AppState) -> Router<AppState> {
         .merge(store_products::router())
         .merge(access_logs::router())
         .merge(voice::router())
+        .merge(voice_list_changes::router())
         .merge(alexa::router())
         .merge(google_tasks::router())
         .merge(intake_settings::router())

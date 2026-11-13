@@ -1,11 +1,13 @@
 //! Bodies for removing or reducing a list item by voice, and undoing that.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use validator::Validate;
 
 use super::common::{MAX_NAME_LEN, MAX_QUANTITY};
 use crate::models::db::{VoiceChangeKind, VoiceListChange};
+use crate::services::voice_changes::RecentChange;
 
 /// What the Alexa bridge forwards for "remove milk" or "remove two milk".
 ///
@@ -52,6 +54,39 @@ impl From<VoiceListChange> for VoiceListChangeResponse {
             quantity_before: row.quantity_before,
             quantity_after: row.quantity_after,
             undone: row.undone_at.is_some(),
+        }
+    }
+}
+
+/// A voice change as the web app lists it: what happened, when, and whether
+/// it can still be undone.
+#[derive(Debug, Serialize)]
+pub struct VoiceListChangeEntry {
+    pub id: Uuid,
+    pub kind: VoiceChangeKind,
+    pub item_name: String,
+    pub quantity_before: i32,
+    /// `0` when the item was removed.
+    pub quantity_after: i32,
+    pub created_at: DateTime<Utc>,
+    /// When Undo reversed it; `null` while it stands.
+    pub undone_at: Option<DateTime<Utc>>,
+    /// Still standing and young enough for Undo.
+    pub can_undo: bool,
+}
+
+impl From<RecentChange> for VoiceListChangeEntry {
+    fn from(recent: RecentChange) -> Self {
+        let RecentChange { change, can_undo } = recent;
+        Self {
+            id: change.id,
+            kind: change.kind,
+            item_name: change.item_name,
+            quantity_before: change.quantity_before,
+            quantity_after: change.quantity_after,
+            created_at: change.created_at,
+            undone_at: change.undone_at,
+            can_undo,
         }
     }
 }
