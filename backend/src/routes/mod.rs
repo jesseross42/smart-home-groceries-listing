@@ -38,28 +38,36 @@ use crate::state::AppState;
 /// Takes the state because the store-tab routes carry a layer of their own
 /// that reads the stores' configured websites.
 pub fn api_router(state: &AppState) -> Router<AppState> {
+    // Routes whose writes can change what the list and order pages show.
+    let list_changing = Router::new()
+        .merge(voice::router())
+        .merge(voice_list_changes::router())
+        .merge(alexa_list_changes::router())
+        .merge(dislikes::router())
+        .merge(grocery::router())
+        .merge(purchases::router())
+        .merge(selections::router())
+        .merge(triage::router())
+        .merge(trolley_handoffs::router())
+        .route_layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            crate::middleware::list_changed::notify_list_changed,
+        ));
+
     Router::new()
+        .merge(list_changing)
         .merge(health::router())
         .merge(store_products::router())
         .merge(access_logs::router())
-        .merge(voice::router())
-        .merge(voice_list_changes::router())
         .merge(alexa::router())
         .merge(google_tasks::router())
         .merge(intake_settings::router())
-        .merge(alexa_list_changes::router())
         .merge(delivery_settings::router())
-        .merge(dislikes::router())
-        .merge(grocery::router())
         .merge(item_rules::router())
         .merge(order_options::router())
         .merge(order_review::router())
         .merge(products::router())
-        .merge(purchases::router())
-        .merge(selections::router())
         .merge(spending::router())
-        .merge(triage::router())
-        .merge(trolley_handoffs::router())
         .merge(store_tab::router(state.clone()))
         .merge(ws::router())
 }

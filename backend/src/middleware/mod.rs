@@ -2,3 +2,4 @@
 //! (CORS, timeouts, body limits, tracing) are wired in `lib.rs` directly.
 
 pub mod access_log;
+pub mod list_changed;
