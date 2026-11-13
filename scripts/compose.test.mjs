@@ -16,7 +16,7 @@ test('up and down share selected Compose identity; down needs no provider and pr
   const dir = mkdtempSync(join(tmpdir(), 'grocery-lifecycle-'));
   try {
     const file = join(dir, 'selected.env');
-    writeFileSync(file, 'COMPOSE_PROJECT_NAME=grocery-selected\nDATABASE_URL=postgres://fixture@db/grocery\nCLERK_SECRET_KEY=op://unavailable/secret\n');
+    writeFileSync(file, 'COMPOSE_PROJECT_NAME=grocery-selected\nDATABASE_URL=postgres://fixture@db/grocery\nAUTH_OIDC_CLIENT_SECRET=op://unavailable/secret\n');
     writeFileSync(join(dir, 'op'), '#!/bin/sh\nprintf fixture-secret\n', { mode: 0o700 });
     writeFileSync(join(dir, 'docker'), '#!/bin/sh\nprintf "%s|%s\\n" "$COMPOSE_PROJECT_NAME" "$*"\nexit "${DOCKER_EXIT:-0}"\n', { mode: 0o700 });
     const env = { PATH: `${dir}:${process.env.PATH}`, GROCERY_ENV_FILE: file };

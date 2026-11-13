@@ -17,6 +17,21 @@ services:
       interval: 5s
       retries: 5
 
+  # Optional Core. Keep this on the Compose network and use a dedicated database role.
+  supertokens:
+    image: supertokens/supertokens-postgresql:12.5.0
+    profiles: ["auth"]
+    environment:
+      POSTGRESQL_CONNECTION_URI: ${SUPERTOKENS_DATABASE_URL:-}
+      API_KEYS: ${SUPERTOKENS_API_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", 'test -n "$$API_KEYS" && test -n "$$POSTGRESQL_CONNECTION_URI" && curl -fsS http://127.0.0.1:3567/hello']
+      interval: 5s
+      retries: 12
+    restart: unless-stopped
+
   backend:
     build: ./backend
     depends_on:
@@ -30,7 +45,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-10}
-      CLERK_JWKS_URL: ${CLERK_JWKS_URL:-}
+      AUTH_VERIFIER_URL: ${AUTH_VERIFIER_URL:-}
+      AUTH_VERIFIER_SECRET: ${AUTH_VERIFIER_SECRET:-}
       VOICE_WEBHOOK_SECRET: ${VOICE_WEBHOOK_SECRET:-}
       ALEXA_BRIDGE_SECRET: ${ALEXA_BRIDGE_SECRET:-}
       STORE_TAB_SECRET: ${STORE_TAB_SECRET:-}

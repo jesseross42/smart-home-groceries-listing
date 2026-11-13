@@ -7,8 +7,8 @@ import config from "../../vite.config";
 
 const KEYS = [
 	"GROCERY_ENV_FILE",
-	"VITE_FIXTURE_URL",
-	"CLERK_FIXTURE_KEY",
+	"VITE_API_BASE_URL",
+	"AUTH_OIDC_CLIENT_SECRET",
 	"SERVER_API_BASE_URL",
 	"DATABASE_URL",
 ];
@@ -28,14 +28,16 @@ describe("the Vite configuration", () => {
 			const file = join(dir, "selected.env");
 			writeFileSync(
 				file,
-				"VITE_FIXTURE_URL=http://api.test\nCLERK_FIXTURE_KEY=clerk\nSERVER_API_BASE_URL=http://backend:8000\nDATABASE_URL=postgres://db/grocery\n",
+				"VITE_API_BASE_URL=http://api.test\nAUTH_OIDC_CLIENT_SECRET=oidc\nSERVER_API_BASE_URL=http://backend:8000\nDATABASE_URL=postgres://db/grocery\n",
 			);
+			for (const key of KEYS)
+				if (key !== "DATABASE_URL") delete process.env[key];
 			process.env.GROCERY_ENV_FILE = file;
 			const resolved = (config as unknown as () => { envDir: unknown })();
 
 			expect(resolved.envDir).toBe(false);
-			expect(process.env.VITE_FIXTURE_URL).toBe("http://api.test");
-			expect(process.env.CLERK_FIXTURE_KEY).toBe("clerk");
+			expect(process.env.VITE_API_BASE_URL).toBe("http://api.test");
+			expect(process.env.AUTH_OIDC_CLIENT_SECRET).toBe("oidc");
 			expect(process.env.SERVER_API_BASE_URL).toBe("http://backend:8000");
 			expect(process.env.DATABASE_URL).toBe(saved.DATABASE_URL);
 		} finally {

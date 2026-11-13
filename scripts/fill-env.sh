@@ -67,4 +67,4 @@ if ! has_key CREDENTIAL_ENCRYPTION_KEY || [ -z "$(current CREDENTIAL_ENCRYPTION_
     fill CREDENTIAL_ENCRYPTION_KEY "$(openssl rand -base64 32)"
 fi
 
-echo "Done. Still to fill by hand: the Clerk, Cloudflare and Alexa values (docs/human-setup.md)."
+echo "Done. Still to fill by hand: the Authentik, Cloudflare and Alexa values (docs/human-setup.md)."

@@ -12,11 +12,16 @@ import { cancellation, runProcess } from './test-process.mjs';
 export const COMPOSE_ONLY_ACTIONS = ['down', 'logs', 'ps', 'exec', 'stop'];
 
 /** Run one Compose action with resolved settings; `overrides` win over loaded values. */
-export async function runCompose({ action, args = [], files = [], overrides = {}, signal, log }) {
+export async function runCompose({ action, args = [], files = [], overrides = {}, signal, log, keys }) {
   const { file, required } = selectedEnvironmentFile();
   const composeOnly = COMPOSE_ONLY_ACTIONS.includes(action);
-  const env = loadEnvironment({ file, required, accepts: key => !composeOnly || key.startsWith('COMPOSE_') });
-  if (action === 'up') env.COMPOSE_PROFILES = databaseProfiles(env.DATABASE_URL, env.COMPOSE_PROFILES);
+  const env = loadEnvironment({
+    file, required,
+    accepts: key => keys ? keys.includes(key) : !composeOnly || key.startsWith('COMPOSE_'),
+  });
+  if (action === 'up' && !keys) {
+    env.COMPOSE_PROFILES = databaseProfiles(env.DATABASE_URL, env.COMPOSE_PROFILES);
+  }
   const childEnv = { ...process.env, ...env, ...overrides };
   for (const key of Object.keys(childEnv)) if (key.startsWith('OP_')) delete childEnv[key];
   const fileArgs = files.flatMap(name => ['-f', name]);

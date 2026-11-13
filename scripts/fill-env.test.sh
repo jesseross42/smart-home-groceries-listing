@@ -29,7 +29,7 @@ ALEXA_BRIDGE_SECRET=
 # a comment that must survive
 STORE_TAB_SECRET=
 CREDENTIAL_ENCRYPTION_KEY=
-CLERK_SECRET_KEY=
+AUTH_OIDC_CLIENT_SECRET=
 EXAMPLE
 
 run() { sh "$tmp/scripts/fill-env.sh"; }
@@ -45,7 +45,7 @@ check "gives each secret its own value" "no" \
 check "replaces the example database password" "no" "$([ "$(value POSTGRES_PASSWORD)" = changeme ] && echo yes || echo no)"
 check "puts the same password in DATABASE_URL" \
     "postgres://grocery:$(value POSTGRES_PASSWORD)@db:5432/grocery" "$(value DATABASE_URL)"
-check "leaves values it cannot make (Clerk) empty" "" "$(value CLERK_SECRET_KEY)"
+check "leaves values it cannot make (OIDC) empty" "" "$(value AUTH_OIDC_CLIENT_SECRET)"
 check "keeps comments" "1" "$(grep -c '^# a comment that must survive$' "$tmp/.env")"
 check "never prints a secret value" "no" \
     "$(printf '%s' "$output" | grep -q "$(value STORE_TAB_SECRET)" && echo yes || echo no)"

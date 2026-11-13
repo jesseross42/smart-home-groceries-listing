@@ -7,7 +7,7 @@ that local bundle using reviewed fixed control code. The server repository
 provides the verified release updater for unattended production deployment.
 
 Do the vendor-console parts of [`human-setup.md`](human-setup.md) first
-(Clerk, Cloudflare Tunnel token, Alexa skill). This page replaces its
+(Authentik and SuperTokens, Cloudflare Tunnel token, Alexa skill). This page replaces its
 section 6 and "Optional: PostgreSQL installed on the server" on the server.
 Developer machines keep Docker Compose (`make dev`) and Testcontainers.
 
@@ -128,10 +128,21 @@ and keys deliberately rather than pointing an update at a new empty database.
 Password rotation for the same target is allowed; changing configuration does
 not rotate an existing database role's password.
 
-Four public frontend settings take effect after a frontend restart without a
-rebuild: `VITE_API_BASE_URL`, `VITE_WS_URL`, `VITE_AUTH_MODE` and
-`VITE_CLERK_PUBLISHABLE_KEY`. Restart the backend after changing its settings.
+Three public frontend settings take effect after a frontend restart without a
+rebuild: `VITE_API_BASE_URL`, `VITE_WS_URL` and `VITE_AUTH_MODE`. Restart the backend after changing its settings.
 Other `VITE_*` values are outside this runtime configuration contract.
+
+### SuperTokens Core
+
+Provision the dedicated PostgreSQL database, Authentik application and server
+settings in [human setup](human-setup.md#2-supertokens-and-authentik).
+For a Core container on the same server, run
+`make hm-auth-core` with `SUPERTOKENS_DATABASE_URL` and `SUPERTOKENS_API_KEY`
+configured. This starts Core with port 3567 bound to loopback. Set
+`SUPERTOKENS_CONNECTION_URI=http://127.0.0.1:3567` for the native frontend.
+For an existing private Core, use its private URL instead. Install or
+restart the grocery services after setting the frontend and backend
+authentication values.
 
 ## 3. Cloudflare dashboard: tunnel routes
 
@@ -278,9 +289,17 @@ see [human setup](human-setup.md#optional-web-app-on-your-own-computer).
 
 ### Same-origin proxy
 
-Prefer a frontend HTTPS origin that routes `/api`, `/api/*` and `/ws` to
-`127.0.0.1:8000`, and other paths to `127.0.0.1:3000`. Preserve paths and
-WebSocket upgrades. The server repository owns the Caddy configuration and
+Use an HTTPS origin with the following routes in order. Preserve paths and
+WebSocket upgrades.
+
+| Path | Destination |
+|---|---|
+| `/api/auth/internal/*` | Return 404 at ingress. Axum calls it on loopback. |
+| `/api/auth/*` | `127.0.0.1:3000` |
+| `/api`, remaining `/api/*`, `/ws` | `127.0.0.1:8000` |
+| Everything else | `127.0.0.1:3000` |
+
+The server repository owns the Caddy configuration and
 its ingress verification scripts.
 
 Before changing frontend settings, install and reload the proxy configuration.

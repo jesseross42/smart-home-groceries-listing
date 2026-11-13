@@ -80,7 +80,7 @@ test('startup preserves omitted values, accepts exports, and never stores bootst
   const result = mergeConfiguration({ DATABASE_URL: 'old', CREDENTIAL_ENCRYPTION_KEY: 'keep', STORE_TIMEOUT_SECONDS: '12' },
     { STORE_TIMEOUT_SECONDS: '15' }, { STORE_TIMEOUT_SECONDS: '17', OP_SERVICE_ACCOUNT_TOKEN: 'do-not-store' });
   assert.deepEqual(result, { DATABASE_URL: 'old', CREDENTIAL_ENCRYPTION_KEY: 'keep', STORE_TIMEOUT_SECONDS: '17' });
-  const values = { DATABASE_URL: 'postgres://user:pass@localhost/database', CLERK_SECRET_KEY: 'line1\nline2 "quoted"' };
+  const values = { DATABASE_URL: 'postgres://user:pass@localhost/database', AUTH_OIDC_CLIENT_SECRET: 'line1\nline2 "quoted"' };
   assert.deepEqual(parseEnv(encodeConfiguration(values)), values);
 });
 

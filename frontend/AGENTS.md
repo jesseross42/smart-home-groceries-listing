@@ -45,7 +45,7 @@ src/
 ├── lib/
 │   ├── api.ts           # Gathers api/* into `api` and re-exports their types
 │   ├── api/             # client.ts (request, ApiError) + one module per domain
-│   ├── auth*.ts, sign-in-guard.ts # Clerk sign-in — see "Sign-in" below
+│   ├── auth*.ts, sign-in-guard.ts # SuperTokens sign-in — see "Sign-in" below
 │   └── ws.ts            # WebSocket client (pending request events)
 └── hooks/               # Custom hooks (useWebSocket, usePendingCount, etc.)
 ```
@@ -58,8 +58,7 @@ File-based routing — one file per route:
 | `routes/index.tsx` | `/` — Grocery list |
 | `routes/items.$itemId.select.tsx` | `/items/$itemId/select` — Select item page (not in the nav) |
 | `routes/pending.tsx` | `/pending` — Confirmation queue, then Held / Rejected (`?tab=rejected`) |
-| `routes/sign-in.$.tsx` | `/sign-in` — Clerk's sign-in box (goes home with sign-in off) |
-| `routes/sign-up.$.tsx` | `/sign-up` — Clerk's sign-up box (goes home with sign-in off) |
+| `routes/sign-in.$.tsx` | `/sign-in` — Household OIDC sign-in and callback |
 | `routes/order.tsx` | `/order` — In Progress / History layout |
 | `routes/order/index.tsx` | `/order` — Ways to buy (`?mode=`) + order review |
 | `routes/order/history.tsx` | `/order/history` — Spending |
@@ -81,15 +80,11 @@ import { useParams } from '@tanstack/react-router'
 ```
 
 ## Sign-in
-Clerk, through `@clerk/tanstack-react-start`, styled with `@clerk/ui`'s
-`shadcn` theme. Full map:
-`docs/features/FEATURE_AUTH.md`.
-- Never import Clerk outside `lib/auth*.ts`, `start.ts`, `routes/sign-in.$.tsx`,
-  `routes/sign-up.$.tsx` and `components/auth/`. Everything else calls `getAuthToken()` (via
-  `lib/api/client.ts`) or reads `AUTH_MODE`.
-- Sign-in is on when `VITE_CLERK_PUBLISHABLE_KEY` is set in the root `.env`.
-- **e2e runs with sign-in off:** start the app with `VITE_AUTH_MODE=off pnpm dev`
-  and the backend with `DEV_AUTH_BYPASS=true`.
+
+SuperTokens uses Authentik for OIDC. The browser SDK lives in `lib/auth.ts`.
+The server SDK and session verifier live in `lib/server/`. TanStack Start
+serves auth APIs under `/api/auth/`. Keep credentials in server configuration.
+Use `VITE_AUTH_MODE=off` and `DEV_AUTH_BYPASS=true` together for local e2e.
 
 ## Components
 - Use Shadcn components from `components/ui/` — run `pnpm dlx shadcn@latest add <component>` to add new ones. Do not modify ui/ files.

@@ -65,7 +65,7 @@ compressed. `wreq` builds BoringSSL, so the Docker builder needs `cmake`,
 Confirm current versions with Context7 MCP before adding anything.
 
 Never use plain `reqwest` against a store URL (see "Anti-scraping" below). `reqwest`
-stays in this crate only for Clerk's JWKS endpoint, which has no bot
+is used for services without bot
 protection.
 
 ## Endpoints in use (search captured 2026-10-01, lookup 2026-10-06)

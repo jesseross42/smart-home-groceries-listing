@@ -29,13 +29,13 @@ configuration resolver described in [production setup](../docs/production.md).
 ## Environment variables required
 
 Vite loads the root `.env`, exported overrides, or an explicitly selected
-`GROCERY_ENV_FILE`. It resolves `CLERK_*`, `VITE_*` and `SERVER_API_BASE_URL` references through the
+`GROCERY_ENV_FILE`. It resolves the frontend component’s environment references through the
 shared loader. See [configuration sources](../docs/features/FEATURE_CONFIGURATION.md).
 
 | Variable | Purpose |
 |---|---|
-| `VITE_CLERK_PUBLISHABLE_KEY` | Enable Clerk sign-in with the intended instance's public key. |
-| `CLERK_SECRET_KEY` | Server-side Clerk configuration when using Clerk. Never expose it through `VITE_*`. |
+| `AUTH_PUBLIC_ORIGIN` | Exact browser origin for OIDC callbacks. |
+| `AUTH_*` and `SUPERTOKENS_*` | Server-only settings documented in [human setup](../docs/human-setup.md#2-supertokens-and-authentik). |
 | `VITE_API_BASE_URL` | Browser API address. Defaults to `http://localhost:8000` outside full-stack development. |
 | `SERVER_API_BASE_URL` | Optional internal API address for server rendering only. Compose supplies `http://backend:8000`; the browser keeps `VITE_API_BASE_URL`. |
 | `VITE_WS_URL` | Optional WebSocket address. Defaults to the API scheme/host plus `/ws`. |
@@ -64,7 +64,7 @@ Raw `pnpm e2e` assumes an already isolated test stack and resets its data.
 | `src/routes/` | Pages and route layouts; `routeTree.gen.ts` is generated. |
 | `src/components/` | Feature components and shared UI primitives. |
 | `src/lib/api/` | API modules grouped by domain. |
-| `src/lib/auth*.ts`, `src/components/auth/` | Clerk-specific client integration. |
+| `src/lib/auth*.ts`, `src/components/auth/` | SuperTokens browser integration. |
 | `src/lib/store-tab/` | Store-tab handoff and bookmark behavior. |
 | `src/hooks/` | Shared interactions and live updates. |
 | `e2e/` | Playwright tests and isolated browser fixtures. |

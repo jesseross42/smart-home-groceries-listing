@@ -44,3 +44,41 @@ async fn the_web_app_may_use_every_method_the_api_serves(pool: PgPool) {
         );
     }
 }
+
+#[sqlx::test]
+async fn only_the_configured_web_origin_can_send_session_headers(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let web_origin = "http://localhost:3000";
+
+    for origin in [web_origin, "http://localhost:3001"] {
+        let (status, _, headers) = app
+            .send_with_headers(
+                Request::builder()
+                    .method(Method::OPTIONS)
+                    .uri("/api/grocery-items")
+                    .header("origin", origin)
+                    .header("access-control-request-method", "POST")
+                    .header(
+                        "access-control-request-headers",
+                        "authorization,content-type,rid,st-auth-mode",
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await;
+
+        if origin == web_origin {
+            assert!(status.is_success());
+            assert_eq!(headers["access-control-allow-origin"], web_origin);
+            let allowed = headers["access-control-allow-headers"].to_str().unwrap();
+            for header in ["authorization", "content-type", "rid", "st-auth-mode"] {
+                assert!(
+                    allowed.split(',').any(|name| name.trim() == header),
+                    "{allowed}"
+                );
+            }
+        } else {
+            assert!(headers.get("access-control-allow-origin").is_none());
+        }
+    }
+}

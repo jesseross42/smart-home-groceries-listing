@@ -104,13 +104,12 @@ async fn every_household_route_refuses_a_request_with_no_session(pool: PgPool) {
 
 #[sqlx::test]
 async fn every_household_route_refuses_a_token_that_does_not_verify(pool: PgPool) {
-    let (_jwks, jwks_url) = common::clerk::serve_jwks().await;
-    let app = TestApp::with_clerk(pool, &jwks_url);
-    let forged = common::clerk::sign_forged(&common::clerk::session_claims("user_x"));
-    let header = format!("Bearer {forged}");
+    let verifier = common::session::serve_verifier().await;
+    let app = TestApp::with_verifier(pool, &verifier);
+    let header = "Bearer invalid.session.token";
 
     for (method, uri) in household_routes() {
-        let (status, _) = app.send(request(method.clone(), &uri, Some(&header))).await;
+        let (status, _) = app.send(request(method.clone(), &uri, Some(header))).await;
         assert_eq!(status, StatusCode::UNAUTHORIZED, "{method} {uri}");
     }
 }

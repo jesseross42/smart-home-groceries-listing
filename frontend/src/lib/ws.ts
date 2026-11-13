@@ -6,7 +6,7 @@
 import { getAuthToken } from "#/lib/auth";
 import { AUTH_MODE } from "#/lib/auth-mode";
 import { WS_URL } from "#/lib/config";
-import { socketUrl } from "#/lib/ws-url";
+import { socketProtocols } from "#/lib/ws-url";
 
 export interface VoiceRequestAddedEvent {
 	type: "voice_request_added";
@@ -66,8 +66,7 @@ function scheduleReconnect() {
 
 /**
  * Opens the socket unless one is open, opening, or waiting to retry. With
- * sign-in on, a fresh session token is fetched for every attempt (they live
- * about a minute); signed out, it waits and tries again later.
+ * sign-in on, a fresh session token is fetched for every attempt; signed out, it waits and tries again later.
  */
 export function connect(): void {
 	if (typeof window === "undefined") return; // SSR guard — client only
@@ -85,17 +84,17 @@ export function connect(): void {
 		.catch(() => null)
 		.then((token) => {
 			opening = false;
-			if (AUTH_MODE === "clerk" && !token) {
+			if (AUTH_MODE === "supertokens" && !token) {
 				scheduleReconnect();
 				return;
 			}
-			open(socketUrl(WS_URL, token));
+			open(WS_URL, socketProtocols(token));
 		});
 }
 
 /** Opens one socket and wires its handlers. */
-function open(url: string): void {
-	socket = new WebSocket(url);
+function open(url: string, protocols: string[]): void {
+	socket = new WebSocket(url, protocols);
 
 	socket.onopen = () => {
 		retryDelayMs = 1000;

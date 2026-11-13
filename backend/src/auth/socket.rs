@@ -1,73 +1,53 @@
-//! Authentication for the `/ws` upgrade.
-//!
-//! A browser cannot set headers on a WebSocket, so the web app sends its
-//! session token as `?token=` instead. Clerk session tokens live about a
-//! minute, which keeps a token that lands in an access log short-lived. Only
-//! the upgrade accepts a token this way; every other route takes the
-//! `Authorization` header alone.
+//! Extracts the credential offered separately from the WebSocket event protocol.
 
-use axum::extract::{FromRequestParts, Query};
-use axum::http::request::Parts;
-use serde::Deserialize;
+use axum::extract::FromRequestParts;
+use axum::http::{header::SEC_WEBSOCKET_PROTOCOL, request::Parts, HeaderMap};
 
-use crate::auth::{authenticate, bearer_token, record_for_access_log, AuthUser};
+use super::{authenticate, bearer_token, record_for_access_log, AuthUser};
 use crate::error::ApiError;
 use crate::state::AppState;
 
-/// The household member opening a WebSocket.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SocketUser(pub AuthUser);
+/// The only subprotocol the server can negotiate.
+pub const EVENT_PROTOCOL: &str = "grocery.events";
 
-/// The one query parameter the upgrade reads.
-#[derive(Debug, Deserialize)]
-struct TokenQuery {
+fn offered_token(headers: &HeaderMap) -> Option<&str> {
+    headers
+        .get_all(SEC_WEBSOCKET_PROTOCOL)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .flat_map(|value| value.split(','))
+        .find_map(|value| {
+            value
+                .trim()
+                .strip_prefix("grocery.session.")
+                .filter(|token| !token.is_empty())
+        })
+}
+
+/// The authenticated WebSocket credential, retained for periodic revalidation.
+pub struct SocketUser {
     token: Option<String>,
 }
 
-/// The token from `?token=`, if there is a non-empty one.
-fn query_token(parts: &Parts) -> Option<String> {
-    let Query(query) = Query::<TokenQuery>::try_from_uri(&parts.uri).ok()?;
-    query.token.filter(|token| !token.trim().is_empty())
+impl SocketUser {
+    /// Checks whether this connection still has an active session.
+    pub async fn is_active(&self, state: &AppState) -> bool {
+        authenticate(state, self.token.as_deref()).await.is_ok()
+    }
 }
 
 impl FromRequestParts<AppState> for SocketUser {
     type Rejection = ApiError;
 
-    /// Takes the `Authorization` header when there is one (non-browser
-    /// clients), and `?token=` otherwise.
     async fn from_request_parts(
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let from_query = query_token(parts);
-        let token = bearer_token(parts).or(from_query.as_deref());
-        let user = authenticate(state, token).await?;
+        let token = bearer_token(parts).or_else(|| offered_token(&parts.headers));
+        let user: AuthUser = authenticate(state, token).await?;
         record_for_access_log(parts, &user);
-        Ok(SocketUser(user))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use axum::http::Request;
-
-    fn parts(uri: &str) -> Parts {
-        Request::builder().uri(uri).body(()).unwrap().into_parts().0
-    }
-
-    #[test]
-    fn reads_the_token_query_parameter() {
-        assert_eq!(
-            query_token(&parts("/ws?token=abc.def")),
-            Some("abc.def".into())
-        );
-    }
-
-    #[test]
-    fn ignores_a_missing_or_empty_token() {
-        assert_eq!(query_token(&parts("/ws")), None);
-        assert_eq!(query_token(&parts("/ws?token=")), None);
-        assert_eq!(query_token(&parts("/ws?other=1")), None);
+        Ok(Self {
+            token: token.map(str::to_owned),
+        })
     }
 }

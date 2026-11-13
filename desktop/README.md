@@ -2,7 +2,7 @@
 
 A Tauri 2 Rust client loads the household web app from a saved server URL and
 provides native notifications and a Woolworths store window. React/TanStack Start
-screens, Clerk authentication and grocery data run on the server. This client
+screens, SuperTokens authentication and grocery data run on the server. This client
 needs the Rust and pnpm toolchains plus Tauri's native OS build dependencies;
 it needs no local PostgreSQL or Docker stack.
 
@@ -29,7 +29,7 @@ Run commands from the repository root:
 
 Add `human=1` for full build/test output. `make build` packages server components;
 use `build-desktop` explicitly for installers for the current OS. Native tests
-and a build do not verify authenticated store, Clerk, Tailscale or Cloudflare flows.
+and a build do not verify authenticated store, Authentik, Tailscale or Cloudflare flows.
 
 See [desktop setup](../docs/human-setup.md#desktop-client-through-tailscale-or-cloudflare)
 for server connectivity and [the feature contract](../docs/features/FEATURE_DESKTOP_APP.md)

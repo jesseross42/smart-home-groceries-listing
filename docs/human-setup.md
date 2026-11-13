@@ -9,7 +9,7 @@ dependency, so the stack is started once, at the end. Every value written to
 | § | Where | Produces | Time |
 |---|---|---|---|
 | [1. Generate `.env`](#1-generate-env) | Home server shell | `.env` with generated secrets | 5 min |
-| [2. Clerk](#2-clerk) | dashboard.clerk.com | Clerk keys + JWKS URL | 10 min |
+| [2. SuperTokens and Authentik](#2-supertokens-and-authentik) | Authentik and PostgreSQL | OIDC provider and Core settings | 15 min |
 | [3. Cloudflare Tunnel](#3-cloudflare-tunnel) | dash.cloudflare.com | Tunnel token + public skill endpoint | 15 min |
 | [4. Alexa skill](#4-alexa-skill) | Alexa developer console | Skill ID; interaction model deployed | 20 min |
 | [5. Intake triage model](#5-intake-triage-model) | `.env` | LLM provider config | 5 min |
@@ -60,7 +60,7 @@ before section 6.
 
 Plain `.env` values work without 1Password CLI. Any value can instead be a
 complete reference, such as
-`CLERK_SECRET_KEY='op://Development/grocery-clerk/secret key'`.
+`AUTH_OIDC_CLIENT_SECRET='op://Development/grocery-auth/client secret'`.
 Single-quote values containing spaces, `$`, or `#`. When moving database
 credentials, retain their existing values. `DATABASE_URL` may reference an
 entire connection URL; supplied `POSTGRES_*` settings can each reference
@@ -72,8 +72,7 @@ their own fields. Loading them does not rotate database credentials.
 2. Unlock 1Password and enable **Settings → Developer → Integrate with
    1Password CLI**.
 3. Store project secrets in **Development**. Copy each field's secret reference
-   from its menu into the matching `.env` assignment. Set both publishable-key
-   variables to the same Clerk key.
+   from its menu into the matching `.env` assignment.
 4. Start the app and approve the CLI request in 1Password. With multiple
    accounts, export `OP_ACCOUNT` to select the account for this shell.
 
@@ -96,51 +95,46 @@ correct the named variable's item, vault access, or desktop authorization.
 
 ---
 
-## 2. Clerk
+## 2. SuperTokens and Authentik
 
-**Console:** [dashboard.clerk.com](https://dashboard.clerk.com). Clerk is the
-auth provider; the backend verifies its JWTs against the JWKS endpoint
-(`backend/src/auth/clerk.rs`).
+In Authentik, create a Grocery List application with a confidential
+OAuth2/OpenID Connect provider. Register the exact redirect URI
+`<AUTH_PUBLIC_ORIGIN>/sign-in/callback` using strict matching. Use an HTTPS
+origin in production. For local Compose, register
+`http://localhost:<WEB_PORT>/sign-in/callback` and set `WEB_PORT` explicitly
+so the URI remains stable. Enable the OpenID, profile and email scopes and
+configure a signing key. Use Authentik’s default per-provider issuer mode.
+Samba AD users need an email attribute mapped in
+Authentik. Bind the application to the household group synchronized from
+Samba AD. Only that group should be allowed through the authorization flow.
 
-1. Create an application (free tier). Enable the **Google** and **Email**
-   sign-in strategies, with **Password** on (under **User &
-   authentication**; may be labelled **Email, phone, username**).
-2. Open **API Keys** and copy:
+Create a dedicated PostgreSQL database and login for SuperTokens Core. Give
+that login access only to the Core database and its schema. Use a different
+database and login for groceries. Generate the Core API key and the verifier
+secret independently with `openssl rand -hex 32`.
 
-| Clerk value | `.env` key |
+| Setting | Value |
 |---|---|
-| Publishable key (`pk_…`) | `CLERK_PUBLISHABLE_KEY` and `VITE_CLERK_PUBLISHABLE_KEY` |
-| Secret key (`sk_…`) | `CLERK_SECRET_KEY` |
-| JWKS URL (ends `/.well-known/jwks.json`; may be under **Advanced**) | `CLERK_JWKS_URL` |
+| `AUTH_PUBLIC_ORIGIN` | Browser origin, for example `https://groceries.example.com`. Compose dev supplies its localhost origin. |
+| `AUTH_OIDC_DISCOVERY_URL` | Authentik's application-specific discovery URL, ending in `/.well-known/openid-configuration`. |
+| `AUTH_OIDC_CLIENT_ID`, `AUTH_OIDC_CLIENT_SECRET` | Values from the Authentik provider. |
+| `SUPERTOKENS_API_KEY` | Core API key. |
+| `SUPERTOKENS_CONNECTION_URI` | Private Core URL. Use `http://supertokens:3567` for Compose dev. |
+| `SUPERTOKENS_DATABASE_URL` | Dedicated Core PostgreSQL connection URI when using the Compose Core. |
+| `AUTH_VERIFIER_SECRET` | Shared secret between the frontend server and Axum. |
+| `AUTH_VERIFIER_URL` | `http://127.0.0.1:3000/api/auth/internal/verify` for systemd. Compose dev supplies its internal URL. |
 
-The publishable key is `VITE_`-prefixed because the web app reads it in the
-browser; setting it turns sign-in on (`FEATURE_AUTH.md`).
+For Compose dev with local Core, add `auth` to `COMPOSE_PROFILES` and run
+`make dev`. If the Core database lives on the host, point its connection
+URI at `host.docker.internal`. For native production, see
+[production setup](production.md#supertokens-core). Keep the Core and
+verifier private. Store secrets as server-side settings or 1Password
+references and keep `DEV_AUTH_BYPASS=false` for network-facing deployments.
 
-**Alternative: Clerk CLI** (on a machine with a browser; the login is an
-OAuth redirect to `127.0.0.1`, so it cannot run on a headless host). The
-household's application is `app_3Jqu9YFwyO4a1ZmUuMOFRA7t5Nl`. From the repo
-root:
-
-```bash
-npm install -g clerk          # or: clerk update --yes
-clerk auth login
-clerk link --app app_3Jqu9YFwyO4a1ZmUuMOFRA7t5Nl
-clerk env pull --app app_3Jqu9YFwyO4a1ZmUuMOFRA7t5Nl --file .env.clerk
-```
-
-Copy the two keys from `.env.clerk` into `.env` under the names in the
-table above, then delete `.env.clerk`. The JWKS URL still comes from the
-dashboard. Do not run `clerk init`: the SDK, middleware and sign-in pages
-are already in `frontend/` and init would scaffold them again.
-`cd frontend && clerk doctor` checks the login, the link and the keys.
-
-3. Restrict sign-up to the household. Every signed-in user shares the list,
-   so an open sign-up would expose it. Open **Allowlist** (under **Protect**
-   or **Restrictions**), toggle **Enable allowlist**, add each household
-   email address, and **Save**.
-
-**Verify:** all three keys are non-empty and the allowlist lists the
-household addresses.
+Existing application data stays in the grocery database. SuperTokens
+assigns new user IDs. User-specific settings and audit history keyed by
+the previous IDs need an explicit identity mapping if they must carry
+forward. Never link accounts by guessing from a display name or email.
 
 ---
 
@@ -313,7 +307,7 @@ the server ([see below](#optional-postgresql-installed-on-the-server)).
 
 ## 6. Start the stack
 
-Keep `DEV_AUTH_BYPASS=false`. The web app signs people in with Clerk
+Keep `DEV_AUTH_BYPASS=false`. The web app signs people in with SuperTokens
 (section 2); the bypass is for local development and e2e only.
 
 ```bash
@@ -334,19 +328,14 @@ fixed URLs, or use the worktree defaults. Any Google OAuth redirect must match
 the selected web port.
 
 **Verify:** the tunnel reports **Healthy** in Cloudflare, and the printed web
-address redirects to `/sign-in`. The first
-time, use **Sign up** (`/sign-up`) with an allowlisted address; after that,
-sign in with **Continue with Google** or email and password. The Grocery
-List loads with your avatar top right.
+address redirects to `/sign-in`. Choose **Continue with household account**.
+Confirm a household member can open the list and an account outside the
+bound Authentik group is denied.
 
-**Troubleshooting:**
-- Tunnel not Healthy → check `CLOUDFLARE_TUNNEL_TOKEN` for stray whitespace,
-  then `make stop-all && make dev`.
-- No sign-in page, and a **Sign-in is off** banner → `VITE_CLERK_PUBLISHABLE_KEY`
-  is empty; set it and restart `make dev`.
-- "Not allowed to sign up" → add the address to the Clerk allowlist
-  (section 2, step 3).
-- Anything else → `make hm-compose args='logs <service>'`.
+**Troubleshooting**
+- Tunnel unhealthy → check the tunnel token and restart the stack.
+- **Sign-in is off** banner → remove the local `VITE_AUTH_MODE=off` override.
+- Sign-in fails to start → verify the registered redirect, discovery URL, and Core connectivity.
 
 ---
 
@@ -501,86 +490,12 @@ pg_restore -h localhost -U grocery -d grocery --no-owner grocery.dump
 
 ## Optional: web app on your own computer
 
-Run the web app on your own computer while the backend and PostgreSQL stay
-on the home server. The browser calls the backend at `VITE_API_BASE_URL`,
-so the backend gets its own public hostname on the existing tunnel. Spec:
-[`features/FEATURE_REMOTE_BACKEND.md`](features/FEATURE_REMOTE_BACKEND.md).
-
-**Security:** this publishes the whole API. It is safe only with sign-in on:
-on the server, `DEV_AUTH_BYPASS=false` and `CLERK_JWKS_URL` set (section 2).
-With the bypass on, anyone who finds the hostname can read and change the
-list.
-
-### Cloudflare dashboard (dash.cloudflare.com)
-
-In **Networking → Tunnels → grocery-list → Routes → Add route → Published
-application**, add a second hostname. Leave **Path** empty so `/api/*` and
-the `/ws` WebSocket both reach the backend:
-
-| Field | Value |
-|---|---|
-| Subdomain | `grocery-api` |
-| Domain | your domain |
-| Path | *(empty)* |
-| Service URL | `http://localhost:8000` (systemd, [`production.md`](production.md)) or `http://backend:8000` (Compose) |
-
-Cloudflare passes WebSockets through without extra settings.
-
-### Home server `.env`
-
-| Key | Value |
-|---|---|
-| `DEV_AUTH_BYPASS` | `false` |
-| `CORS_ORIGINS` | must include the web app's origin, `http://localhost:3000` by default. Comma-separate more than one. |
-
-Restart the backend (`sudo systemctl restart grocery-backend`, or
-`make stop-all && make dev` under Compose).
-
-### Your computer
-
-Needs Node 22+, `pnpm`, `git`, `make` and a checkout of this repository. No
-Docker and no database. On macOS, with Homebrew ([brew.sh](https://brew.sh)):
-
-```bash
-xcode-select --install       # git and make
-brew install node pnpm       # Node 22 or newer
-```
-
-Create `.env` in the checkout root with only the web app's keys:
-
-| Key | Value |
-|---|---|
-| `VITE_API_BASE_URL` | `https://grocery-api.<your-domain>` |
-| `VITE_WS_URL` | empty (follows `VITE_API_BASE_URL` as `wss://…/ws`) |
-| `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_PUBLISHABLE_KEY` | the publishable key (section 2) |
-| `CLERK_SECRET_KEY` | the secret key; the web app's own server reads the sign-in cookie with it |
-
-Clerk development keys (`pk_test_…`) work on `localhost`. Production keys
-(`pk_live_…`) work only on the domain set in Clerk, so use the development
-instance's keys here.
-
-Then run `make hm-dev-frontend` and open [localhost:3000](http://localhost:3000).
-`WEB_PORT=3001 make hm-dev-frontend` picks another port; add that origin to
-`CORS_ORIGINS` on the server.
-
-To give it a Dock icon and its own window on macOS:
-
-- **Safari** (macOS 14+): **File → Add to Dock**.
-- **Chrome**: **⋮ → Cast, save and share → Install page as app**.
-
-The icon only opens the page; `make web` must be running for it to load.
-
-**Verify:** `curl https://grocery-api.<your-domain>/api/health` answers, and
-after signing in the Pending Requests page loads without errors in the
-browser console.
-
-| Symptom | Fix |
-|---|---|
-| Console: `blocked by CORS policy` | The origin in the address bar is missing from the server's `CORS_ORIGINS`, or the backend was not restarted. |
-| Every request is `401` | The server's `CLERK_JWKS_URL` is from a different Clerk instance than the keys on your computer. |
-| Clerk error about the domain or key | A `pk_live_…` key on `localhost`; use the development instance's keys. |
-| Console: `VITE_API_BASE_URL must start with http:// or https://` | Add the scheme to the value, then restart `make hm-dev-frontend`. |
-| Requests still go to `localhost:8000` | `VITE_*` values are read at start: restart `make hm-dev-frontend`. |
+The browser can use a separate backend origin by setting
+`VITE_API_BASE_URL` and adding the frontend origin to the backend's
+`CORS_ORIGINS`. The frontend still serves its own `/api/auth/*` endpoints.
+If running a separate frontend server, point the backend's verifier at it
+over a private network, use the same `AUTH_VERIFIER_SECRET`, and register
+the frontend's exact callback URI in Authentik. Keep authentication enabled.
 
 ---
 
@@ -707,7 +622,7 @@ frontend's API configuration. It does not start an API or database locally.
    actually runs on the desktop computer. Use HTTPS for both hostnames.
 3. Set `SERVER_API_BASE_URL=http://127.0.0.1:8000` for the loopback backend used
    by systemd. Add the exact frontend origin to `CORS_ORIGINS` while retaining
-   existing required origins. Keep Clerk authentication enabled.
+   existing required origins. Keep SuperTokens authentication enabled.
 4. Rebuild the frontend after changing `VITE_*` values. Restart the frontend
    after changing its SSR configuration. Production Environment changes require
    the owner's approval before applying them.
@@ -715,7 +630,7 @@ frontend's API configuration. It does not start an API or database locally.
 If Cloudflare Access protects the API hostname, allow the application's existing
 browser/store authentication flow through it. The store window's fetches cannot
 complete an interactive Access login challenge. Never embed an Access service
-token, database credential or Clerk secret in the desktop app.
+token, database credential or OIDC secret in the desktop app.
 
 ### On the desktop computer
 
@@ -733,7 +648,7 @@ token, database credential or Clerk secret in the desktop app.
    `desktop/src-tauri/target/release/bundle/`. Review unsigned-app prompts through
    the operating system before opening the app.
 4. Connect Tailscale first when using a private address. Open the app, enter the
-   frontend origin if prompted, then sign in through Clerk. Do not enter a URL
+   frontend origin if prompted, then sign in through Authentik. Do not enter a URL
    containing login credentials, a path or a query.
 5. Use the tray's **Change server address** to replace the origin. The app
    restarts to replace its command permission. **Reload server** retries the

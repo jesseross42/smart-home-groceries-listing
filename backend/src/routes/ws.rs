@@ -1,11 +1,11 @@
 //! WebSocket endpoint pushing real-time events to open browser sessions.
 //!
-//! Needs a session like every household route; the token comes as
-//! `?token=` because browsers cannot set headers on a WebSocket (see
-//! `auth/socket.rs`).
+//! Requires a session at upgrade and checks it periodically while connected.
 //!
 //! Each connection starts with a count snapshot, followed by live pending and
 //! held count changes. Snapshots establish notification baselines silently.
+
+use std::time::Duration;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::State;
@@ -14,7 +14,7 @@ use axum::routing::any;
 use axum::Router;
 use tokio::sync::broadcast::error::RecvError;
 
-use crate::auth::socket::SocketUser;
+use crate::auth::socket::{SocketUser, EVENT_PROTOCOL};
 use crate::services::voice::counts;
 use crate::services::ws_hub::ServerEvent;
 use crate::state::AppState;
@@ -29,9 +29,10 @@ pub fn router() -> Router<AppState> {
 async fn upgrade(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
-    _user: SocketUser,
+    user: SocketUser,
 ) -> Response {
-    ws.on_upgrade(move |socket| run_socket(socket, state))
+    ws.protocols([EVENT_PROTOCOL])
+        .on_upgrade(move |socket| run_socket(socket, state, user))
 }
 
 /// Forwards hub events to one browser session until it goes away.
@@ -39,7 +40,7 @@ async fn upgrade(
 /// The client sends nothing meaningful; reading from the socket is how a
 /// disconnect is noticed. Both directions are polled together so a closed
 /// socket is dropped promptly instead of only on the next event.
-async fn run_socket(mut socket: WebSocket, state: AppState) {
+async fn run_socket(mut socket: WebSocket, state: AppState, user: SocketUser) {
     let mut events = state.hub.subscribe();
     let counts = match counts::current(&state.pool).await {
         Ok(counts) => counts,
@@ -55,8 +56,15 @@ async fn run_socket(mut socket: WebSocket, state: AppState) {
         return;
     }
 
+    let interval = Duration::from_secs(30);
+    let mut recheck = tokio::time::interval_at(tokio::time::Instant::now() + interval, interval);
     loop {
         tokio::select! {
+            _ = recheck.tick() => {
+                if !user.is_active(&state).await {
+                    return;
+                }
+            },
             received = events.recv() => match received {
                 Ok(event) => {
                     if send_event(&mut socket, &event).await.is_err() {

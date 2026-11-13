@@ -1,15 +1,9 @@
-/**
- * `/sign-in` — Clerk's sign-in box: Google, or email and password. The
- * **Sign up** link goes to `/sign-up`. The
- * splat (`$`) lets Clerk's own steps (verify email, second factor) live
- * under the same page. With sign-in off there is nothing to do here, so it
- * goes home.
- */
-import { SignIn } from "@clerk/tanstack-react-start";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-
+import { useEffect, useRef, useState } from "react";
+import ThirdParty from "supertokens-web-js/recipe/thirdparty";
+import { Button } from "#/components/ui/button";
+import { initAuth } from "#/lib/auth";
 import { AUTH_MODE } from "#/lib/auth-mode";
-import { SIGN_IN_PATH, SIGN_UP_PATH } from "#/lib/sign-in-guard";
 
 export const Route = createFileRoute("/sign-in/$")({
 	beforeLoad: () => {
@@ -19,15 +13,54 @@ export const Route = createFileRoute("/sign-in/$")({
 	component: SignInPage,
 });
 
+/** Starts Authentik sign-in or completes the SDK's authorization-code exchange. */
 function SignInPage() {
+	const callback = Route.useParams()._splat === "callback";
+	const started = useRef(false);
+	const [busy, setBusy] = useState(callback);
+	const [error, setError] = useState("");
+
+	useEffect(() => {
+		if (!callback || started.current) return;
+		started.current = true;
+		initAuth();
+		void ThirdParty.signInAndUp()
+			.then((result) => {
+				if (result.status !== "OK") throw new Error();
+				window.location.replace("/");
+			})
+			.catch(() => {
+				setError(
+					"Sign-in could not be completed. Try again or check your household access.",
+				);
+				setBusy(false);
+			});
+	}, [callback]);
+
+	async function signIn() {
+		setBusy(true);
+		setError("");
+		try {
+			initAuth();
+			const url =
+				await ThirdParty.getAuthorisationURLWithQueryParamsAndSetState({
+					thirdPartyId: "authentik",
+					frontendRedirectURI: `${window.location.origin}/sign-in/callback`,
+				});
+			window.location.assign(url);
+		} catch {
+			setError("Sign-in could not be started. Try again.");
+			setBusy(false);
+		}
+	}
+
 	return (
-		<div className="flex justify-center py-8">
-			<SignIn
-				path={SIGN_IN_PATH}
-				routing="path"
-				signUpUrl={SIGN_UP_PATH}
-				fallbackRedirectUrl="/"
-			/>
-		</div>
+		<section className="mx-auto flex max-w-sm flex-col gap-4 py-8">
+			<h1 className="text-xl font-semibold">Sign in to Grocery List</h1>
+			{error && <p role="alert">{error}</p>}
+			<Button disabled={busy} onClick={() => void signIn()}>
+				{busy ? "Signing in…" : "Continue with household account"}
+			</Button>
+		</section>
 	);
 }

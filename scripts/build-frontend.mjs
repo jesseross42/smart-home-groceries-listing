@@ -11,7 +11,7 @@ try {
   const values = loadEnvironment({
     ...selectedEnvironmentFile(),
     environmentId: process.env.OP_ENVIRONMENT_ID,
-    accepts: key => accepts(frontend, key),
+    accepts: key => key.startsWith('VITE_') && accepts(frontend, key),
   });
   const env = toolchainEnvironment(process.env);
   Object.assign(env, values, { GROCERY_ENV_FILE: '/dev/null' });

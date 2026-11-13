@@ -1,0 +1,5 @@
+# Core for native production services on the same host.
+services:
+  supertokens:
+    ports:
+      - "127.0.0.1:3567:3567"

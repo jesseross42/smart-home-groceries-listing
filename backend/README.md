@@ -31,7 +31,7 @@ and [`.env.example`](../.env.example) for the full settings contract.
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection. Use explicit credentials for the intended database. |
 | `CREDENTIAL_ENCRYPTION_KEY` | Base64-encoded 32-byte AES key for stored integration credentials. |
-| `CLERK_JWKS_URL` | Verify household JWTs. Local development can explicitly use `DEV_AUTH_BYPASS=true`. |
+| `AUTH_VERIFIER_URL`, `AUTH_VERIFIER_SECRET` | Verify household sessions. Local development can explicitly use `DEV_AUTH_BYPASS=true`. |
 | `VOICE_WEBHOOK_SECRET` | Authenticate the generic intake webhook. |
 | `ALEXA_BRIDGE_SECRET` | Authenticate forwarded Alexa requests. |
 | `STORE_TAB_SECRET` | Authenticate store bookmark handoffs. |
@@ -59,7 +59,7 @@ databases; use the owned runner for routine development.
 |---|---|
 | `src/main.rs`, `src/lib.rs`, `src/state.rs` | Process startup and application wiring. |
 | `src/environment/`, `src/config/`, `src/config.rs` | Configuration sources and typed settings. |
-| `src/auth/` | Clerk verification and shared-secret authentication. |
+| `src/auth/` | SuperTokens session verification and shared-secret authentication. |
 | `src/routes/` | HTTP/WebSocket boundaries, grouped by domain. |
 | `src/models/` | Database rows and request/response schemas. |
 | `src/services/` | Business rules, provider adapters and SQL repositories. |

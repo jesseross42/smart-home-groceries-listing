@@ -23,7 +23,7 @@ intent or scope is ambiguous. Do not assume on non-trivial changes.
 | Frontend | React 19 + TanStack Start (SSR) + Shadcn/ui + Radix + Tailwind v4 |
 | Backend | **Rust + Axum** (REST + WebSocket) |
 | DB | PostgreSQL · `sqlx` migrations · `sqlx` queries (no ORM) |
-| Auth | Clerk → `backend/src/auth/mod.rs` (swap provider here only) |
+| Auth | SuperTokens with Authentik OIDC → `backend/src/auth/mod.rs` (swap provider here only) |
 | Automation | `chromiumoxide` (CDP) · `wreq` (TLS fingerprint emulation) |
 | Alexa | `sidecars/alexa-bridge`. Python `ask-sdk`, the only Python in the repo |
 | Infra | Production: systemd units in `deploy/` (no Docker) · Dev: Docker Compose · Cloudflare Tunnel |
@@ -44,7 +44,7 @@ contains no business logic and holds no database credentials. See "Sidecars".
 │   └── AGENTS.md            # Frontend-specific rules
 ├── backend/
 │   ├── src/routes/          # Axum routers (one module per domain)
-│   ├── src/auth/            # AuthProvider trait + Clerk impl + shared secrets
+│   ├── src/auth/            # AuthProvider trait + SuperTokens verifier + shared secrets
 │   ├── src/models/          # db.rs (rows) + schemas/ (request/response)
 │   ├── src/services/        # Business logic (no HTTP types, no pool creation)
 │   ├── migrations/          # sqlx migrations, embedded in the binary
@@ -141,7 +141,7 @@ feature specification as the source of the behavior and acceptance criteria.
 - **Optimisation:** minimise (item prices × qty) + all delivery fees.
   Split-store evaluated. Delivery fees are typed in Settings. Live delivery
   windows are not built.
-- **Auth:** Clerk JWT on every backend request, verified against Clerk's JWKS.
+- **Auth:** SuperTokens sessions on household API and WebSocket routes, verified by the server SDK.
   Intake endpoints use shared secrets instead, since they cannot carry a
   session. All of it behind `backend/src/auth/mod.rs`.
 - **Provider SDKs stay put:** no route or service imports an auth or LLM

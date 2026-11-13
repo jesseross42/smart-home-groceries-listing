@@ -7,20 +7,20 @@ fn exported_literals_override_references_without_calling_a_provider() {
     let file = std::env::temp_dir().join(format!("grocery-{}.env", uuid::Uuid::new_v4()));
     std::fs::write(
         &file,
-        "DATABASE_URL=op://Development/db/url\nCLERK_JWKS_URL='https://clerk.test/jwks'\n",
+        "DATABASE_URL=op://Development/db/url\nAUTH_VERIFIER_URL='http://frontend.test/verify'\n",
     )
     .unwrap();
     let inherited = HashMap::from([("DATABASE_URL".into(), "postgres://test".into())]);
     let result = load_environment(
         Some(&file),
         &inherited,
-        &["DATABASE_URL", "CLERK_JWKS_URL"],
+        &["DATABASE_URL", "AUTH_VERIFIER_URL"],
         |_| panic!("provider unnecessary"),
     )
     .unwrap();
     std::fs::remove_file(file).unwrap();
     assert_eq!(result["DATABASE_URL"], "postgres://test");
-    assert_eq!(result["CLERK_JWKS_URL"], "https://clerk.test/jwks");
+    assert_eq!(result["AUTH_VERIFIER_URL"], "http://frontend.test/verify");
 }
 
 #[test]
@@ -29,10 +29,10 @@ fn every_supported_secret_can_use_a_reference_without_loading_unrelated_keys() {
         "DATABASE_URL",
         "POSTGRES_USER",
         "POSTGRES_PASSWORD",
-        "CLERK_SECRET_KEY",
-        "CLERK_PUBLISHABLE_KEY",
-        "VITE_CLERK_PUBLISHABLE_KEY",
-        "CLERK_JWKS_URL",
+        "AUTH_OIDC_CLIENT_SECRET",
+        "AUTH_OIDC_CLIENT_ID",
+        "VITE_AUTH_MODE",
+        "AUTH_VERIFIER_URL",
         "ALEXA_SKILL_ID",
     ];
     let mut inherited: HashMap<String, String> = keys

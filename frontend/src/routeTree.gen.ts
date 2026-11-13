@@ -23,7 +23,7 @@ import { Route as SettingsHelpRouteImport } from './routes/settings/help'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
 import { Route as SettingsLogsRouteImport } from './routes/settings/logs'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
-import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
+import { Route as ApiAuthSplatRouteImport } from './routes/api.auth.$'
 import { Route as ItemsItemIdSelectRouteImport } from './routes/items.$itemId.select'
 
 const IndexRoute = IndexRouteImport.update({
@@ -96,9 +96,9 @@ const SignInSplatRoute = SignInSplatRouteImport.update({
   path: '/sign-in/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SignUpSplatRoute = SignUpSplatRouteImport.update({
-  id: '/sign-up/$',
-  path: '/sign-up/$',
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItemsItemIdSelectRoute = ItemsItemIdSelectRouteImport.update({
@@ -120,9 +120,9 @@ export interface FileRoutesByFullPath {
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/settings/logs': typeof SettingsLogsRoute
   '/sign-in/$': typeof SignInSplatRoute
-  '/sign-up/$': typeof SignUpSplatRoute
   '/order/': typeof OrderIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/items/$itemId/select': typeof ItemsItemIdSelectRoute
 }
 export interface FileRoutesByTo {
@@ -136,9 +136,9 @@ export interface FileRoutesByTo {
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/settings/logs': typeof SettingsLogsRoute
   '/sign-in/$': typeof SignInSplatRoute
-  '/sign-up/$': typeof SignUpSplatRoute
   '/order': typeof OrderIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/items/$itemId/select': typeof ItemsItemIdSelectRoute
 }
 export interface FileRoutesById {
@@ -155,9 +155,9 @@ export interface FileRoutesById {
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/settings/logs': typeof SettingsLogsRoute
   '/sign-in/$': typeof SignInSplatRoute
-  '/sign-up/$': typeof SignUpSplatRoute
   '/order/': typeof OrderIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/items/$itemId/select': typeof ItemsItemIdSelectRoute
 }
 export interface FileRouteTypes {
@@ -175,9 +175,9 @@ export interface FileRouteTypes {
     | '/settings/item-rules'
     | '/settings/logs'
     | '/sign-in/$'
-    | '/sign-up/$'
     | '/order/'
     | '/settings/'
+    | '/api/auth/$'
     | '/items/$itemId/select'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -191,9 +191,9 @@ export interface FileRouteTypes {
     | '/settings/item-rules'
     | '/settings/logs'
     | '/sign-in/$'
-    | '/sign-up/$'
     | '/order'
     | '/settings'
+    | '/api/auth/$'
     | '/items/$itemId/select'
   id:
     | '__root__'
@@ -209,9 +209,9 @@ export interface FileRouteTypes {
     | '/settings/item-rules'
     | '/settings/logs'
     | '/sign-in/$'
-    | '/sign-up/$'
     | '/order/'
     | '/settings/'
+    | '/api/auth/$'
     | '/items/$itemId/select'
   fileRoutesById: FileRoutesById
 }
@@ -221,7 +221,7 @@ export interface RootRouteChildren {
   PendingRoute: typeof PendingRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   SignInSplatRoute: typeof SignInSplatRoute
-  SignUpSplatRoute: typeof SignUpSplatRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ItemsItemIdSelectRoute: typeof ItemsItemIdSelectRoute
 }
 
@@ -325,11 +325,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sign-up/$': {
-      id: '/sign-up/$'
-      path: '/sign-up/$'
-      fullPath: '/sign-up/$'
-      preLoaderRoute: typeof SignUpSplatRouteImport
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/items/$itemId/select': {
@@ -384,7 +384,7 @@ const rootRouteChildren: RootRouteChildren = {
   PendingRoute: PendingRoute,
   SettingsRoute: SettingsRouteWithChildren,
   SignInSplatRoute: SignInSplatRoute,
-  SignUpSplatRoute: SignUpSplatRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
   ItemsItemIdSelectRoute: ItemsItemIdSelectRoute,
 }
 export const routeTree = rootRouteImport

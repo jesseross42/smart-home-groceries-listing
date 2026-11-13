@@ -1,0 +1,4 @@
+interface:
+  display_name: "SuperTokens docs"
+  short_description: "Use SuperTokens docs MCP for auth changes"
+  default_prompt: "Use the SuperTokens documentation MCP to guide the requested changes."

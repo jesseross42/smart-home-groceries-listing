@@ -11,9 +11,9 @@
 
 #![allow(dead_code)]
 
-pub mod clerk;
 pub mod google_tasks;
 pub mod purchases;
+pub mod session;
 pub mod settings;
 pub mod triage;
 pub mod trolley;
@@ -84,8 +84,7 @@ impl TestApp {
     /// Builds the real application over a test database.
     ///
     /// `dev_auth_bypass` is on, matching how the previous Python suite ran:
-    /// these tests cover the confirmation queue's rules, not Clerk's JWKS
-    /// verification, which is unit-tested in `auth::clerk`.
+    /// session verification has its own integration tests.
     pub fn new(pool: PgPool) -> Self {
         Self {
             router: build_app(pool, test_settings()),
