@@ -125,10 +125,22 @@ Both authenticate with `X-Bridge-Secret`, like `POST /api/intake/alexa`.
   empty). `201` with the reverted change (`undone: true`), `200` on a retry,
   `404` nothing to undo, `409` cannot be reverted.
 
+### Web app view
+Settings › Help lists the newest 50 changes under **Changed by voice** (item,
+before/after quantity, time, and **Undone** or **Too old to undo**). **Undo**
+reverses that one change, not only the newest, under the spoken Undo's
+rules: 30 minutes, and `409` when a reduced item was deleted or committed
+since. Both routes need a household session.
+- `GET /api/voice-list-changes` — `200`, newest first, each
+  `{id, kind, item_name, quantity_before, quantity_after, created_at, undone_at, can_undo}`.
+- `POST /api/voice-list-changes/{id}/undo` — `200` with the change;
+  `404` unknown id; `409` already undone, older than 30 minutes, or the
+  item cannot be changed back.
+
 ### Known gaps
 - No WebSocket event for list changes, so an open Grocery List page shows a
   voice change only after reload.
-- Undo is voice-only; the web app has no view of `voice_list_changes`.
+- A web Undo has no "undo the Undo"; say the removal again or edit the list.
 
 ## Backend
 | Piece | File |
@@ -136,6 +148,8 @@ Both authenticate with `X-Bridge-Secret`, like `POST /api/intake/alexa`.
 | Webhook + confirmation routes | `backend/src/routes/voice.rs` |
 | Alexa intake route | `backend/src/routes/alexa.rs` |
 | Alexa remove/undo routes | `backend/src/routes/alexa_list_changes.rs` |
+| Web view + Undo routes | `backend/src/routes/voice_list_changes.rs` (`services/voice_changes/history.rs`, `undo.rs`) |
+| Web view | `frontend/src/components/intake/voice-changes-section.tsx`, `hooks/useVoiceChanges.ts`, `lib/voice-changes.ts` |
 | Remove/reduce/undo rules | `backend/src/services/voice_changes/` |
 | Business rules | `backend/src/services/voice/mod.rs` |
 | Log events | `backend/src/services/voice/log.rs` |
@@ -145,7 +159,7 @@ Both authenticate with `X-Bridge-Secret`, like `POST /api/intake/alexa`.
 | Row types | `backend/src/models/db.rs` (`VoiceRequest`, `GroceryItem`) |
 | Request/response bodies | `backend/src/models/schemas/voice.rs` |
 | Migrations | `backend/migrations/0001_initial.sql`, `20261002200000_voice_list_changes.sql` |
-| Tests | `backend/tests/voice_requests.rs`, `alexa_intake.rs`, `alexa_list_changes.rs`, `alexa_undo.rs`, `websocket.rs` |
+| Tests | `backend/tests/voice_requests.rs`, `alexa_intake.rs`, `alexa_list_changes.rs`, `alexa_undo.rs`, `voice_list_changes.rs`, `websocket.rs`; `frontend/e2e/voice-changes.spec.ts` |
 
 The table is still called `voice_requests` to limit churn; the concept is an
 *intake* request.

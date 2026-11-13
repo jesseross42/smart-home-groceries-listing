@@ -2,25 +2,35 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { GoogleTasksSection } from "#/components/intake/google-tasks-section";
 import { OtherChannels } from "#/components/intake/other-channels";
+import { VoiceChangesSection } from "#/components/intake/voice-changes-section";
 import { useGoogleSignInReturn } from "#/hooks/useGoogleSignInReturn";
 import { api } from "#/lib/api";
 import { googleReturn } from "#/lib/google-return";
 
 export const Route = createFileRoute("/settings/help")({
 	validateSearch: googleReturn,
-	loader: () => api.intake.settings(),
+	// The voice changes are an extra: if they cannot be read the page still
+	// loads, with none listed.
+	loader: async () => {
+		const [settings, voiceChanges] = await Promise.all([
+			api.intake.settings(),
+			api.voiceChanges.list().catch(() => []),
+		]);
+		return { settings, voiceChanges };
+	},
 	component: HelpPage,
 });
 
 /**
  * Settings › Help — how items get in (spec: "Intake channel configuration").
  * Google Tasks is set up here; Alexa, the webhook and the item checker are
- * set in the server's `.env` and only shown.
+ * set in the server's `.env` and only shown. Items Alexa removed or reduced
+ * are listed last, each with Undo while it is under 30 minutes old.
  *
  * Google's sign-in returns here (`GOOGLE_REDIRECT_URI`).
  */
 function HelpPage() {
-	const settings = Route.useLoaderData();
+	const { settings, voiceChanges } = Route.useLoaderData();
 	useGoogleSignInReturn(Route.useSearch());
 	const tasks = settings.google_tasks;
 
@@ -37,6 +47,7 @@ function HelpPage() {
 				initial={tasks}
 			/>
 			<OtherChannels settings={settings} />
+			<VoiceChangesSection initial={voiceChanges} />
 		</div>
 	);
 }

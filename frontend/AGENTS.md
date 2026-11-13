@@ -69,7 +69,7 @@ File-based routing — one file per route:
 | `routes/settings/delivery.tsx` | `/settings/delivery` |
 | `routes/settings/display.tsx` | `/settings/display` — image size, filters |
 | `routes/settings/logs.tsx` | `/settings/logs` |
-| `routes/settings/help.tsx` | `/settings/help` — Google Tasks connect + other channels; Google's sign-in returns here |
+| `routes/settings/help.tsx` | `/settings/help` — Google Tasks connect + other channels + items changed by voice (with Undo); Google's sign-in returns here |
 
 ```typescript
 // Navigation

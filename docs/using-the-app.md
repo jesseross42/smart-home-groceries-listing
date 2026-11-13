@@ -56,6 +56,9 @@ shrink the order. Each one is recorded so it can be reverted. Spec:
 
 - After a remove or reduce the session stays open, so a bare "undo" works
   straight away. Repeating "undo" steps further back.
+- The web app lists these changes on **Settings › Help**, under **Changed by
+  voice**. **Undo** there reverses one chosen change while it is under 30
+  minutes old.
 - Matching is the item name ignoring case and whitespace, plus the simple
   plural/singular form ("eggs" ↔ "egg"). No fuzzy matching: an unmatched name
   changes nothing, and Alexa says so.
