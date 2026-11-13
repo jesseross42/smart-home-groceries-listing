@@ -35,7 +35,6 @@ behavioral contract.
 ### Desktop app
 
 - [#75 — Add optional desktop start at login](https://github.com/jesseross42/smart-home-groceries-listing/issues/75)
-- [#73 — Push trolley-filled events to desktop clients](https://github.com/jesseross42/smart-home-groceries-listing/issues/73)
 - [#92 — Save a default delivery day for trolley handoffs](https://github.com/jesseross42/smart-home-groceries-listing/issues/92)
 
 ### Household workflows

@@ -27,6 +27,7 @@ import {
 	useDesktopNotifications,
 } from "#/hooks/useDesktopNotifications";
 import { useHandoffNotice } from "#/hooks/useHandoffNotice";
+import { resetAnnouncedHandoffs } from "#/lib/desktop/handoff-notice";
 
 function push(event: ServerEvent) {
 	for (const listener of listeners) listener(event);
@@ -37,6 +38,7 @@ describe("desktop notifications", () => {
 		listeners.clear();
 		notify.mockReset().mockResolvedValue(undefined);
 		desktopState.on = true;
+		resetAnnouncedHandoffs();
 	});
 	afterEach(() => vi.clearAllMocks());
 
@@ -105,5 +107,63 @@ describe("desktop notifications", () => {
 			"Woolworths trolley filled",
 			"0 added. Check out when ready.",
 		);
+	});
+
+	const FILLED: ServerEvent = {
+		type: "trolley_filled",
+		handoff_id: "h1",
+		store_name: "Woolworths",
+		added: 3,
+		failed: 1,
+	};
+
+	it("announces a trolley the server says is filled, with no sheet open", () => {
+		renderHook(() => useDesktopNotifications());
+
+		push(FILLED);
+
+		expect(notify.mock.calls).toEqual([
+			[
+				"Woolworths trolley filled",
+				"3 added. 1 not added. Check out when ready.",
+			],
+		]);
+	});
+
+	it("announces once when the same event arrives again", () => {
+		renderHook(() => useDesktopNotifications());
+
+		push(FILLED);
+		push(FILLED);
+
+		expect(notify).toHaveBeenCalledTimes(1);
+	});
+
+	it("announces once when the sheet and the server both report a fill", () => {
+		renderHook(() => useDesktopNotifications());
+		push(FILLED);
+
+		const filled = {
+			id: "h1",
+			status: "filled_with_problems",
+			store_name: "Woolworths",
+			lines: [],
+		} as unknown as TrolleyHandoff;
+		renderHook(() => useHandoffNotice(filled));
+
+		expect(notify).toHaveBeenCalledTimes(1);
+	});
+
+	it("announces a later handoff after a reconnect's snapshot", () => {
+		renderHook(() => useDesktopNotifications());
+		push(FILLED);
+		push({
+			type: "counts_snapshot",
+			counts: { voice_request_added: 0, triage_held: 0 },
+		});
+
+		push({ ...FILLED, handoff_id: "h2" });
+
+		expect(notify).toHaveBeenCalledTimes(2);
 	});
 });

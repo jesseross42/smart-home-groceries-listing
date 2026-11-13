@@ -38,7 +38,7 @@ or card details.
 | 8 | **One tap to buy**: the web app shows items, delivery time and total; the person taps **Place order**; the app places it with the card already saved on the store account | planned — needs the checkout calls captured from the live site |
 | 9 | Coles: login window, trolley fill, checkout | planned — needs the Coles trolley calls captured |
 | 10 | Start at login (optional setting) | planned |
-| 11 | Server pushes "trolley filled" over the WebSocket, so the notice arrives even when the sheet is closed | planned |
+| 11 | Server pushes "trolley filled" over the WebSocket, so the notice arrives even when the sheet is closed | built |
 
 ### Rules for goal 8 (one tap to buy)
 - Never automatic. Only after the person taps **Place order** in the app.
@@ -59,13 +59,25 @@ Outside the desktop app nothing changes.
 | Send to Woolworths sheet | drag bookmark, open Woolworths, press bookmark | pick delivery time, press **Fill trolley in the app**; **Log in to Woolworths** opens the store window |
 | After the fill | "pay on Woolworths" | **Open checkout** shows the store window at checkout |
 | New item / held item | in-page toast | toast **and** a desktop notification |
-| Trolley filled | sheet shows the result | sheet shows it **and** a desktop notification |
+| Trolley filled | sheet shows the result | sheet shows it **and** a desktop notification, with the sheet open or closed |
 
 Every WebSocket connection starts with a `counts_snapshot` for pending and held
 items. Both toast and desktop listeners use it as a silent baseline, including
 after reconnects, so the first subsequent increase produces a notice. Existing
 items on connection never produce notices. Nav badges also use the snapshot;
 a delayed initial HTTP response cannot overwrite a pushed count.
+
+When a store tab's report is recorded the backend broadcasts
+`{ "type": "trolley_filled", handoff_id, store_name, added, failed }`
+(`routes/store_tab.rs`, `services/trolley_handoffs/event.rs`). A second report
+is a `409`, so the server sends it once per handoff. The root layout's
+`useTrolleyFilledNotice` turns it into the notification; the open sheet's
+`useHandoffNotice` reports the same fill, and `announceFilledOnce`
+(`lib/desktop/handoff-notice.ts`) keeps it to one notice per handoff per
+window, also when the event repeats. Events are not replayed after a
+reconnect: a fill reported while the socket was down is announced only if its
+sheet is open. Tests: `backend/tests/websocket_trolley_filled.rs`,
+`hooks/__tests__/useDesktopNotifications.test.ts`.
 
 The main webview disables background throttling so macOS 14+ keeps its
 WebSocket and notification listeners active while the window is hidden in the

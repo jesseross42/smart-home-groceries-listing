@@ -1,7 +1,8 @@
 /**
  * WebSocket client for real-time push events: `voice_request_added` (the
  * Pending Requests count), `triage_held` (the held-for-review count) and
- * `grocery_list_changed` (read the list again). Auto-reconnects with backoff; safe to call
+ * `grocery_list_changed` (read the list again) and `trolley_filled` (a
+ * desktop notification). Auto-reconnects with backoff; safe to call
  * `connect` once at app mount — it is a no-op if a socket is already open.
  */
 import { getAuthToken } from "#/lib/auth";
@@ -38,11 +39,23 @@ export interface GroceryListChangedEvent {
 	type: "grocery_list_changed";
 }
 
+/** A store tab finished filling a trolley. Sent once per handoff. */
+export interface TrolleyFilledEvent {
+	type: "trolley_filled";
+	handoff_id: string;
+	store_name: string;
+	/** Products that went into the trolley. */
+	added: number;
+	/** Products the store refused. */
+	failed: number;
+}
+
 /** Every event the backend pushes, including connection baselines. */
 export type ServerEvent =
 	| CountEvent
 	| CountsSnapshotEvent
-	| GroceryListChangedEvent;
+	| GroceryListChangedEvent
+	| TrolleyFilledEvent;
 
 /** The `type` of an event that carries a count. */
 export type CountEventType = CountEvent["type"];
@@ -56,7 +69,8 @@ export function countIn(
 	eventType: CountEventType,
 ): number | null {
 	if (event.type === "counts_snapshot") return event.counts[eventType];
-	if (event.type === "grocery_list_changed") return null;
+	if (event.type !== "voice_request_added" && event.type !== "triage_held")
+		return null;
 	return event.type === eventType ? event.count : null;
 }
 

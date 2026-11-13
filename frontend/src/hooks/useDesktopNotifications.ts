@@ -1,4 +1,5 @@
 import { useCountRiseToast } from "#/hooks/useCountRiseToast";
+import { useTrolleyFilledNotice } from "#/hooks/useTrolleyFilledNotice";
 import { type Notice, notifyDesktop } from "#/lib/desktop/notify";
 
 /** The notice for a new item reaching Pending Requests. */
@@ -15,12 +16,14 @@ export const HELD_ITEM_NOTICE: Notice = {
 
 /**
  * In the desktop app, adds a desktop notification next to the in-page toast
- * when a new item arrives or one is held for review. Mount once, at the root
- * layout. Does nothing in a browser.
+ * when a new item arrives or one is held for review, and a notification
+ * when a trolley is filled. Mount once, at the root layout. Does nothing in a
+ * browser.
  */
 export function useDesktopNotifications(): void {
 	useCountRiseToast("voice_request_added", () =>
 		notifyDesktop(NEW_ITEM_NOTICE),
 	);
 	useCountRiseToast("triage_held", () => notifyDesktop(HELD_ITEM_NOTICE));
+	useTrolleyFilledNotice();
 }
