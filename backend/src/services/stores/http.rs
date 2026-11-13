@@ -11,13 +11,13 @@ use std::time::Duration;
 use serde::de::DeserializeOwned;
 use wreq::header::CONTENT_TYPE;
 use wreq::Response;
-use wreq_util::Emulation;
+use wreq_util::Profile;
 
 use super::error::StoreError;
 
 /// The browser the client presents as. Keep it a recent Chrome: an old
 /// version is itself a bot signal.
-const EMULATED_BROWSER: Emulation = Emulation::Chrome137;
+const EMULATED_BROWSER: Profile = Profile::Chrome137;
 
 /// Builds a client that looks like Chrome, keeps cookies between requests
 /// (the bot-protection cookies a first page visit sets), and gives up after

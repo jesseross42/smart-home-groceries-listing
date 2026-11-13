@@ -2,7 +2,7 @@
 name = "grocery-backend"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.98"
 description = "Grocery list backend: voice intake, confirmation queue, and store ordering"
 publish = false
 
@@ -43,8 +43,8 @@ aes-gcm = "0.11.1"
 base64 = "0.23.1"
 subtle = "2.6"
 validator = { version = "0.21.0", features = ["derive"] }
-wreq = { version = "0.15.3", features = ["json", "cookies", "gzip", "brotli", "zstd", "deflate"] }
-wreq-util = "0.1.0"
+wreq = { version = "0.16.3", features = ["json", "cookies", "gzip", "brotli", "zstd", "deflate", "query"] }
+wreq-util = "0.2.1"
 rust_decimal = { version = "1.43", features = ["serde"] }
 rust_decimal_macros = "1.40"
 futures-util = "0.3.34"
@@ -60,3 +60,8 @@ futures-util = "0.3.34"
 # Drives the real /ws endpoint over a real socket in tests/websocket.rs.
 tokio-tungstenite = "0.30.0"
 wiremock = "0.6.5"
+
+[patch.crates-io]
+# SQLx 0.9.0 caps the optional SQLite driver's libsqlite3-sys below 0.38.
+# Remove this patch when published SQLx permits 0.39 (RUSTSEC-2026-0459).
+sqlx-sqlite = { git = "https://github.com/transact-rs/sqlx", rev = "10462fa4414c6c7f1ed1d39bb31678e3b726878c" }

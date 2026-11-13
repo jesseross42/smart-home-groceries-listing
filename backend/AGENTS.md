@@ -1,7 +1,7 @@
 # Backend Agent Guide
 
 ## Stack
-Rust 1.85+ (edition 2021) · Axum 0.8 (REST + WebSocket) · sqlx 0.9 (async,
+Rust 1.98+ (edition 2021) · Axum 0.8 (REST + WebSocket) · sqlx 0.9 (async,
 compile-time-safe queries, embedded migrations) · PostgreSQL · SuperTokens session verification · `tower-http` middleware · `aes-gcm` · `tracing` ·
 `wreq` (store search, Chrome TLS emulation) · `rust_decimal` (money) ·
 `chromiumoxide` (checkout automation, not yet built).
