@@ -110,8 +110,8 @@ does. The key is never logged (`TriageSettings` has a redacting `Debug`).
   spec's `force_accept` flag is a row in `intake_restores` keyed by the new
   task's id, so a person cannot skip triage by typing a marker into a task.
 - The spec asks for the OpenAI key to be stored encrypted in PostgreSQL and set
-  on `/settings/help`. It is an environment variable for now, like the other
-  secrets; there is no intake settings page yet.
+  on `/settings/help`. It is an environment variable for now; track the
+  settings-backed credential in [issue #89](https://github.com/jesseross42/smart-home-groceries-listing/issues/89).
 - The spec's `TriageResult` also has `normalised_name` and `quantity`. They are
   not asked for: the channel's own parse is kept, and the household corrects
   names in Pending Requests.

@@ -98,8 +98,8 @@ and request-accepted events carry the resulting `filter_terms`.
 | E2e | `frontend/e2e/item-rules.spec.ts` |
 
 ## Known gaps / next steps
-- The chips narrow a product search that does not exist yet — that is the
-  Store Integration feature.
 - No stemming or synonyms: "egg" and "eggs" need two triggers.
 - Rules are not re-applied to items already on the list when a rule is added.
 - No `/settings` index page yet; the nav links straight to Item Rules.
+
+Track these refinements in [issue #82](https://github.com/jesseross42/smart-home-groceries-listing/issues/82).
