@@ -30,17 +30,25 @@ export interface AccessLogPage {
 export interface AccessLogPageQuery {
 	before?: number;
 	hideHealthChecks: boolean;
+	/** Only this user id's requests (`"unauthenticated"` for no sign-in). */
+	user?: string;
+	/** Only paths that start with this. */
+	path?: string;
 }
 
 /** The query string for one page. */
 export function accessLogQuery({
 	before,
 	hideHealthChecks,
+	user,
+	path,
 }: AccessLogPageQuery): string {
 	const params = new URLSearchParams({
 		hide_health_checks: String(hideHealthChecks),
 	});
 	if (before !== undefined) params.set("before", String(before));
+	if (user?.trim()) params.set("user", user.trim());
+	if (path?.trim()) params.set("path", path.trim());
 	return params.toString();
 }
 

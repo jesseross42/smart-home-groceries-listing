@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { AccessLogFilterForm } from "#/components/access-logs/access-log-filter-form";
 import { AccessLogList } from "#/components/access-logs/access-log-list";
 import { HealthChecksSwitch } from "#/components/access-logs/health-checks-switch";
 import { Button } from "#/components/ui/button";
@@ -23,6 +24,7 @@ function LogsPage() {
 		showHealthChecks,
 		loadOlder,
 		changeHealthChecks,
+		changeFilters,
 	} = useAccessLogPages(Route.useLoaderData());
 
 	return (
@@ -35,6 +37,7 @@ function LogsPage() {
 				checked={showHealthChecks}
 				onCheckedChange={changeHealthChecks}
 			/>
+			<AccessLogFilterForm disabled={loading} onFilter={changeFilters} />
 			<AccessLogList entries={entries} />
 			{hasOlder && (
 				<Button

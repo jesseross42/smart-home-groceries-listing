@@ -57,6 +57,37 @@ test.describe("the access log", () => {
 		await expect(health.first()).toBeVisible();
 	});
 
+	test("filters by the start of the path, and Clear shows everything again", async ({
+		page,
+		request,
+	}) => {
+		const stamp = Date.now();
+		const wanted = `/api/wanted-${stamp}`;
+		const other = `/api/other-${stamp}`;
+		await request.get(`${API_BASE_URL}${wanted}`);
+		await request.get(`${API_BASE_URL}${other}`);
+		await expect
+			.poll(async () => {
+				const listed = await request.get(`${API_BASE_URL}/api/access-logs`);
+				const { entries } = (await listed.json()) as {
+					entries: Array<{ path: string }>;
+				};
+				return [wanted, other].every((p) => entries.some((e) => e.path === p));
+			}, { message: "both requests should be logged" })
+			.toBe(true);
+
+		await gotoList(page, "/settings/logs");
+		await expect(page.locator(`[data-log-path="${other}"]`)).toBeVisible();
+
+		await page.getByLabel("Path starts with").fill("/api/wanted-");
+		await page.getByRole("button", { name: "Filter" }).click();
+		await expect(page.locator(`[data-log-path="${other}"]`)).toHaveCount(0);
+		await expect(page.locator(`[data-log-path="${wanted}"]`)).toBeVisible();
+
+		await page.getByRole("button", { name: "Clear" }).click();
+		await expect(page.locator(`[data-log-path="${other}"]`)).toBeVisible();
+	});
+
 	test("is in Settings", async ({ page }) => {
 		await gotoList(page, "/");
 		await page.getByRole("link", { name: "Settings" }).click();
