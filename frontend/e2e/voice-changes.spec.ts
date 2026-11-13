@@ -25,9 +25,12 @@ test.describe("changed by voice", () => {
 		expect(removed.status()).toBe(201);
 
 		await gotoList(page, "/settings/help");
+		// Changes are never deleted, so an earlier run's milk may be listed
+		// too. The newest is first.
 		const row = page
 			.getByRole("region", { name: "Changed by voice" })
-			.getByRole("listitem", { name: "milk" });
+			.getByRole("listitem", { name: "milk" })
+			.first();
 		await expect(row).toContainText("Removed (was ×2)");
 
 		await row.getByRole("button", { name: "Undo the change to milk" }).click();
