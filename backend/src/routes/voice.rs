@@ -5,6 +5,7 @@
 //! Every other route here requires a signed-in household member and drives
 //! the "Pending Requests" screen in the web app.
 
+use crate::services::selections::auto_pick;
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::post;
@@ -109,6 +110,14 @@ async fn accept(
     let (request, item, merged) = VoiceService::new(&state.pool, &state.hub)
         .accept(request_id, &decision, &user.id, query.on_duplicate())
         .await?;
+    auto_pick::pick_for_new_item(
+        state.settings.stores.auto_pick,
+        &state.pool,
+        &state.stores,
+        item.id,
+        &user.id,
+    )
+    .await;
 
     Ok(Json(VoiceRequestAcceptResult {
         voice_request: request.into(),

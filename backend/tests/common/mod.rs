@@ -91,6 +91,13 @@ impl TestApp {
         }
     }
 
+    /// Builds the real application with `settings`.
+    pub fn with_settings(pool: PgPool, settings: Settings) -> Self {
+        Self {
+            router: build_app(pool, settings),
+        }
+    }
+
     /// Serves the application on an ephemeral port, returning its address.
     ///
     /// Used by the WebSocket tests, which need a real socket rather than the

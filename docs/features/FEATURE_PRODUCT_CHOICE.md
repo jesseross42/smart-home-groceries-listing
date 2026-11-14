@@ -36,7 +36,16 @@ reads these choices.
   the details saved then, and no store search. Snapshots last a day
   (`selection_snapshots`).
 - Choosing works on a committed list. Ordered items return 409.
-- Nothing is chosen for the household. No defaults.
+- **Automatic pick** (`services/selections/auto_pick.rs`, Jesse 2026-11-15;
+  `AUTO_PICK_PRODUCTS`, default on). When an item is added by hand or a
+  pending request is accepted, and the item has no choice yet, the backend
+  searches both stores and chooses, at each store, the first product in the
+  search order (cheapest per unit, available) that has a price and that no
+  member dislikes (unless overridden for the item). The store chosen last
+  (Coles) is the one bought until the order planner or a person switches it.
+  A store that fails or has nothing suitable is skipped; the add never
+  fails. Change any pick on the Select item page. The e2e suite runs with
+  it off.
 
 ## Endpoints
 

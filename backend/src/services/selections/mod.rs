@@ -19,6 +19,7 @@
 //! grouping each item's choices in [`grouping`].
 
 pub mod allocation;
+pub mod auto_pick;
 mod grouping;
 mod log;
 mod offer;
