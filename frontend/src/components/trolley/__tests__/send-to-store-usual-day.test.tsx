@@ -15,7 +15,26 @@ async function sendWithUsualDay(store: StoreId) {
 	vi.spyOn(api.trolleyHandoffs, "storeTabSecret").mockResolvedValue({
 		secret: "s",
 	});
-	const handoff = { id: "h1", store, lines: [] } as unknown as TrolleyHandoff;
+	const handoff = {
+		id: "h1",
+		store,
+		store_name: store,
+		status: "waiting_for_store_tab",
+		created_at: "2026-10-02T00:00:00Z",
+		expires_at: "2999-01-01T00:00:00Z",
+		claimed_at: null,
+		reported_at: null,
+		delivery: {
+			requested: { date: null, time_of_day: "any" },
+			outcome: null,
+			window_label: null,
+			window_start: null,
+			window_end: null,
+			fee: null,
+			problem: null,
+		},
+		lines: [],
+	} satisfies TrolleyHandoff;
 	const create = vi
 		.spyOn(api.trolleyHandoffs, "create")
 		.mockResolvedValue(handoff);
