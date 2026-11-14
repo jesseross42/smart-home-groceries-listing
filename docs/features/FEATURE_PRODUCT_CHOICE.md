@@ -8,6 +8,13 @@ reads these choices.
 - **Select item** on a list card opens `/items/$itemId/select`, a full page
   with both stores' products (`FEATURE_STORE_INTEGRATION.md`). Each product
   has **Choose**; pressing **Chosen** again clears it.
+- **Look up by link** (`components/products/product-lookup.tsx`, below the
+  products): paste a Woolworths (`/shop/productdetails/{stockcode}/…`) or
+  Coles (`/product/{slug}-{id}`) product link (`lib/product-link.ts`). The
+  product is read with `GET /api/stores/{store}/products/{id}`, shown priced
+  for one, and **Choose** sends `looked_up: true`, so it need not be in the
+  item's search. The backend then reads it from the store's product page
+  and prices it at the item's quantity; not sold there is 422.
 - **Several products per item.** An item with quantity 1 keeps one product
   per store; choosing again swaps it. An item with quantity N can keep up to
   N products at a store. A new product starts at 1, taken from the product
@@ -32,7 +39,7 @@ reads these choices.
 | Method | Path | Answer |
 |---|---|---|
 | `GET` | `/api/item-selections` | 200. For each item, the first product bought, `bought_with` (more products bought at that store), `also_chosen` (other store). Each has `quantity`. |
-| `PUT` | `/api/grocery-items/{id}/selection` | 200 saved choice. Body `{store, product_id}`. 404, 409 (renamed while choosing, ordered, no room), 422 (store no longer offers it), 503 (store down) |
+| `PUT` | `/api/grocery-items/{id}/selection` | 200 saved choice. Body `{store, product_id, looked_up?}`. 404, 409 (renamed while choosing, ordered, no room), 422 (store no longer offers it; `looked_up`: does not sell it), 503 (store down) |
 | `PUT` | `/api/grocery-items/{id}/selection/quantity` | 204. Body `{store, product_id, quantity}`. Others at the store share the rest. 404, 422 (no room for the others) |
 | `DELETE` | `/api/grocery-items/{id}/selection[?store=[&product_id=]]` | 204. One product, one store, or everything. Clearing the bought store hands that role to the other |
 | `PUT` | `/api/order-stores` `{picks: [{grocery_item_id, store}]}` | 204; 422 when an item has no choice at that store |

@@ -81,4 +81,9 @@ export const productsApi = {
 	/** Searches every store for one list item. */
 	forItem: (itemId: string, init?: RequestInit) =>
 		request<ItemProducts>(`/api/grocery-items/${itemId}/products`, init),
+	/** One product at one store by the store's own id, priced for one. */
+	lookup: (store: StoreId, productId: string) =>
+		request<StoreProduct>(
+			`/api/stores/${store}/products/${encodeURIComponent(productId)}`,
+		),
 };

@@ -165,7 +165,6 @@ starts at the default.
   were checked in a real browser (search 2026-10-01, lookup 2026-10-06),
   but not yet from the server's `wreq` client. If a store answers `blocked` there, the next step is the
   human-login + cookie-reuse route in `backend/skills/store-integration.md`.
-- A web app screen for the lookup route (backend only so far).
 - Delivery windows, cart and checkout, member/rewards pricing (`MemberPriceData` is ignored),
   "Pick any N" multibuys across different products (treated per product).
 - Storing products and categories for Spending Analysis.

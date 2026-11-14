@@ -57,6 +57,8 @@ export function everyChoice(choices: ItemChoices): ItemSelection[] {
 export interface ProductChoice {
 	store: StoreId;
 	product_id: string;
+	/** Looked up by its link, so it need not be in the item's search. */
+	looked_up?: boolean;
 }
 
 /** One item and the store its order buys from. */
