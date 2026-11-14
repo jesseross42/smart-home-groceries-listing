@@ -5,6 +5,7 @@
  * it is not recommended, or what to check first.
  */
 import type { OptionStore, OrderOption } from "#/lib/api";
+import { namedDislikeWarning } from "#/lib/dislikes";
 import { formatMoney } from "#/lib/money";
 
 /** One store's delivery, as a phrase: "$9.00 delivery", "free delivery". */
@@ -23,6 +24,11 @@ export function optionNotes(
 	if (!option.complete) {
 		const count = option.missing.length;
 		notes.push(`Leaves out ${count} ${count === 1 ? "item" : "items"}.`);
+	}
+	for (const pick of option.disliked) {
+		notes.push(
+			`${pick.name} at ${pick.store_name}: ${namedDislikeWarning(pick.disliked_by)}`,
+		);
 	}
 	for (const store of option.stores) {
 		if (store.below_minimum && store.minimum_order) {

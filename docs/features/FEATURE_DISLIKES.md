@@ -1,9 +1,8 @@
 # Feature: Disliked Products
 
-Status: **implemented** for manual choice. The automated order (the
-optimiser) is not built yet; it has a ready function to call
-(`services/dislikes/skip.rs`). Spec: "Purchase History and Preferences" ›
-"Disliked items" and "Per-user vs household preferences".
+Status: **implemented** for manual choice and for the order planner
+(`services/order_plan`, household scope). Spec: "Purchase History and
+Preferences" › "Disliked items" and "Per-user vs household preferences".
 
 How a person uses it: [`using-the-app.md` › Product dislikes](../using-the-app.md#product-dislikes).
 
@@ -30,28 +29,27 @@ How a person uses it: [`using-the-app.md` › Product dislikes](../using-the-app
 - **Nothing is suggested.** A dislike only warns or skips; it never offers
   another product instead (project goal: less marketing-driven buying).
 
-## Rules for the automated order (for the optimiser)
+## Rules for the order planner
 
-| Scope | Skips |
-|---|---|
-| `DislikeScope::Member(user_id)` | only that member's dislikes |
-| `DislikeScope::Household` | any member's dislike |
-| an override on the item | nothing — the dislike is set aside |
+The planner (`FEATURE_ORDER_OPTIMISATION.md`) only moves an item between the
+products the household chose, one per store. It uses
+`DislikeScope::Household`: any member's dislike counts.
 
-If every candidate is disliked, the best-ranked one is bought anyway and the
-order must show who disliked it before it is confirmed
-(`AutomatedPick::OnlyDisliked`).
+- **Skip.** The best mix does not buy an item at a store whose chosen product
+  is disliked when another store's chosen product is not.
+- **Override.** *Buy it this time* on the item sets the dislike aside, so the
+  planner may pick that product again.
+- **Every product disliked.** The best-ranked store is kept. The option says
+  who disliked it (`disliked[].avoidable = false`).
+- **Other options.** *All at Woolworths*, *All at Coles* and *Your current
+  stores* still buy what the household chose. Each names the disliked
+  products it buys, and ranks after an option that avoids them (after
+  "buys every item" and "the store takes it", before price).
 
-```rust
-let book = DislikeService::new(&pool).book_for_item(item_id).await?;
-match skip::pick_for_automated_order(&ranked, &book, DislikeScope::Household) {
-    AutomatedPick::Allowed(product) => { /* buy it */ }
-    AutomatedPick::OnlyDisliked { candidate, disliked_by } => { /* buy, warn first */ }
-    AutomatedPick::NoCandidates => { /* nothing to buy */ }
-}
-```
-
-Candidates implement `skip::CandidateProduct` (`store()`, `product_id()`).
+Code: `services/order_plan/dislikes.rs` (who dislikes which store's choice),
+`option.rs` (`Candidate::allowed_prices`, `DislikedPick`), `rank.rs`.
+`services/dislikes/skip.rs` keeps `DislikeScope::Member` and
+`pick_for_automated_order` for a planner that ranks products itself.
 
 ## Endpoints
 

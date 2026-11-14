@@ -35,7 +35,13 @@ export function isOverridden(
  * dislike reads "You". Several names are joined with commas and "and".
  */
 export function dislikeWarning(dislikes: ProductDislike[]): string {
-	const names = dislikes.map((d) => (d.mine ? "You" : d.user_name));
+	return namedDislikeWarning(
+		dislikes.map((d) => (d.mine ? "You" : d.user_name)),
+	);
+}
+
+/** The same warning from names alone, as the order planner sends them. */
+export function namedDislikeWarning(names: string[]): string {
 	return `${joinNames(names)} disliked this item previously.`;
 }
 

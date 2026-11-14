@@ -25,6 +25,7 @@ function option(overrides: Partial<OrderOption> = {}): OrderOption {
 		is_current: false,
 		stores: [store()],
 		missing: [],
+		disliked: [],
 		items_total: "40",
 		delivery_total: "9",
 		total: "49",
@@ -52,6 +53,27 @@ describe("deliveryPhrase", () => {
 describe("optionNotes", () => {
 	it("has nothing to say about a clean option", () => {
 		expect(optionNotes(option(), null)).toEqual([]);
+	});
+
+	it("says who dislikes a product the option buys", () => {
+		const notes = optionNotes(
+			option({
+				disliked: [
+					{
+						grocery_item_id: "1",
+						name: "milk",
+						store: "coles",
+						store_name: "Coles",
+						disliked_by: ["phu", "jesse"],
+						avoidable: true,
+					},
+				],
+			}),
+			null,
+		);
+		expect(notes).toEqual([
+			"milk at Coles: phu and jesse disliked this item previously.",
+		]);
 	});
 
 	it("lists every problem, missing items first", () => {

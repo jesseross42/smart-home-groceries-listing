@@ -40,7 +40,6 @@ behavioral contract.
 
 ### Household workflows
 
-- [#76 — Use product dislikes in automated order planning](https://github.com/jesseross42/smart-home-groceries-listing/issues/76)
 - [#82 — Improve item rules and add a settings index](https://github.com/jesseross42/smart-home-groceries-listing/issues/82)
 
 ### Integration follow-ups and maintenance

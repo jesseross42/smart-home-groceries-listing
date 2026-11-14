@@ -20,6 +20,10 @@ household chose.
    ("free delivery", "delivery fee not set"), the items it leaves out and
    why, and notes (under a store's minimum, over the delivery cap, fees not
    set).
+   A disliked product the option buys is named with who disliked it
+   ("milk at Coles: phu disliked this item previously."). The best mix skips
+   a disliked product when another store has one nobody dislikes
+   (`FEATURE_DISLIKES.md`).
 3. **Recommended** marks the first option only when it buys every item,
    meets every store's minimum and is within the cap.
 4. **Use this** sends the option's `picks` to `PUT /api/order-stores`; the
@@ -31,7 +35,7 @@ household chose.
 ### Modes
 | Mode | Order |
 |---|---|
-| `minimise_total` (default) | buys every item › store takes it and within cap › total › delivery › fewer stores |
+| `minimise_total` (default) | buys every item › store takes it and within cap › fewer avoidable dislikes › total › delivery › fewer stores |
 | `minimise_delivery` | … › delivery › total › fewer stores |
 | `woolworths_only` / `coles_only` | that store's option first, the rest by total |
 | `manual` | the current stores first, the rest by total |
@@ -57,7 +61,7 @@ An unset fee counts as $0 and every option using it says so. Saving shows
 |---|---|---|---|
 | `GET` | `/api/delivery-settings` | Clerk | 200 `{stores: [{store, store_name, delivery_fee, free_delivery_over, minimum_order}], mode, max_delivery_spend}` |
 | `PUT` | `/api/delivery-settings` | Clerk | 200 the saved settings; 422 amount out of range, unknown mode. Stores left out keep their rules |
-| `GET` | `/api/order-options[?mode=]` | Clerk | 200 `{mode, options: [{kind, label, recommended, is_current, stores: [{store, lines, subtotal, delivery_fee, fee_known, free_delivery, below_minimum, minimum_order}], missing: [{grocery_item_id, name, reason}], items_total, delivery_total, total, complete, fees_known, meets_minimums, within_delivery_cap, picks}], unchosen, exact, max_delivery_spend}`; 422 unknown mode |
+| `GET` | `/api/order-options[?mode=]` | Clerk | 200 `{mode, options: [{kind, label, recommended, is_current, stores: [{store, lines, subtotal, delivery_fee, fee_known, free_delivery, below_minimum, minimum_order}], missing: [{grocery_item_id, name, reason}], disliked: [{grocery_item_id, name, store, store_name, disliked_by, avoidable}], items_total, delivery_total, total, complete, fees_known, meets_minimums, within_delivery_cap, picks}], unchosen, exact, max_delivery_spend}`; 422 unknown mode |
 | `PUT` | `/api/order-stores` `{picks}` | Clerk | 204; 422 nothing changed when an item has no choice at its store |
 
 Data: migration `20261003080000_delivery_settings.sql` — `store_delivery_fees`

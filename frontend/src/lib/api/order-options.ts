@@ -37,6 +37,17 @@ export interface MissingItem {
 	reason: string;
 }
 
+/** A disliked product an option buys, and who dislikes it. */
+export interface DislikedPick {
+	grocery_item_id: string;
+	name: string;
+	store: StoreId;
+	store_name: string;
+	disliked_by: string[];
+	/** Another store has a product for the item that nobody dislikes. */
+	avoidable: boolean;
+}
+
 /** One way to buy the order. */
 export interface OrderOption {
 	kind: OrderOptionKind;
@@ -47,6 +58,7 @@ export interface OrderOption {
 	is_current: boolean;
 	stores: OptionStore[];
 	missing: MissingItem[];
+	disliked: DislikedPick[];
 	items_total: string;
 	delivery_total: string;
 	total: string;
