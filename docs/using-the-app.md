@@ -178,15 +178,14 @@ Same as the Woolworths shop, with these differences:
    **Send and open Coles**.
 
 **Store tab**
-2. Sign in if prompted. Open the delivery time picker (**When**, the
-   **Choose delivery slot** drawer) and leave it open.
-3. Run **Fill Coles trolley**. It checks you are signed in and a store is
-   selected **before** claiming the handoff, so a refusal leaves the handoff
-   waiting; fix it and run it again. It then picks a time in the open
-   drawer, presses **Confirm**, adds the products, and shows the **Order by**
-   time Coles gives for that slot. If the drawer was closed, no time is
+2. Sign in if prompted, then run **Fill Coles trolley**. It checks you are
+   signed in and a store is selected **before** claiming the handoff, so a
+   refusal leaves the handoff waiting; fix it and run it again. It then
+   presses **When**, picks a time in the **Choose delivery slot** drawer,
+   presses **Confirm**, adds the products, and shows the **Order by** time
+   Coles gives for that slot. If the drawer does not open, no time is
    picked: pick one on coles.com.au.
-4. On **Go to checkout now?**, **OK** opens Coles checkout (`/checkout`).
+3. On **Go to checkout now?**, **OK** opens Coles checkout (`/checkout`).
    **Cancel**: reload the page and open the trolley. Pay there.
 
 **Verify:** the **Send to Coles** panel lists each line as **Added**, then
@@ -293,7 +292,7 @@ sessions through the private Core.
 | "Nothing to add" | No open handoff: press **Send and open Woolworths**, then run the bookmarklet within 30 minutes. |
 | "The grocery app refused (HTTP 401)" | Stale bookmarklet secret; re-drag it. |
 | "Fill trolley failed" (network error) | Backend down, or Chrome's local-network prompt was denied. |
-| "No delivery time reserved" | Pick a slot manually on the store's site. For Coles, open **When** before running the bookmarklet next time. |
+| "No delivery time reserved" | Pick a slot manually on the store's site. For Coles, run the bookmarklet on a page that shows **When** in the header. |
 | "Log in to Coles first" | Coles trolley read returned 401/403; sign in and re-run. Nothing was claimed. |
 | "Choose your delivery address on Coles first" | No Coles store selected; set a delivery address and re-run. |
 | "Coles is still loading" | Coles page config not ready; reload and re-run. |

@@ -7,8 +7,11 @@
  * (captured 2026-11-14) makes that call itself, so the reservation is the
  * website's own.
  *
- * Steps, when the drawer (`section[data-testid="slot-selector-drawer"]`) is
- * open:
+ * Steps:
+ * 0. Open the drawer (`section[data-testid="slot-selector-drawer"]`) when it
+ *    is closed, by pressing the header's "When" button
+ *    (`button[data-testid="when-link"]`, "When, Select a time"; captured
+ *    2026-11-15), and wait for it.
  * 1. Read the days (`[data-testid="date-select-item-N"]`, e.g. "Tomorrow",
  *    "15 Nov"). Start from the day asked for, or tomorrow when none was.
  * 2. On each day from there, click its radio, wait for its times, and pick
@@ -16,7 +19,8 @@
  * 3. Click that time, then "Confirm time slot".
  *
  * Only "This week" is read: "Next week" is an early-access tab Coles may
- * lock. A drawer that is not open is reported as not picked, with what to do.
+ * lock. A drawer that does not open is reported as not picked, with what to
+ * do.
  *
  * Must stay **self-contained** (no imports, no outside variables): the
  * bookmarklet carries its source text, and its helpers arrive as arguments
@@ -70,12 +74,21 @@ export async function pickColesDeliverySlot(
 		return ready();
 	};
 	try {
-		const drawer = document.querySelector(
-			'section[data-testid="slot-selector-drawer"]',
+		const findDrawer = () =>
+			document.querySelector('section[data-testid="slot-selector-drawer"]');
+		const when = document.querySelector<HTMLButtonElement>(
+			'button[data-testid="when-link"]',
 		);
+		if (!findDrawer() && when) {
+			when.click();
+			await wait(() => !!findDrawer());
+		}
+		const drawer = findDrawer();
 		if (!drawer) {
 			return failed(
-				"The Coles delivery time picker was not open. Open it on Coles before pressing the bookmark",
+				when
+					? "The Coles delivery time picker did not open"
+					: "Coles' “When” button was not on this page",
 			);
 		}
 		const tomorrow = new Date(now);

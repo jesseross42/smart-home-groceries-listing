@@ -55,8 +55,6 @@ export interface StoreTab {
 	bookmarkName: string;
 	/** Whether the bookmark reserves a delivery time itself. */
 	reservesDelivery: boolean;
-	/** What to do on the store's website first, so the time can be picked; starts lower-case after "On {store},". */
-	deliveryTip?: string;
 	/** The self-contained fill script, called as `fill(settings, helpers)`. */
 	fill: SelfContained;
 	/** Self-contained helpers handed to `fill`, by name. */

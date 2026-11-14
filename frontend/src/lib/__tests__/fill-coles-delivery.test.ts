@@ -78,13 +78,13 @@ describe("fillColesTrolley picking the delivery time", () => {
 		expect(result.message).toContain("pick a delivery time on Coles");
 	});
 
-	it("says to open the picker when it was closed", async () => {
+	it("says so when Coles shows no When button", async () => {
 		const network = fakeNetwork();
 
 		await fillColesTrolley(config, colesHelpers);
 
 		expect(reportOf(network.calls).delivery.problem).toContain(
-			"Open it on Coles before pressing the bookmark",
+			"“When” button was not on this page",
 		);
 	});
 });

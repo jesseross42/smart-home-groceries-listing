@@ -34,7 +34,29 @@ afterEach(() => {
 });
 
 describe("pickColesDeliverySlot", () => {
-	it("says what to do when the time picker is not open", async () => {
+	it("opens the time picker with Coles' When button", async () => {
+		const confirmed = vi.fn();
+		const when = document.createElement("button");
+		when.dataset.testid = "when-link";
+		when.setAttribute("aria-label", "When, Select a time");
+		when.addEventListener("click", () => openColesDrawer(days, confirmed));
+		document.body.append(when);
+
+		const report = await pickColesDeliverySlot(
+			{ date: null, time_of_day: "any" },
+			helpers,
+			now,
+		);
+
+		expect(confirmed).toHaveBeenCalledWith("sun-long");
+		expect(report.outcome).toBe("reserved");
+	});
+
+	it("says so when the time picker does not open", async () => {
+		const when = document.createElement("button");
+		when.dataset.testid = "when-link";
+		document.body.append(when);
+
 		const report = await pickColesDeliverySlot(
 			{ date: null, time_of_day: "any" },
 			helpers,
@@ -42,7 +64,7 @@ describe("pickColesDeliverySlot", () => {
 		);
 
 		expect(report.outcome).toBe("failed");
-		expect(report.problem).toContain("Open it on Coles");
+		expect(report.problem).toContain("picker did not open");
 	});
 
 	it("picks tomorrow's cheapest time and confirms it", async () => {

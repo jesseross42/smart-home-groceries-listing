@@ -221,7 +221,6 @@ describe("SendToStore at Coles", () => {
 		expect(bookmark.getAttribute("href")).toMatch(/^javascript:/);
 		// The Coles bookmark picks the time in Coles' own picker.
 		expect(screen.getByRole("button", { name: /^Tomorrow/ })).toBeVisible();
-		expect(screen.getByText(/open the delivery time picker/)).toBeVisible();
 
 		await user.click(
 			screen.getByRole("button", { name: "Send and open Coles" }),

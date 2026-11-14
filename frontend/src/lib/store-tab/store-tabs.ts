@@ -37,8 +37,6 @@ export const COLES_TAB: StoreTab = {
 	trolleyUrl: "https://www.coles.com.au/",
 	bookmarkName: "Fill Coles trolley",
 	reservesDelivery: true,
-	deliveryTip:
-		"open the delivery time picker (“When”) first, so the bookmark can pick the time.",
 	fill: fillColesTrolley,
 	helpers: {
 		readSlots: readColesSlots,

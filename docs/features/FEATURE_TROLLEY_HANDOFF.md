@@ -132,9 +132,12 @@ line may carry a `problem` (a Woolworths warning, e.g. "not available yet").
 - **"Added"** means the trolley, read again after the PATCHes, holds at
   least what was there plus the list's quantity. Otherwise "Coles did not
   add this product…".
-- **Delivery:** picked in Coles' own **Choose delivery slot** drawer, which
-  the person opens first (the sheet says so). The sheet asks for a day and
-  part of the day, as for Woolworths. Markup captured 2026-11-14:
+- **Delivery:** picked in Coles' own **Choose delivery slot** drawer. The
+  sheet asks for a day and part of the day, as for Woolworths. Markup
+  captured 2026-11-14 and 2026-11-15:
+  - When the drawer is closed, the bookmark presses the header's
+    `button[data-testid="when-link"]` ("When, Select a time", inside
+    `where-and-when-button`) and waits up to 3 s for the drawer.
   - Drawer `section[data-testid="slot-selector-drawer"]`. Days are radios in
     `[data-testid="date-select-item-N"]` ("Tomorrow" / "15 Nov"); only
     "This week" is read ("Next week" is an early-access tab).
@@ -152,8 +155,9 @@ line may carry a `problem` (a Woolworths warning, e.g. "not available yet").
     changes (about 3 s). Only then is it `reserved`; its `cutoffTime` is
     shown as "Order by …" and sent on every PATCH. Otherwise `failed`,
     "Coles did not keep the delivery time the app picked".
-  - Drawer closed: `failed`, "…was not open. Open it on Coles before
-    pressing the bookmark". The person picks one on Coles.
+  - Drawer does not open: `failed`, "The Coles delivery time picker did
+    not open" (or "Coles' “When” button was not on this page"). The person
+    picks one on Coles.
 - **Age-restricted products** are sent with `ageGateVerified: false`, so Coles
   may refuse them; they show as Not added.
 
@@ -190,8 +194,7 @@ program, endpoints and rules. See `FEATURE_DESKTOP_APP.md`.
 ## Not built
 - A full Coles bookmark run against the household's backend (the trolley
   calls themselves were checked live on 2026-10-06).
-- Opening Coles' delivery time drawer from the bookmark (the button that
-  opens it is not captured), and reserving by call instead of the drawer
+- Reserving a Coles time by call instead of the drawer
   (`POST /api/bff/slots/{slotId}`; its body is not captured).
 - Keeping the Coles "Order by" time in the handoff; it is only shown in the
   bookmark's message.
