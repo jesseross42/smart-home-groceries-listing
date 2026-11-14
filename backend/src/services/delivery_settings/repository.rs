@@ -4,10 +4,9 @@
 
 use sqlx::PgExecutor;
 
-use super::FeeRules;
+use super::{FeeRules, Preferences};
 use crate::error::ApiError;
-use crate::models::delivery_rows::{OrderMode, OrderPreferences, StoreDeliveryFees};
-use rust_decimal::Decimal;
+use crate::models::delivery_rows::{OrderPreferences, StoreDeliveryFees};
 
 /// Every store's saved fee rules. A store never saved has no row.
 pub async fn list_fees<'e, E>(executor: E) -> Result<Vec<StoreDeliveryFees>, ApiError>
@@ -58,7 +57,7 @@ where
     E: PgExecutor<'e>,
 {
     Ok(sqlx::query_as::<_, OrderPreferences>(
-        "SELECT mode, max_delivery_spend, updated_by, updated_at
+        "SELECT mode, max_delivery_spend, default_delivery_day, updated_by, updated_at
          FROM order_preferences WHERE id = 1",
     )
     .fetch_optional(executor)
@@ -68,24 +67,26 @@ where
 /// Saves the planner's preferences, replacing what was there.
 pub async fn upsert_preferences<'e, E>(
     executor: E,
-    mode: OrderMode,
-    max_delivery_spend: Option<Decimal>,
+    preferences: &Preferences,
     user_id: &str,
 ) -> Result<(), ApiError>
 where
     E: PgExecutor<'e>,
 {
     sqlx::query(
-        "INSERT INTO order_preferences (id, mode, max_delivery_spend, updated_by)
-         VALUES (1, $1, $2, $3)
+        "INSERT INTO order_preferences
+             (id, mode, max_delivery_spend, default_delivery_day, updated_by)
+         VALUES (1, $1, $2, $3, $4)
          ON CONFLICT (id) DO UPDATE SET
              mode = EXCLUDED.mode,
              max_delivery_spend = EXCLUDED.max_delivery_spend,
+             default_delivery_day = EXCLUDED.default_delivery_day,
              updated_by = EXCLUDED.updated_by,
              updated_at = now()",
     )
-    .bind(mode)
-    .bind(max_delivery_spend)
+    .bind(preferences.mode)
+    .bind(preferences.max_delivery_spend)
+    .bind(preferences.default_delivery_day)
     .bind(user_id)
     .execute(executor)
     .await?;

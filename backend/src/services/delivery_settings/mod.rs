@@ -16,7 +16,7 @@ use rust_decimal::Decimal;
 use sqlx::PgPool;
 
 use crate::error::ApiError;
-use crate::models::delivery_rows::OrderMode;
+use crate::models::delivery_rows::{DeliveryDay, OrderMode};
 use crate::services::stores::Store;
 
 /// One store's delivery fee rules.
@@ -52,6 +52,16 @@ pub struct DeliverySettings {
     pub mode: OrderMode,
     /// Options whose delivery fees add up to more are not recommended.
     pub max_delivery_spend: Option<Decimal>,
+    /// The day the delivery chooser starts on; `None` = tomorrow.
+    pub default_delivery_day: Option<DeliveryDay>,
+}
+
+/// The preferences saved with the stores' rules.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Preferences {
+    pub mode: OrderMode,
+    pub max_delivery_spend: Option<Decimal>,
+    pub default_delivery_day: Option<DeliveryDay>,
 }
 
 impl DeliverySettings {
@@ -101,7 +111,8 @@ impl<'a> DeliverySettingsService<'a> {
         Ok(DeliverySettings {
             stores,
             mode: preferences.as_ref().map_or(DEFAULT_MODE, |p| p.mode),
-            max_delivery_spend: preferences.and_then(|p| p.max_delivery_spend),
+            max_delivery_spend: preferences.as_ref().and_then(|p| p.max_delivery_spend),
+            default_delivery_day: preferences.and_then(|p| p.default_delivery_day),
         })
     }
 
@@ -110,15 +121,14 @@ impl<'a> DeliverySettingsService<'a> {
     pub async fn save(
         &self,
         stores: &[FeeRules],
-        mode: OrderMode,
-        max_delivery_spend: Option<Decimal>,
+        preferences: &Preferences,
         user_id: &str,
     ) -> Result<DeliverySettings, ApiError> {
         let mut tx = self.pool.begin().await?;
         for rules in stores {
             repository::upsert_fees(&mut *tx, rules, user_id).await?;
         }
-        repository::upsert_preferences(&mut *tx, mode, max_delivery_spend, user_id).await?;
+        repository::upsert_preferences(&mut *tx, preferences, user_id).await?;
         tx.commit().await?;
         let settings = self.read().await?;
         log::saved(&settings, user_id);

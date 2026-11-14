@@ -18,10 +18,12 @@ import { useDesktop } from "#/hooks/useDesktop";
 import { useHandoffNotice } from "#/hooks/useHandoffNotice";
 import { useTrolleyHandoff } from "#/hooks/useTrolleyHandoff";
 import {
+	type DeliveryDay,
 	type DeliveryWanted,
 	isHandoffFinished,
 	type StoreId,
 } from "#/lib/api";
+import { usualDeliveryDate } from "#/lib/delivery-days";
 import { abilitiesAt, type StoreAbilities } from "#/lib/desktop/commands";
 import type { StoreTab } from "#/lib/store-tab/store-tab";
 import { STORE_TABS } from "#/lib/store-tab/store-tabs";
@@ -35,8 +37,8 @@ export const DEFAULT_DELIVERY: DeliveryWanted = {
 /**
  * Puts every product chosen at one store into the household's own trolley
  * at that store, in a sheet. Where the store's bookmark can, it reserves a
- * delivery time first (default: tomorrow, any time — changeable on the
- * store's website later).
+ * delivery time first (default: the household's usual day or tomorrow, any
+ * time — changeable on the store's website later).
  *
  * ```tsx
  * <SendToStore store="coles" chosenCount={3}>
@@ -52,15 +54,23 @@ export const DEFAULT_DELIVERY: DeliveryWanted = {
 function SendToStoreRoot({
 	store,
 	chosenCount,
+	usualDay = null,
 	children,
 }: {
 	store: StoreId;
 	chosenCount: number;
+	/** The household's usual delivery day; the day chooser starts on it. */
+	usualDay?: DeliveryDay | null;
 	children: ReactNode;
 }) {
 	const handoff = useTrolleyHandoff(store);
 	useHandoffNotice(handoff.handoff);
-	const [delivery, setDelivery] = useState<DeliveryWanted>(DEFAULT_DELIVERY);
+	const tab = STORE_TABS[store];
+	// Only a bookmark that reserves the time shows the day chooser.
+	const [delivery, setDelivery] = useState<DeliveryWanted>(() => ({
+		...DEFAULT_DELIVERY,
+		date: tab.reservesDelivery ? usualDeliveryDate(new Date(), usualDay) : null,
+	}));
 	const router = useRouter({ warn: false });
 	// A filled trolley is saved as bought and its items leave the list (or
 	// come back after Undo). Re-read the page once the sheet closes — not
@@ -74,7 +84,7 @@ function SendToStoreRoot({
 		<SendContext.Provider
 			value={{
 				...handoff,
-				tab: STORE_TABS[store],
+				tab,
 				chosenCount,
 				delivery,
 				setDelivery,

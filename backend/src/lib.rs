@@ -65,7 +65,7 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
 
     let hub = WsHub::new();
     let triage = TriageQueue::new(
-        services::triage::registry::build(&settings.triage),
+        services::triage::registry::build(&settings.triage, &pool, encryptor.as_ref()),
         pool.clone(),
         hub.clone(),
     );

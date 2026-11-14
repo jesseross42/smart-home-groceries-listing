@@ -31,8 +31,13 @@ The steps below are for Woolworths. Coles differs only where "Coles" says so.
    N = items still to buy (active or committed) whose chosen product is at
    Woolworths (`lib/chosen-at-store.ts`). Disabled when N is 0.
 2. Once only: drag **Fill Woolworths trolley** to the bookmarks bar.
-3. Pick a **delivery day** (default **Tomorrow**, then the next 6 days) and a
-   **time of day** (Any · Morning < 12pm · Afternoon 12–5pm · Evening ≥ 5pm).
+3. Pick a **delivery day** (**Tomorrow**, then the next 6 days) and a
+   **time of day**. The day starts on the household's **usual delivery day**
+   from Settings › Delivery (`default_delivery_day`: the next time that
+   weekday comes, from tomorrow), or on Tomorrow when none is saved. When
+   the store has no window that day, the bookmark takes the next day with
+   one and the sheet says so ("Nothing left on …"); with no window at all it
+   reports the failure. Time of day: (Any · Morning < 12pm · Afternoon 12–5pm · Evening ≥ 5pm).
 4. **Send and open Woolworths** creates a handoff and opens
    `woolworths.com.au/shop/mytrolley`. Log in there if asked.
 5. Press the bookmark on Woolworths. It **reserves the delivery time first**,

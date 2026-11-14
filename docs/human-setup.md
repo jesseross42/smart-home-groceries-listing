@@ -297,8 +297,10 @@ the server ([see below](#optional-postgresql-installed-on-the-server)).
 - **OpenAI** (hosted, paid): `INTAKE_LLM_PROVIDER=openai`, no model server
   in `COMPOSE_PROFILES` (only `db`, if used), empty `INTAKE_LLM_BASE_URL`,
   and an API key from
-  [platform.openai.com/api-keys](https://platform.openai.com/api-keys) in
-  `OPENAI_API_KEY`.
+  [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+  Paste it into **Settings › Help › OpenAI key** in the web app (stored
+  encrypted; needs `CREDENTIAL_ENCRYPTION_KEY`). `OPENAI_API_KEY` in `.env`
+  still works and is used while no key is saved in the app.
 - **A model server already running on the host:** leave the model server
   out of `COMPOSE_PROFILES` and set `INTAKE_LLM_BASE_URL=http://host.docker.internal:<port>/v1`
   (Ollama's default port is `11434`).

@@ -9,6 +9,7 @@ pub mod filter_terms;
 pub mod google_tasks;
 pub mod grocery;
 pub mod item_rules;
+pub mod openai_key;
 pub mod order_plan;
 pub mod order_review;
 pub mod product_lookup;

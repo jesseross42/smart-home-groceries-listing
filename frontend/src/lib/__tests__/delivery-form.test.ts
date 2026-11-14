@@ -21,6 +21,7 @@ const saved: DeliverySettings = {
 	],
 	mode: "minimise_delivery",
 	max_delivery_spend: null,
+	default_delivery_day: null,
 };
 
 describe("parseAmount", () => {
@@ -46,6 +47,7 @@ describe("toForm and fromForm", () => {
 				stores: saved.stores.map(({ store_name: _, ...rules }) => rules),
 				mode: "minimise_delivery",
 				max_delivery_spend: null,
+				default_delivery_day: null,
 			},
 		});
 	});

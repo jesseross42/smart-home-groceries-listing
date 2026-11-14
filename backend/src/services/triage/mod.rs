@@ -9,6 +9,7 @@
 //! | File | Job |
 //! |---|---|
 //! | `model.rs` | the [`TriageModel`] trait every classifier implements |
+//! | `key.rs` | where a classifier's API key comes from |
 //! | `openai.rs` | Ollama, llama.cpp, vLLM and OpenAI — one chat-completions client |
 //! | `fake.rs` | keyword classifier for development and tests |
 //! | `prompt.rs` | the instructions, and reading the reply (pure) |
@@ -20,6 +21,7 @@
 
 mod assessor;
 mod fake;
+mod key;
 mod log;
 mod model;
 mod openai;
@@ -31,6 +33,7 @@ mod verdict;
 
 pub use assessor::Triage;
 pub use fake::FakeTriage;
+pub use key::{FixedKey, KeySource};
 pub use model::{Classification, TriageError, TriageModel};
 pub use openai::OpenAiCompatible;
 pub use queue::TriageQueue;

@@ -24,6 +24,7 @@ function option(overrides: Partial<OrderOption> = {}): OrderOption {
 			},
 		],
 		missing: [],
+		disliked: [],
 		items_total: "3.9",
 		delivery_total: "9",
 		total: "12.9",

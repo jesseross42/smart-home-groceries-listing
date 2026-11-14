@@ -36,17 +36,14 @@ behavioral contract.
 
 - [#75 — Add optional desktop start at login](https://github.com/jesseross42/smart-home-groceries-listing/issues/75)
 - [#73 — Push trolley-filled events to desktop clients](https://github.com/jesseross42/smart-home-groceries-listing/issues/73)
-- [#92 — Save a default delivery day for trolley handoffs](https://github.com/jesseross42/smart-home-groceries-listing/issues/92)
 
 ### Household workflows
 
-- [#76 — Use product dislikes in automated order planning](https://github.com/jesseross42/smart-home-groceries-listing/issues/76)
 - [#82 — Improve item rules and add a settings index](https://github.com/jesseross42/smart-home-groceries-listing/issues/82)
 
 ### Integration follow-ups and maintenance
 
 - [#86 — Handle Google Tasks subtasks, notes, and disconnect revocation](https://github.com/jesseross42/smart-home-groceries-listing/issues/86)
-- [#89 — Store the OpenAI triage key encrypted in application settings](https://github.com/jesseross42/smart-home-groceries-listing/issues/89)
 - [#85 — Verify live store and voice integrations end to end](https://github.com/jesseross42/smart-home-groceries-listing/issues/85)
 
 ## Deliberately out of the roadmap

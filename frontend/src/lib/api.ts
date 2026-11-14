@@ -13,6 +13,7 @@ import { dislikesApi } from "#/lib/api/dislikes";
 import { groceryApi } from "#/lib/api/grocery";
 import { intakeApi } from "#/lib/api/intake";
 import { itemRulesApi } from "#/lib/api/item-rules";
+import { openAiKeyApi } from "#/lib/api/openai-key";
 import { orderOptionsApi } from "#/lib/api/order-options";
 import { orderReviewApi } from "#/lib/api/order-review";
 import { productsApi } from "#/lib/api/products";
@@ -31,6 +32,7 @@ export * from "#/lib/api/dislikes";
 export * from "#/lib/api/grocery";
 export * from "#/lib/api/intake";
 export * from "#/lib/api/item-rules";
+export * from "#/lib/api/openai-key";
 export * from "#/lib/api/order-options";
 export * from "#/lib/api/order-review";
 export * from "#/lib/api/products";
@@ -59,4 +61,5 @@ export const api = {
 	accessLogs: accessLogsApi,
 	voiceChanges: voiceListChangesApi,
 	deliverySettings: deliverySettingsApi,
+	openAiKey: openAiKeyApi,
 };

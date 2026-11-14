@@ -25,9 +25,12 @@ test.describe("changed by voice", () => {
 		expect(removed.status()).toBe(201);
 
 		await gotoList(page, "/settings/help");
+		// Newest first: earlier runs (the other browser project) leave their
+		// own undone milk rows in the list.
 		const row = page
 			.getByRole("region", { name: "Changed by voice" })
-			.getByRole("listitem", { name: "milk" });
+			.getByRole("listitem", { name: "milk" })
+			.first();
 		await expect(row).toContainText("Removed (was ×2)");
 
 		await row.getByRole("button", { name: "Undo the change to milk" }).click();

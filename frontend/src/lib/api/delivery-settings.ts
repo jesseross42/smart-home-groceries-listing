@@ -17,6 +17,16 @@ export type OrderMode =
 	| "coles_only"
 	| "manual";
 
+/** A day of the week the household usually takes deliveries on. */
+export type DeliveryDay =
+	| "monday"
+	| "tuesday"
+	| "wednesday"
+	| "thursday"
+	| "friday"
+	| "saturday"
+	| "sunday";
+
 /** One store's delivery fee rules. */
 export interface StoreFeeRules {
 	store: StoreId;
@@ -36,6 +46,8 @@ export interface DeliverySettings {
 	mode: OrderMode;
 	/** Options with more delivery fees than this are not recommended. */
 	max_delivery_spend: string | null;
+	/** The day the delivery chooser starts on; `null` = tomorrow. */
+	default_delivery_day: DeliveryDay | null;
 }
 
 export const deliverySettingsApi = {

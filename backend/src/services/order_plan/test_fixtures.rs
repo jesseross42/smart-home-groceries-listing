@@ -2,7 +2,7 @@
 
 use rust_decimal::Decimal;
 
-use super::option::Candidate;
+use super::option::{Candidate, OfferDislike};
 use crate::models::delivery_rows::OrderMode;
 use crate::services::delivery_settings::{DeliverySettings, FeeRules};
 use crate::services::order_review::fixtures::{choice, item};
@@ -29,7 +29,17 @@ pub fn candidate(name: &str, current: Store, prices: &[(Store, Decimal)]) -> Can
         item: it,
         current,
         offers,
+        dislikes: Vec::new(),
     }
+}
+
+/// `candidate` with its product at `store` disliked by `name`.
+pub fn disliked(mut candidate: Candidate, store: Store, name: &str) -> Candidate {
+    candidate.dislikes.push(OfferDislike {
+        store,
+        disliked_by: vec![name.into()],
+    });
+    candidate
 }
 
 pub fn settings(
@@ -47,5 +57,6 @@ pub fn settings(
         stores: vec![rules(Woolworths), rules(Coles)],
         mode: OrderMode::MinimiseTotal,
         max_delivery_spend: None,
+        default_delivery_day: None,
     }
 }
