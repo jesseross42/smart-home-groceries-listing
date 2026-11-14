@@ -12,6 +12,7 @@ import { ModePicker } from "#/components/order-options/mode-picker";
 import { OrderOptions } from "#/components/order-options/order-options";
 import { SendToStore } from "#/components/trolley/send-to-store";
 import { Button } from "#/components/ui/button";
+import { useApplyBestOption } from "#/hooks/useApplyBestOption";
 import { useListSync } from "#/hooks/useListSync";
 import { useOrderStores } from "#/hooks/useOrderStores";
 import { api, type OrderMode, selectionsByItem } from "#/lib/api";
@@ -89,6 +90,7 @@ function OrderPage() {
 	useListSync();
 	const navigate = useNavigate({ from: Route.fullPath });
 	const orderStores = useOrderStores(chosen);
+	useApplyBestOption(plan, orderStores.use);
 	const [checking, setChecking] = useState(false);
 
 	async function checkAgain() {

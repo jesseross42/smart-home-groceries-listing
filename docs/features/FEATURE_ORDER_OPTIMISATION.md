@@ -8,8 +8,9 @@ need-by dates, allowed days and perishable timing are **not built** (see
 ## Ways to buy (the planner)
 An item may have a chosen product at **each** store
 (`FEATURE_PRODUCT_CHOICE.md`); one of them is the one the order buys. The
-planner never picks a product — it only moves an item between products the
-household chose.
+planner never picks a product: it only moves an item between products already
+chosen (by a person, or by auto-pick when the item was added). An item a store
+does not sell is never planned at that store.
 
 1. `/order` shows **Ways to buy** above the review. Up to four options, best
    first: **All at Woolworths**, **All at Coles**, **Split between stores**
@@ -26,10 +27,13 @@ household chose.
    (`FEATURE_DISLIKES.md`).
 3. **Recommended** marks the first option only when it buys every item,
    meets every store's minimum and is within the cap.
-4. **Use this** sends the option's `picks` to `PUT /api/order-stores`; the
+4. When the recommended option is not the current one, `/order` applies it by
+   itself once per plan (`useApplyBestOption`), with a toast and **Undo**.
+   An undone or replaced plan is not re-applied until the plan changes.
+5. **Use this** sends the option's `picks` to `PUT /api/order-stores`; the
    toast's **Undo** puts every moved item back. Send to Woolworths/Coles then
    sends only items bought at that store.
-5. **Rank by** (`?mode=`) tries another mode for this visit; the saved
+6. **Rank by** (`?mode=`) tries another mode for this visit; the saved
    default is on Settings › Delivery.
 
 ### Modes

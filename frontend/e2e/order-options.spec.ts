@@ -56,23 +56,27 @@ test.describe("delivery fees and ways to buy", () => {
 		await expect(page.getByText("Delivery settings saved")).toBeVisible();
 
 		await gotoList(page, "/order");
+		// The best way to buy is applied by itself.
+		await expect(
+			page.getByText('The order now uses "All at Woolworths"'),
+		).toBeVisible();
 		const best = page.getByRole("region", { name: "All at Woolworths" });
 		await expect(best).toContainText("Recommended");
+		await expect(best).toContainText("Current");
 		await expect(best).toContainText("$12.90");
 		await expect(best).toContainText("$3.90 + $9.00 delivery");
-		const current = page.getByRole("region", { name: "All at Coles" });
-		await expect(current).toContainText("Current");
-		await expect(current).toContainText("$14.78");
+		await expect(
+			page.getByRole("region", { name: "All at Coles" }),
+		).toContainText("$14.78");
 	});
 
-	test("using an option moves the order, and Undo moves it back", async ({
+	test("the best option moves the order by itself, and Undo moves it back", async ({
 		page,
 		request,
 	}) => {
 		await commitAtBothStores(request);
 		await gotoList(page, "/order");
 
-		await page.getByRole("button", { name: "Use All at Woolworths" }).click();
 		await expect(page.getByText(/The order now uses/)).toBeVisible();
 		await expect(
 			page.getByRole("region", { name: "Woolworths", exact: true }),
