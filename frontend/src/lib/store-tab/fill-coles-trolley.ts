@@ -24,9 +24,10 @@
  *    `results[0].failedItems` with its own reason, still with HTTP 200.
  * 4. Read the trolley again: a product counts as added only when its
  *    quantity really went up by the list's quantity.
- * 5. Report every product to our backend. The delivery time is reported as
- *    not chosen: the Coles delivery-time calls are not known yet, so the
- *    person picks one on Coles.
+ * 5. Pick the delivery time asked for in Coles' own time picker, when the
+ *    person opened it (`helpers.pickDeliverySlot`), and check the trolley
+ *    now holds it. Its "order by" time (`slot.cutoffTime`) is shown.
+ * 6. Report every product and the delivery time to our backend.
  *
  * Endpoints, checked live in a logged-in tab on 2026-10-06:
  * - `GET /api/bff/trolley/store/{storeId}?sortBy=recentlyAdded` with
@@ -41,16 +42,35 @@
  *
  * `fillColesTrolley` must stay **self-contained** — no imports at run time,
  * no outside variables — because the bookmarklet carries its source text.
+ * Its helpers arrive as its second argument, each self-contained too.
  * Its place in the web app is `COLES_TAB` (`store-tabs.ts`).
  */
+import type { ColesSlot } from "#/lib/store-tab/choose-coles-slot";
+import type {
+	DeliveryWanted,
+	TimeOfDay,
+} from "#/lib/store-tab/choose-woolworths-window";
+import type { ColesSlotHelpers } from "#/lib/store-tab/pick-coles-delivery-slot";
+import type { DeliveryReport } from "#/lib/store-tab/reserve-woolworths-delivery-window";
 import type {
 	FillTrolleyConfig,
 	FillTrolleyResult,
 } from "#/lib/store-tab/store-tab";
 
+/** The self-contained helpers the script is handed. */
+export interface ColesFillHelpers {
+	readSlots: (root: ParentNode) => ColesSlot[];
+	chooseSlot: (slots: ColesSlot[], timeOfDay: TimeOfDay) => ColesSlot | null;
+	pickDeliverySlot: (
+		wanted: DeliveryWanted,
+		helpers: ColesSlotHelpers,
+	) => Promise<DeliveryReport>;
+}
+
 /** Fills the Coles trolley from the newest waiting Coles handoff. */
 export async function fillColesTrolley(
 	config: FillTrolleyConfig,
+	helpers: ColesFillHelpers,
 ): Promise<FillTrolleyResult> {
 	const nothing = (message: string): FillTrolleyResult => ({
 		handoffId: null,
@@ -163,11 +183,34 @@ export async function fillColesTrolley(
 	}
 	const handoff = (await claimed.json()) as {
 		handoff_id: string;
+		delivery?: DeliveryWanted;
 		lines: { product_id: string; name: string; quantity: number }[];
 	};
 
-	// 3. Add each product. Coles adds the quantity sent.
-	const slot = before.slot;
+	// 3. Pick the delivery time, then add each product. Coles adds the
+	// quantity sent, and keeps the time only when the PATCH carries it.
+	let delivery = await helpers.pickDeliverySlot(
+		handoff.delivery ?? { date: null, time_of_day: "any" },
+		{ readSlots: helpers.readSlots, chooseSlot: helpers.chooseSlot },
+	);
+	let slot = before.slot;
+	if (delivery.outcome === "reserved") {
+		const previous = slot?.shiftId;
+		slot = null;
+		for (let tries = 0; tries < 10 && !slot; tries++) {
+			if (tries > 0) await new Promise((resolve) => setTimeout(resolve, 300));
+			const now = await readTrolley();
+			const held = typeof now === "number" ? null : now.slot;
+			if (held?.shiftId && held.shiftId !== previous) slot = held;
+		}
+		if (!slot) {
+			slot = before.slot;
+			delivery = {
+				outcome: "failed",
+				problem: "Coles did not keep the delivery time the app picked",
+			};
+		}
+	}
 	const keepSlot =
 		slot?.cutoffTime && slot.shiftId && slot.reservationExpirationTime
 			? {
@@ -249,10 +292,6 @@ export async function fillColesTrolley(
 	}
 
 	// 5. Report back.
-	const delivery = {
-		outcome: "failed" as const,
-		problem: "The app cannot pick a Coles delivery time yet",
-	};
 	await sendToBackend(
 		`/api/store-tab/trolley-handoffs/${handoff.handoff_id}/report`,
 		{
@@ -272,12 +311,21 @@ export async function fillColesTrolley(
 		failed.length === 0
 			? `Added ${added.length} products to your Coles trolley.`
 			: `Added ${added.length}. ${failed.length} could not be added — the grocery app shows which.`;
+	const orderBy = slot?.cutoffTime ? new Date(slot.cutoffTime) : null;
+	const when =
+		delivery.outcome === "failed"
+			? `No delivery time: ${delivery.problem?.replace(/\.$/, "")}.\nNow pick a delivery time on Coles, then check your trolley.`
+			: `Delivery: ${delivery.window_start?.slice(0, 10)}, ${delivery.window_label} ($${delivery.fee}).${
+					orderBy && !Number.isNaN(orderBy.getTime())
+						? ` Order by ${orderBy.toLocaleString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} to keep it.`
+						: ""
+				}`;
 	return {
 		handoffId: handoff.handoff_id,
 		added,
 		failed,
 		delivery,
-		message: `${products}\nNow pick a delivery time on Coles, then check your trolley.`,
+		message: `${products}\n${when}`,
 		checkout:
 			added.length > 0
 				? {

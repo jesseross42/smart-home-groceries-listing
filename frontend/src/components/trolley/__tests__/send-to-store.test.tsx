@@ -219,19 +219,19 @@ describe("SendToStore at Coles", () => {
 		);
 		const bookmark = await screen.findByText("Fill Coles trolley");
 		expect(bookmark.getAttribute("href")).toMatch(/^javascript:/);
-		// The Coles bookmark cannot reserve a time, so none is asked for.
-		expect(screen.queryByRole("button", { name: /^Tomorrow/ })).toBeNull();
-		expect(screen.getByText(/pick a delivery time on Coles/)).toBeVisible();
+		// The Coles bookmark picks the time in Coles' own picker.
+		expect(screen.getByRole("button", { name: /^Tomorrow/ })).toBeVisible();
+		expect(screen.getByText(/open the delivery time picker/)).toBeVisible();
 
 		await user.click(
 			screen.getByRole("button", { name: "Send and open Coles" }),
 		);
 
 		expect(open).toHaveBeenCalledWith(COLES_TAB.trolleyUrl, "_blank");
-		expect(create).toHaveBeenCalledWith("coles", {
-			date: null,
-			time_of_day: "any",
-		});
+		expect(create).toHaveBeenCalledWith(
+			"coles",
+			expect.objectContaining({ time_of_day: "any" }),
+		);
 		expect(await screen.findByRole("status")).toHaveTextContent(
 			"On Coles, press the “Fill Coles trolley” bookmark",
 		);

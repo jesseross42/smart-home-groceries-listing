@@ -71,14 +71,14 @@ describe("SendToStore with a usual delivery day", () => {
 		});
 	});
 
-	it("asks Coles for no day, because its bookmark reserves none", async () => {
+	it("starts the Coles day chooser on the usual day too", async () => {
 		const { create, user } = await sendWithUsualDay("coles");
 
 		await user.click(
 			screen.getByRole("button", { name: "Send and open Coles" }),
 		);
 		expect(create).toHaveBeenCalledWith("coles", {
-			date: null,
+			date: localDate(inThreeDays()),
 			time_of_day: "any",
 		});
 	});

@@ -132,9 +132,28 @@ line may carry a `problem` (a Woolworths warning, e.g. "not available yet").
 - **"Added"** means the trolley, read again after the PATCHes, holds at
   least what was there plus the list's quantity. Otherwise "Coles did not
   add this product…".
-- **Delivery:** not reserved. The Coles delivery-time calls are not known, so
-  the sheet asks for no time, and the report says `failed` with "The app
-  cannot pick a Coles delivery time yet". The person picks one on Coles.
+- **Delivery:** picked in Coles' own **Choose delivery slot** drawer, which
+  the person opens first (the sheet says so). The sheet asks for a day and
+  part of the day, as for Woolworths. Markup captured 2026-11-14:
+  - Drawer `section[data-testid="slot-selector-drawer"]`. Days are radios in
+    `[data-testid="date-select-item-N"]` ("Tomorrow" / "15 Nov"); only
+    "This week" is read ("Next week" is an early-access tab).
+  - Times are radios in `[data-testid="slot-window-item"]` inside
+    `slots-radio-list`: words ("9:30am to 10:30am"), fee ("$13"), and a
+    "Deliver More" badge on the cheaper long windows (radio value a number;
+    one-hour windows are `nsh_dlw_…` with UTC times). Then
+    `button[aria-label="Confirm time slot"]`.
+  - `pick-coles-delivery-slot.ts` clicks the first day on or after the one
+    asked for (default tomorrow) that has a time, picks one with
+    `chooseColesSlot` (cheapest, earliest, shortest; for a part of the day
+    the **whole** window must fit, so 9am to 5pm is not "morning"), and
+    confirms. The website's own drawer makes the reservation call.
+  - The fill then reads the trolley until `orderAttributes.slot.shiftId`
+    changes (about 3 s). Only then is it `reserved`; its `cutoffTime` is
+    shown as "Order by …" and sent on every PATCH. Otherwise `failed`,
+    "Coles did not keep the delivery time the app picked".
+  - Drawer closed: `failed`, "…was not open. Open it on Coles before
+    pressing the bookmark". The person picks one on Coles.
 - **Age-restricted products** are sent with `ageGateVerified: false`, so Coles
   may refuse them; they show as Not added.
 
@@ -155,7 +174,7 @@ outcome, problem). Lines are a snapshot; deleting the list item keeps them.
 - Frontend: `lib/store-tab/fill-woolworths-trolley.ts` (the script that runs
   on Woolworths — must stay self-contained; its helpers arrive as its second
   argument), `choose-woolworths-window.ts`, `reserve-woolworths-delivery-window.ts`,
-  `fill-coles-trolley.ts`, `store-tab.ts` (the `StoreTab` interface),
+  `fill-coles-trolley.ts`, `choose-coles-slot.ts`, `pick-coles-delivery-slot.ts`, `store-tab.ts` (the `StoreTab` interface),
   `store-tabs.ts` (one per store), `lib/store-tab/bookmarklet.ts` (any fill
   script → `javascript:` link), `lib/delivery-days.ts`,
   `lib/api/trolley-handoffs.ts`, `hooks/useTrolleyHandoff.ts`,
@@ -171,8 +190,11 @@ program, endpoints and rules. See `FEATURE_DESKTOP_APP.md`.
 ## Not built
 - A full Coles bookmark run against the household's backend (the trolley
   calls themselves were checked live on 2026-10-06).
-- Reserving a Coles delivery time. The website reserves with
-  `POST /api/bff/slots/{slotId}`; its body is not captured yet.
+- Opening Coles' delivery time drawer from the bookmark (the button that
+  opens it is not captured), and reserving by call instead of the drawer
+  (`POST /api/bff/slots/{slotId}`; its body is not captured).
+- Keeping the Coles "Order by" time in the handoff; it is only shown in the
+  bookmark's message.
 - Showing the store's real windows and fees in the app before sending (the
   app cannot see them without the household's Woolworths login).
 - A saved delivery day default. Checkout is a confirm step after the fill (`FEATURE_CHECKOUT.md`).
@@ -197,6 +219,10 @@ program, endpoints and rules. See `FEATURE_DESKTOP_APP.md`.
   against a fake trolley: on top of what is there, headers, refused and
   ignored products, nothing claimed until logged in / store chosen / page
   loaded, and the built bookmarklet run on its own.
+- `choose-coles-slot.test.ts`, `pick-coles-delivery-slot.test.ts`,
+  `fill-coles-delivery.test.ts` — reading and choosing Coles times, the
+  drawer flow (`coles-drawer.ts`, built from the captured markup), and the
+  fill keeping the picked time and showing its order-by time.
 - `frontend/src/components/trolley/__tests__/send-to-store.test.tsx` — both
   stores' sheets.
 - `frontend/e2e/order-review.spec.ts` — Send to Coles on `/order`.

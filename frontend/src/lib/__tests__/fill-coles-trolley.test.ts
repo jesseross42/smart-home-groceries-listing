@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	colesHelpers,
 	colesPage,
 	config,
 	fakeNetwork,
@@ -20,7 +21,7 @@ describe("fillColesTrolley", () => {
 	it("adds each product on top of the trolley and reports back", async () => {
 		const { calls, trolley } = fakeNetwork();
 
-		const result = await fillColesTrolley(config);
+		const result = await fillColesTrolley(config, colesHelpers);
 
 		expect(trolley.get("123011")).toBe(3);
 		expect(trolley.get("409499")).toBe(1);
@@ -40,7 +41,7 @@ describe("fillColesTrolley", () => {
 	it("sends the headers the Coles website sends", async () => {
 		const { calls } = fakeNetwork();
 
-		await fillColesTrolley(config);
+		await fillColesTrolley(config, colesHelpers);
 
 		const patch = calls.find((c) => c.method === "PATCH");
 		expect(patch?.headers["ocp-apim-subscription-key"]).toBe("bff-key");
@@ -67,7 +68,7 @@ describe("fillColesTrolley", () => {
 			},
 		});
 
-		await fillColesTrolley(config);
+		await fillColesTrolley(config, colesHelpers);
 
 		const patch = calls.find((c) => c.method === "PATCH");
 		expect(patch?.body).toMatchObject({
@@ -80,7 +81,7 @@ describe("fillColesTrolley", () => {
 	it("reports a refused or silently ignored product as not added", async () => {
 		const { calls } = fakeNetwork({ refused: ["123011"], ignored: ["409499"] });
 
-		const result = await fillColesTrolley(config);
+		const result = await fillColesTrolley(config, colesHelpers);
 
 		expect(result.added).toEqual([]);
 		expect(reportOf(calls).lines).toEqual([
@@ -101,7 +102,7 @@ describe("fillColesTrolley", () => {
 	it("reports an HTTP refusal with its status", async () => {
 		const { calls } = fakeNetwork({ status400: ["409499"] });
 
-		const result = await fillColesTrolley(config);
+		const result = await fillColesTrolley(config, colesHelpers);
 
 		expect(result.added).toEqual(["123011"]);
 		expect(reportOf(calls).lines[1]).toEqual({
@@ -122,7 +123,7 @@ describe("fillColesTrolley", () => {
 			},
 		});
 
-		await fillColesTrolley(config);
+		await fillColesTrolley(config, colesHelpers);
 
 		expect(calls.some((c) => c.method === "PATCH")).toBe(false);
 		expect(reportOf(calls).lines[0].problem).toBe("Not a Coles product number");
@@ -131,7 +132,7 @@ describe("fillColesTrolley", () => {
 	it("claims nothing until the person is logged in", async () => {
 		const { calls } = fakeNetwork({ trolleyStatus: 401 });
 
-		const result = await fillColesTrolley(config);
+		const result = await fillColesTrolley(config, colesHelpers);
 
 		expect(result.message).toContain("Log in to Coles");
 		expect(calls.some((c) => c.url.endsWith("/claim"))).toBe(false);
@@ -141,7 +142,7 @@ describe("fillColesTrolley", () => {
 		colesPage({ storeId: null });
 		const { calls } = fakeNetwork();
 
-		const result = await fillColesTrolley(config);
+		const result = await fillColesTrolley(config, colesHelpers);
 
 		expect(result.message).toContain("delivery address");
 		expect(calls).toHaveLength(0);
@@ -151,7 +152,7 @@ describe("fillColesTrolley", () => {
 		colesPage({ apiKey: null });
 		const { calls } = fakeNetwork();
 
-		const result = await fillColesTrolley(config);
+		const result = await fillColesTrolley(config, colesHelpers);
 
 		expect(result.message).toContain("Reload");
 		expect(calls).toHaveLength(0);
@@ -160,7 +161,7 @@ describe("fillColesTrolley", () => {
 	it("says so when nothing is waiting", async () => {
 		fakeNetwork({ claim: { status: 204 } });
 
-		const result = await fillColesTrolley(config);
+		const result = await fillColesTrolley(config, colesHelpers);
 
 		expect(result.handoffId).toBeNull();
 		expect(result.message).toContain("Send to Coles");
@@ -170,7 +171,7 @@ describe("fillColesTrolley", () => {
 		vi.stubGlobal("location", { hostname: "www.woolworths.com.au" });
 		const { calls } = fakeNetwork();
 
-		const result = await fillColesTrolley(config);
+		const result = await fillColesTrolley(config, colesHelpers);
 
 		expect(result.message).toContain("coles.com.au");
 		expect(calls).toHaveLength(0);
@@ -179,7 +180,9 @@ describe("fillColesTrolley", () => {
 	it("stops when the grocery app refuses the secret", async () => {
 		fakeNetwork({ claim: { status: 401, body: { detail: "Invalid secret" } } });
 
-		await expect(fillColesTrolley(config)).rejects.toThrow("HTTP 401");
+		await expect(fillColesTrolley(config, colesHelpers)).rejects.toThrow(
+			"HTTP 401",
+		);
 	});
 });
 

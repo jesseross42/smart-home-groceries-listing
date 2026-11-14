@@ -5,9 +5,14 @@
  * picks a store by its id and nothing else.
  */
 import type { StoreId } from "#/lib/api/products";
+import {
+	chooseColesSlot,
+	readColesSlots,
+} from "#/lib/store-tab/choose-coles-slot";
 import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import { fillColesTrolley } from "#/lib/store-tab/fill-coles-trolley";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
+import { pickColesDeliverySlot } from "#/lib/store-tab/pick-coles-delivery-slot";
 import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
 import type { StoreTab } from "#/lib/store-tab/store-tab";
 
@@ -25,15 +30,21 @@ export const WOOLWORTHS_TAB: StoreTab = {
 	},
 };
 
-/** Coles: fills the trolley; the delivery time is picked on Coles. */
+/** Coles: fills the trolley and picks the delivery time in Coles' picker. */
 export const COLES_TAB: StoreTab = {
 	store: "coles",
 	storeName: "Coles",
 	trolleyUrl: "https://www.coles.com.au/",
 	bookmarkName: "Fill Coles trolley",
-	reservesDelivery: false,
+	reservesDelivery: true,
+	deliveryTip:
+		"open the delivery time picker (“When”) first, so the bookmark can pick the time.",
 	fill: fillColesTrolley,
-	helpers: {},
+	helpers: {
+		readSlots: readColesSlots,
+		chooseSlot: chooseColesSlot,
+		pickDeliverySlot: pickColesDeliverySlot,
+	},
 };
 
 /** Each store's trolley handoff, by store id. */

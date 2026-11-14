@@ -43,7 +43,8 @@ export function BookmarkSteps() {
 				</Button>
 			</li>
 			<li>
-				On {name}, press the "{tab.bookmarkName}" bookmark.
+				On {name}, {tab.deliveryTip ? `${tab.deliveryTip} Then press` : "press"}{" "}
+				the "{tab.bookmarkName}" bookmark.
 				{!tab.reservesDelivery && ` Then pick a delivery time on ${name}.`}
 			</li>
 		</ol>
