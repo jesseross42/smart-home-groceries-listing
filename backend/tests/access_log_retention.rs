@@ -46,15 +46,3 @@ async fn zero_days_keeps_everything(pool: PgPool) {
     assert_eq!(deleted, 0);
     assert_eq!(stored_paths(&pool).await, ["/ancient"]);
 }
-
-#[sqlx::test]
-async fn a_limit_too_large_for_the_database_deletes_nothing(pool: PgPool) {
-    log_request(&pool, "/old", 400).await;
-
-    let deleted = retention::purge(&pool, u32::MAX).await;
-
-    // Either nothing is old enough, or PostgreSQL refuses the date; never a
-    // wrong deletion.
-    assert!(matches!(deleted, Ok(0) | Err(_)));
-    assert_eq!(stored_paths(&pool).await, ["/old"]);
-}

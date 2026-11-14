@@ -67,7 +67,10 @@ request ─▶ access-log middleware (outermost layer, lib.rs)
 `ACCESS_LOG_RETENTION_DAYS` (default `90`) is how long a table row is kept.
 A background task deletes older rows at startup and then every 24 hours
 (`services/access_log/retention.rs`); a failed run is a warning and is tried
-again the next day. `0` keeps rows forever. The files keep their own 30 days.
+again the next day. `0` keeps rows forever; more than 36,500 is refused at
+startup. `ix_access_logs_occurred_at`
+(`20261113220000_access_logs_occurred_at_index.sql`) serves the delete. The
+files keep their own 30 days.
 
 There is no admin role in this POC: every signed-in member may read the log.
 

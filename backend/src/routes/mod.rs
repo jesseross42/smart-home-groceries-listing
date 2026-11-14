@@ -38,8 +38,12 @@ use crate::state::AppState;
 /// Takes the state because the store-tab routes carry a layer of their own
 /// that reads the stores' configured websites.
 pub fn api_router(state: &AppState) -> Router<AppState> {
-    // Routes whose writes can change what the list and order pages show.
+    // Routes whose writes can change what the list and order pages show:
+    // the list, its chosen products and dislike marks, and the order's
+    // delivery fees. Item rules are not here: a rule only applies to items
+    // added after it.
     let list_changing = Router::new()
+        .merge(delivery_settings::router())
         .merge(voice::router())
         .merge(voice_list_changes::router())
         .merge(alexa_list_changes::router())
@@ -62,11 +66,12 @@ pub fn api_router(state: &AppState) -> Router<AppState> {
         .merge(alexa::router())
         .merge(google_tasks::router())
         .merge(intake_settings::router())
-        .merge(delivery_settings::router())
         .merge(item_rules::router())
         .merge(order_options::router())
         .merge(order_review::router())
         .merge(products::router())
+        .merge(purchases::lookup_router())
+        .merge(selections::snapshot_router())
         .merge(spending::router())
         .merge(store_tab::router(state.clone()))
         .merge(ws::router())

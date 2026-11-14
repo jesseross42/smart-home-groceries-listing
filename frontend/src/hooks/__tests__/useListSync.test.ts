@@ -49,6 +49,18 @@ describe("useListSync", () => {
 		expect(invalidate).toHaveBeenCalledTimes(1);
 	});
 
+	it("reads again when the socket reconnects", () => {
+		renderHook(() => useListSync());
+
+		listener?.({
+			type: "counts_snapshot",
+			counts: { voice_request_added: 0, triage_held: 0 },
+		});
+		vi.advanceTimersByTime(200);
+
+		expect(invalidate).toHaveBeenCalledTimes(1);
+	});
+
 	it("ignores count events", () => {
 		renderHook(() => useListSync());
 

@@ -34,13 +34,19 @@ pub fn router() -> Router<AppState> {
             put(set_quantity),
         )
         .route(
-            "/api/grocery-items/{item_id}/selection/snapshot",
-            post(save_snapshot),
-        )
-        .route(
             "/api/selection-snapshots/{snapshot_id}/restore",
             post(restore_snapshot),
         )
+}
+
+/// Saving a snapshot for Undo. It changes nothing a page shows, so it stays
+/// out of the routers whose writes tell open pages to re-read the list
+/// (`routes/mod.rs`).
+pub fn snapshot_router() -> Router<AppState> {
+    Router::new().route(
+        "/api/grocery-items/{item_id}/selection/snapshot",
+        post(save_snapshot),
+    )
 }
 
 /// `GET /api/item-selections` — every item's product to buy, with its

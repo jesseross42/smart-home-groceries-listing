@@ -77,7 +77,12 @@ async fn report_handoff(
     let closed = TrolleyHandoffService::new(&state.pool)
         .record_store_tab_report(handoff_id, &report, delivery.as_ref())
         .await?;
-    purchases::record_in_background(state.pool.clone(), state.stores.clone(), handoff_id);
+    purchases::record_in_background(
+        state.pool.clone(),
+        state.stores.clone(),
+        state.hub.clone(),
+        handoff_id,
+    );
     // A second report is a 409 above, so each handoff is announced once.
     state
         .hub

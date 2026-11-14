@@ -33,6 +33,7 @@ use uuid::Uuid;
 use crate::error::ApiError;
 use crate::models::db::PurchaseOrder;
 use crate::services::stores::{Store, StoreClients};
+use crate::services::ws_hub::{ServerEvent, WsHub};
 
 /// How many recent shops the order list shows.
 pub const RECENT_ORDERS: i64 = 20;
@@ -119,10 +120,14 @@ pub async fn record(
 
 /// [`record`] in a spawned task, so the bookmarklet's report is answered
 /// without waiting for the stores to price each product.
-pub fn record_in_background(pool: PgPool, stores: StoreClients, handoff_id: Uuid) {
+///
+/// Recording takes bought items off the list, so open pages are told to
+/// read it again once it is done.
+pub fn record_in_background(pool: PgPool, stores: StoreClients, hub: WsHub, handoff_id: Uuid) {
     tokio::spawn(async move {
-        if let Err(err) = record(&pool, &stores, handoff_id).await {
-            log::save_failed(handoff_id, &err);
+        match record(&pool, &stores, handoff_id).await {
+            Ok(_) => hub.broadcast(ServerEvent::GroceryListChanged),
+            Err(err) => log::save_failed(handoff_id, &err),
         }
     });
 }

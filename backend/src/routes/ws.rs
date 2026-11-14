@@ -71,11 +71,16 @@ async fn run_socket(mut socket: WebSocket, state: AppState, user: SocketUser) {
                         return;
                     }
                 }
-                // The session fell behind the channel's buffer. The events
-                // carry an absolute count, so the next one brings it back in
-                // step — no need to close the socket.
+                // The session fell behind the channel's buffer. Count events
+                // are absolute, so the next one brings the badges back in
+                // step. A skipped list change is made up for by telling the
+                // session to read the list again; a skipped `trolley_filled`
+                // is lost (the handoff's sheet still shows the result).
                 Err(RecvError::Lagged(skipped)) => {
                     tracing::debug!(skipped, "websocket session lagged behind");
+                    if send_event(&mut socket, &ServerEvent::GroceryListChanged).await.is_err() {
+                        return;
+                    }
                 }
                 Err(RecvError::Closed) => return,
             },

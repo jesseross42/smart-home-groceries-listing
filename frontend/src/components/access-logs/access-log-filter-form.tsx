@@ -8,13 +8,17 @@ import { UNAUTHENTICATED } from "#/lib/access-log-display";
 
 /**
  * The Logs page's filters: one user id, and the start of the path. **Filter**
- * applies both; **Clear** empties both and shows everything again.
+ * applies both; **Clear** empties both and shows everything again, and
+ * stays available while the rows shown are filtered.
  */
 export function AccessLogFilterForm({
 	disabled = false,
+	applied,
 	onFilter,
 }: {
 	disabled?: boolean;
+	/** The filters the rows shown were loaded with. */
+	applied: AccessLogFilters;
 	onFilter: (filters: AccessLogFilters) => void;
 }) {
 	const userId = useId();
@@ -64,7 +68,9 @@ export function AccessLogFilterForm({
 				<Button
 					type="button"
 					variant="outline"
-					disabled={disabled || (!user && !path)}
+					disabled={
+						disabled || (!user && !path && !applied.user && !applied.path)
+					}
 					onClick={clear}
 				>
 					Clear

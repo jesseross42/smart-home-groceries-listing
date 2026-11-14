@@ -22,6 +22,7 @@ function LogsPage() {
 		hasOlder,
 		loading,
 		showHealthChecks,
+		filters,
 		loadOlder,
 		changeHealthChecks,
 		changeFilters,
@@ -37,7 +38,11 @@ function LogsPage() {
 				checked={showHealthChecks}
 				onCheckedChange={changeHealthChecks}
 			/>
-			<AccessLogFilterForm disabled={loading} onFilter={changeFilters} />
+			<AccessLogFilterForm
+				disabled={loading}
+				applied={filters}
+				onFilter={changeFilters}
+			/>
 			<AccessLogList entries={entries} />
 			{hasOlder && (
 				<Button

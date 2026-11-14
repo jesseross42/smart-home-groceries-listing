@@ -23,8 +23,14 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/purchase-orders", get(list_orders))
         .route("/api/purchase-orders/{order_id}", delete(undo_order))
-        .route("/api/purchase-history/products", post(product_history))
         .route("/api/purchase-history/recategorise", post(recategorise))
+}
+
+/// The purchase-history lookup. A `POST` only so the product list fits in a
+/// body: it changes nothing, so it stays out of the routers whose writes
+/// tell open pages to re-read the list (`routes/mod.rs`).
+pub fn lookup_router() -> Router<AppState> {
+    Router::new().route("/api/purchase-history/products", post(product_history))
 }
 
 /// `GET /api/purchase-orders` — the newest saved shops, newest first.
