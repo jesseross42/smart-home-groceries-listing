@@ -19,6 +19,8 @@ export interface StoreFeeFields {
 	deliveryFee: string;
 	freeDeliveryOver: string;
 	minimumOrder: string;
+	/** A saved address on the store's website; "" = the account's. */
+	deliveryAddress: string;
 }
 
 /** The whole form. */
@@ -39,6 +41,7 @@ export function toForm(settings: DeliverySettings): DeliveryForm {
 			deliveryFee: rules.delivery_fee ?? "",
 			freeDeliveryOver: rules.free_delivery_over ?? "",
 			minimumOrder: rules.minimum_order ?? "",
+			deliveryAddress: rules.delivery_address ?? "",
 		})),
 		mode: settings.mode,
 		maxDeliverySpend: settings.max_delivery_spend ?? "",
@@ -77,6 +80,7 @@ export function fromForm(
 			delivery_fee: fee.value,
 			free_delivery_over: freeOver.value,
 			minimum_order: minimum.value,
+			delivery_address: fields.deliveryAddress.trim() || null,
 		});
 	}
 	const cap = parseAmount(form.maxDeliverySpend);

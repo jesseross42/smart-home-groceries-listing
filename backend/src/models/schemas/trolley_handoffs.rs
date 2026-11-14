@@ -182,6 +182,9 @@ pub struct StoreTabClaimResponse {
     pub store: Store,
     /// The delivery window to reserve before adding products.
     pub delivery: DeliveryWanted,
+    /// The saved address on the store's website to pick first; `null` =
+    /// keep the account's.
+    pub delivery_address: Option<String>,
     pub lines: Vec<StoreTabLineResponse>,
 }
 
@@ -202,6 +205,7 @@ impl From<ClaimedHandoff> for StoreTabClaimResponse {
                 date: claimed.handoff.delivery_date,
                 time_of_day: claimed.handoff.delivery_time_of_day,
             },
+            delivery_address: claimed.delivery_address,
             lines: claimed.lines.into_iter().map(Into::into).collect(),
         }
     }

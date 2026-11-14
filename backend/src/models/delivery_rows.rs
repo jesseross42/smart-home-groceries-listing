@@ -17,6 +17,8 @@ pub struct StoreDeliveryFees {
     pub free_delivery_over: Option<Decimal>,
     /// The store refuses an order smaller than this; `None` = no minimum.
     pub minimum_order: Option<Decimal>,
+    /// The saved address on the store's website to deliver to.
+    pub delivery_address: Option<String>,
     pub updated_by: String,
     pub updated_at: DateTime<Utc>,
 }

@@ -40,7 +40,17 @@ The steps below are for Woolworths. Coles differs only where "Coles" says so.
    reports the failure. Time of day: (Any · Morning < 12pm · Afternoon 12–5pm · Evening ≥ 5pm).
 4. **Send and open Woolworths** creates a handoff and opens
    `woolworths.com.au/shop/mytrolley`. Log in there if asked.
-5. Press the bookmark on Woolworths. It **reserves the delivery time first**,
+5. Press the bookmark on Woolworths. When Settings › Delivery has a
+   Woolworths **Delivery address** (sent as `delivery_address` in the
+   claim), it first picks that saved address
+   (`lib/store-tab/pick-woolworths-address.ts`, markup captured
+   2026-11-15): the header's "Delivery to:" button
+   (`button[class*="fulfilment-ribbon_component_fms-type"]`) shows the
+   address in use; if it differs, the bookmark presses it, clicks the
+   matching radio in `label.saved-address` (case and spaces ignored) and
+   **Save & continue**, then waits for the ribbon to show it. If it cannot,
+   no time is reserved and the report says why. A new address is added on
+   Woolworths by hand. It then **reserves the delivery time**,
    then adds each product **on top of** what is already in the trolley, then
    reports back. The sheet shows each
    product as Added / Not added (it re-reads every 3 s).

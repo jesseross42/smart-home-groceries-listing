@@ -20,7 +20,7 @@ use crate::models::delivery_rows::{DeliveryDay, OrderMode};
 use crate::services::stores::Store;
 
 /// One store's delivery fee rules.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeeRules {
     pub store: Store,
     /// What one delivery costs; `None` until the household sets it.
@@ -29,6 +29,9 @@ pub struct FeeRules {
     pub free_delivery_over: Option<Decimal>,
     /// The store refuses an order smaller than this; `None` = no minimum.
     pub minimum_order: Option<Decimal>,
+    /// The saved address on the store's website to deliver to; `None` =
+    /// whatever the account has.
+    pub delivery_address: Option<String>,
 }
 
 impl FeeRules {
@@ -39,6 +42,7 @@ impl FeeRules {
             delivery_fee: None,
             free_delivery_over: None,
             minimum_order: None,
+            delivery_address: None,
         }
     }
 }
@@ -69,8 +73,8 @@ impl DeliverySettings {
     pub fn rules_for(&self, store: Store) -> FeeRules {
         self.stores
             .iter()
-            .copied()
             .find(|rules| rules.store == store)
+            .cloned()
             .unwrap_or_else(|| FeeRules::unset(store))
     }
 }
@@ -103,6 +107,7 @@ impl<'a> DeliverySettingsService<'a> {
                         delivery_fee: row.delivery_fee,
                         free_delivery_over: row.free_delivery_over,
                         minimum_order: row.minimum_order,
+                        delivery_address: row.delivery_address.clone(),
                     })
                     .unwrap_or_else(|| FeeRules::unset(store))
             })

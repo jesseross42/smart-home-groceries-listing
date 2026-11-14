@@ -55,7 +55,10 @@ The app cannot read the stores' fees without the household's login
 delivery from** and **minimum order** are typed once, with the default mode
 and **most to spend on delivery** (per order, all stores). Empty = not set.
 **Usual delivery day** (a weekday or none) is where the Send to Woolworths
-day chooser starts (`FEATURE_TROLLEY_HANDOFF.md`).
+day chooser starts (`FEATURE_TROLLEY_HANDOFF.md`). Woolworths also has a
+**Delivery address** (`store_delivery_fees.delivery_address`, ≤ 200 chars,
+blank = the account's): one of the account's saved addresses, which the
+bookmark picks before a time.
 An unset fee counts as $0 and every option using it says so. Saving shows
 **Undo**. Amounts are $0–$1000 in whole cents.
 

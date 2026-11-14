@@ -141,7 +141,11 @@ Use Chrome for both the web app and the store tab.
 
 **Store tab**
 4. Sign in if prompted, then run the **Fill Woolworths trolley**
-   bookmarklet. First run: allow Chrome's local-network access prompt.
+   bookmarklet. First run: allow Chrome's local-network access prompt. If
+   **Settings › Delivery › Woolworths › Delivery address** is set, it
+   switches to that saved address first. The address must already be saved
+   on your Woolworths account (**Delivery to → Change → Add a new delivery
+   address** on woolworths.com.au); copy it as Woolworths writes it.
 5. The bookmarklet reports products added and the reserved delivery window,
    and asks **Go to checkout now?** **OK** opens the checkout page;
    **Cancel** stays on the trolley.

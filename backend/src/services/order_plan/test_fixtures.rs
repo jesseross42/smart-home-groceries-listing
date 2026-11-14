@@ -52,6 +52,7 @@ pub fn settings(
         delivery_fee: Some(fee),
         free_delivery_over: free_over,
         minimum_order: minimum,
+        delivery_address: None,
     };
     DeliverySettings {
         stores: vec![rules(Woolworths), rules(Coles)],

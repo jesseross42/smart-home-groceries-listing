@@ -10,6 +10,7 @@ const saved: DeliverySettings = {
 			delivery_fee: "9",
 			free_delivery_over: null,
 			minimum_order: "50",
+			delivery_address: null,
 		},
 		{
 			store: "coles",
@@ -17,6 +18,7 @@ const saved: DeliverySettings = {
 			delivery_fee: null,
 			free_delivery_over: null,
 			minimum_order: null,
+			delivery_address: null,
 		},
 	],
 	mode: "minimise_delivery",

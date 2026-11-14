@@ -13,6 +13,7 @@ import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window
 import { fillColesTrolley } from "#/lib/store-tab/fill-coles-trolley";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
 import { pickColesDeliverySlot } from "#/lib/store-tab/pick-coles-delivery-slot";
+import { pickWoolworthsAddress } from "#/lib/store-tab/pick-woolworths-address";
 import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
 import type { StoreTab } from "#/lib/store-tab/store-tab";
 
@@ -26,6 +27,7 @@ export const WOOLWORTHS_TAB: StoreTab = {
 	fill: fillWoolworthsTrolley,
 	helpers: {
 		chooseWindow: chooseWoolworthsWindow,
+		pickAddress: pickWoolworthsAddress,
 		reserveDeliveryWindow: reserveWoolworthsDeliveryWindow,
 	},
 };

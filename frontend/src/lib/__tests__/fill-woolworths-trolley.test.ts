@@ -7,12 +7,14 @@ import {
 } from "#/lib/store-tab/bookmarklet";
 import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
+import { pickWoolworthsAddress } from "#/lib/store-tab/pick-woolworths-address";
 import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
 import { WOOLWORTHS_TAB } from "#/lib/store-tab/store-tabs";
 
 const config = { apiBaseUrl: "https://grocery.test", secret: "s3cret" };
 const helpers = {
 	chooseWindow: chooseWoolworthsWindow,
+	pickAddress: pickWoolworthsAddress,
 	reserveDeliveryWindow: reserveWoolworthsDeliveryWindow,
 };
 const fill = () => fillWoolworthsTrolley(config, helpers);
