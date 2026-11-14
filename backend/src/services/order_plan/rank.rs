@@ -1,7 +1,8 @@
 //! Which of two ways to buy the order is better, under the household's mode.
 //!
 //! Pure. Every mode first prefers an option that buys every item, then one
-//! the stores would take and that keeps within the delivery cap; then:
+//! the stores would take and that keeps within the delivery cap, then one
+//! that buys fewer disliked products another store would avoid; then:
 //!
 //! | Mode | Then by |
 //! |---|---|
@@ -25,6 +26,8 @@ use crate::services::stores::Store;
 pub struct Measure {
     pub complete: bool,
     pub acceptable: bool,
+    /// Disliked products bought although another store would avoid them.
+    pub avoidable_dislikes: usize,
     pub total: Decimal,
     pub delivery: Decimal,
     pub stores_used: usize,
@@ -35,6 +38,7 @@ impl From<&PlanOption> for Measure {
         Self {
             complete: option.complete(),
             acceptable: option.acceptable(),
+            avoidable_dislikes: option.avoidable_dislikes(),
             total: option.total,
             delivery: option.delivery_total,
             stores_used: option.parts.len(),
@@ -47,7 +51,8 @@ pub fn compare(mode: OrderMode, a: &Measure, b: &Measure) -> Ordering {
     let first = b
         .complete
         .cmp(&a.complete)
-        .then(b.acceptable.cmp(&a.acceptable));
+        .then(b.acceptable.cmp(&a.acceptable))
+        .then(a.avoidable_dislikes.cmp(&b.avoidable_dislikes));
     let money = match mode {
         OrderMode::MinimiseDelivery => a.delivery.cmp(&b.delivery).then(a.total.cmp(&b.total)),
         _ => a.total.cmp(&b.total).then(a.delivery.cmp(&b.delivery)),
@@ -87,6 +92,7 @@ mod tests {
         Measure {
             complete,
             acceptable,
+            avoidable_dislikes: 0,
             total,
             delivery,
             stores_used: 1,
@@ -109,6 +115,19 @@ mod tests {
         let refused = measure(true, false, dec!(40), dec!(0));
         assert_eq!(
             compare(OrderMode::MinimiseTotal, &fine, &refused),
+            Ordering::Less
+        );
+    }
+
+    #[test]
+    fn avoiding_a_dislike_beats_a_cheaper_order_that_buys_it() {
+        let liked = measure(true, true, dec!(50), dec!(9));
+        let disliked = Measure {
+            avoidable_dislikes: 1,
+            ..measure(true, true, dec!(40), dec!(0))
+        };
+        assert_eq!(
+            compare(OrderMode::MinimiseTotal, &liked, &disliked),
             Ordering::Less
         );
     }

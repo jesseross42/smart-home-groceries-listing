@@ -10,6 +10,9 @@
 //! tried, so the answer is the best one. Beyond that, a local search starts
 //! from a few sensible points and moves one item at a time while that helps;
 //! the answer is then good but not proven best (`exact: false`). Pure.
+//!
+//! A store whose chosen product somebody dislikes is left out for that item,
+//! unless every store's product is disliked (`Candidate::allowed_prices`).
 
 use std::cmp::Ordering;
 
@@ -37,15 +40,8 @@ pub struct Found {
 
 /// The best way to buy every item that can be bought, any mix of stores.
 pub fn best_mix(mode: OrderMode, candidates: &[Candidate], settings: &DeliverySettings) -> Found {
-    let priced: Vec<Vec<(Store, Decimal)>> = candidates
-        .iter()
-        .map(|candidate| {
-            Store::ALL
-                .into_iter()
-                .filter_map(|store| candidate.price_at(store).map(|price| (store, price)))
-                .collect()
-        })
-        .collect();
+    let priced: Vec<Vec<(Store, Decimal)>> =
+        candidates.iter().map(Candidate::allowed_prices).collect();
     let flexible: Vec<usize> = (0..priced.len()).filter(|&i| priced[i].len() > 1).collect();
     let cheapest: Vec<Option<Store>> = priced
         .iter()
@@ -139,6 +135,7 @@ impl Scorer<'_> {
         Measure {
             complete: true,
             acceptable,
+            avoidable_dislikes: 0,
             total,
             delivery,
             stores_used,

@@ -9,7 +9,9 @@
 //! (`docs/features/FEATURE_ORDER_OPTIMISATION.md`).
 //!
 //! The planner never picks a product: it only moves an item between products
-//! the household chose. Using an option is `PUT /api/order-stores`
+//! the household chose. A store whose chosen product somebody dislikes is
+//! skipped for that item when another store has one nobody dislikes
+//! ([`dislikes`]); a disliked product an option still buys is named on it. Using an option is `PUT /api/order-stores`
 //! (`SelectionService::buy_at`).
 //!
 //! Delivery charge in [`fees`]; one option in [`option`]; the best mix in
@@ -17,6 +19,7 @@
 
 mod build;
 mod combine;
+mod dislikes;
 mod fees;
 mod log;
 mod option;
@@ -24,7 +27,7 @@ mod rank;
 mod search;
 
 pub use fees::DeliveryCharge;
-pub use option::{Missing, OptionKind, PlanOption, StorePart};
+pub use option::{DislikedPick, Missing, OptionKind, PlanOption, StorePart};
 
 use std::collections::HashMap;
 
@@ -35,6 +38,8 @@ use crate::error::ApiError;
 use crate::models::db::{GroceryItem, GroceryItemStatus, ItemSelection};
 use crate::models::delivery_rows::OrderMode;
 use crate::services::delivery_settings::{DeliverySettings, DeliverySettingsService};
+use crate::services::dislikes::skip::DislikeBook;
+use crate::services::dislikes::DislikeService;
 use crate::services::grocery::repository as items;
 use crate::services::order_review::reprice;
 use crate::services::product_search::ProductSearchService;
@@ -93,6 +98,15 @@ impl<'a> OrderPlanService<'a> {
                 .push(choice);
         }
         let search = ProductSearchService::new(self.pool, self.stores);
+        let dislike_service = DislikeService::new(self.pool);
+        let household_dislikes = dislike_service.list_household().await?;
+        let mut overrides: HashMap<Uuid, Vec<_>> = HashMap::new();
+        for set_aside in dislike_service.list_overrides().await? {
+            overrides
+                .entry(set_aside.grocery_item_id)
+                .or_default()
+                .push(set_aside);
+        }
 
         let mut candidates = Vec::new();
         let mut unchosen = Vec::new();
@@ -105,6 +119,11 @@ impl<'a> OrderPlanService<'a> {
                 unchosen.push(item);
                 continue;
             };
+            let book = DislikeBook::new(
+                household_dislikes.clone(),
+                overrides.remove(&item.id).unwrap_or_default(),
+            );
+            let dislikes = dislikes::offer_dislikes(&book, &item_choices);
             let mut offers = Vec::new();
             for store in Store::ALL {
                 let at_store: Vec<_> = item_choices
@@ -123,6 +142,7 @@ impl<'a> OrderPlanService<'a> {
                 item,
                 current,
                 offers,
+                dislikes,
             });
         }
 
@@ -136,5 +156,7 @@ impl<'a> OrderPlanService<'a> {
 mod test_fixtures;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_dislikes;
 #[cfg(test)]
 mod tests_modes;

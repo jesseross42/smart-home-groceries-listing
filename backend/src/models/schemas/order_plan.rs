@@ -11,7 +11,9 @@ use validator::Validate;
 use super::order_review::{OrderLineResponse, UnchosenItemResponse};
 use super::selections::OrderStorePick;
 use crate::models::delivery_rows::OrderMode;
-use crate::services::order_plan::{Missing, OptionKind, OrderPlan, PlanOption, StorePart};
+use crate::services::order_plan::{
+    DislikedPick, Missing, OptionKind, OrderPlan, PlanOption, StorePart,
+};
 use crate::services::stores::Store;
 
 /// `GET /api/order-options?mode=`: a mode to rank by instead of the saved one.
@@ -47,6 +49,8 @@ pub struct OrderOptionResponse {
     pub is_current: bool,
     pub stores: Vec<OptionStoreResponse>,
     pub missing: Vec<MissingItemResponse>,
+    /// The disliked products this option buys, and who dislikes them.
+    pub disliked: Vec<DislikedPickResponse>,
     pub items_total: Decimal,
     pub delivery_total: Decimal,
     pub total: Decimal,
@@ -79,6 +83,19 @@ pub struct MissingItemResponse {
     pub grocery_item_id: Uuid,
     pub name: String,
     pub reason: String,
+}
+
+/// A disliked product an option buys.
+#[derive(Debug, Serialize)]
+pub struct DislikedPickResponse {
+    pub grocery_item_id: Uuid,
+    pub name: String,
+    pub store: Store,
+    pub store_name: &'static str,
+    /// Member names, in the order they disliked it.
+    pub disliked_by: Vec<String>,
+    /// Another store has a product for the item that nobody dislikes.
+    pub avoidable: bool,
 }
 
 impl OrderOptionsResponse {
@@ -137,6 +154,7 @@ fn option_response(option: PlanOption, recommended: bool, is_current: bool) -> O
         total: option.total,
         stores: option.parts.into_iter().map(store_response).collect(),
         missing: option.missing.into_iter().map(missing_response).collect(),
+        disliked: option.disliked.into_iter().map(disliked_response).collect(),
     }
 }
 
@@ -159,5 +177,16 @@ fn missing_response(missing: Missing) -> MissingItemResponse {
         grocery_item_id: missing.item.id,
         name: missing.item.name,
         reason: missing.reason,
+    }
+}
+
+fn disliked_response(pick: DislikedPick) -> DislikedPickResponse {
+    DislikedPickResponse {
+        grocery_item_id: pick.item.id,
+        name: pick.item.name,
+        store: pick.store,
+        store_name: pick.store.display_name(),
+        disliked_by: pick.disliked_by,
+        avoidable: pick.avoidable,
     }
 }
