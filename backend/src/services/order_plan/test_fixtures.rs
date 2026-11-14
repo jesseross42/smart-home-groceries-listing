@@ -57,5 +57,6 @@ pub fn settings(
         stores: vec![rules(Woolworths), rules(Coles)],
         mode: OrderMode::MinimiseTotal,
         max_delivery_spend: None,
+        default_delivery_day: None,
     }
 }

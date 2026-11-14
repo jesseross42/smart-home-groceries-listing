@@ -130,3 +130,27 @@ async fn delivery_settings_need_a_session(pool: PgPool) {
         assert_eq!(status, StatusCode::UNAUTHORIZED, "{method}");
     }
 }
+
+#[sqlx::test]
+async fn the_usual_delivery_day_is_saved_cleared_and_checked(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let with_day =
+        |day: Value| json!({ "stores": [], "mode": "manual", "default_delivery_day": day });
+
+    assert_eq!(read(&app).await["default_delivery_day"], Value::Null);
+
+    let (status, body) = app
+        .put_json("/api/delivery-settings", &with_day(json!("saturday")))
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(read(&app).await["default_delivery_day"], "saturday");
+
+    app.put_json("/api/delivery-settings", &with_day(Value::Null))
+        .await;
+    assert_eq!(read(&app).await["default_delivery_day"], Value::Null);
+
+    let (status, _) = app
+        .put_json("/api/delivery-settings", &with_day(json!("someday")))
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+}

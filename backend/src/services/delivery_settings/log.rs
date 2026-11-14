@@ -18,6 +18,7 @@ pub fn saved(settings: &DeliverySettings, user_id: &str) {
         fees = ?fees,
         mode = ?settings.mode,
         max_delivery_spend = ?settings.max_delivery_spend,
+        default_delivery_day = ?settings.default_delivery_day,
         user_id,
         "delivery settings saved"
     );
