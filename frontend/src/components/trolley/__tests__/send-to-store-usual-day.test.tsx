@@ -15,13 +15,10 @@ async function sendWithUsualDay(store: StoreId) {
 	vi.spyOn(api.trolleyHandoffs, "storeTabSecret").mockResolvedValue({
 		secret: "s",
 	});
+	const handoff = { id: "h1", store, lines: [] } as unknown as TrolleyHandoff;
 	const create = vi
 		.spyOn(api.trolleyHandoffs, "create")
-		.mockResolvedValue({
-			id: "h1",
-			store,
-			lines: [],
-		} as unknown as TrolleyHandoff);
+		.mockResolvedValue(handoff);
 	vi.spyOn(window, "open").mockReturnValue(null);
 	const user = userEvent.setup();
 	render(
