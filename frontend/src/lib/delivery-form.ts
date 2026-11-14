@@ -6,6 +6,7 @@
  */
 import type {
 	DeliverySettings,
+	DeliveryWeekday,
 	OrderMode,
 	StoreFeeRules,
 	StoreId,
@@ -25,6 +26,8 @@ export interface DeliveryForm {
 	stores: StoreFeeFields[];
 	mode: OrderMode;
 	maxDeliverySpend: string;
+	/** `null` = no saved day (tomorrow). */
+	defaultDeliveryDay: DeliveryWeekday | null;
 }
 
 /** The settings as form values. */
@@ -39,6 +42,7 @@ export function toForm(settings: DeliverySettings): DeliveryForm {
 		})),
 		mode: settings.mode,
 		maxDeliverySpend: settings.max_delivery_spend ?? "",
+		defaultDeliveryDay: settings.default_delivery_day ?? null,
 	};
 }
 
@@ -78,7 +82,12 @@ export function fromForm(
 	const cap = parseAmount(form.maxDeliverySpend);
 	if (!cap.ok) return { error: amountError("The delivery spending limit") };
 	return {
-		settings: { stores, mode: form.mode, max_delivery_spend: cap.value },
+		settings: {
+			stores,
+			mode: form.mode,
+			max_delivery_spend: cap.value,
+			default_delivery_day: form.defaultDeliveryDay,
+		},
 	};
 }
 

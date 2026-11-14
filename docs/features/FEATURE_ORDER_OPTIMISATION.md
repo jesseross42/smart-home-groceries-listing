@@ -50,6 +50,8 @@ The app cannot read the stores' fees without the household's login
 (`docs/FEAT_WOOLWORTHS_ACCESS.md`), so each store's **delivery fee**, **free
 delivery from** and **minimum order** are typed once, with the default mode
 and **most to spend on delivery** (per order, all stores). Empty = not set.
+**Usual delivery day** (`default_delivery_day`: a lowercase weekday or
+`null`) is the day Send to store starts on.
 An unset fee counts as $0 and every option using it says so. Saving shows
 **Undo**. Amounts are $0–$1000 in whole cents.
 

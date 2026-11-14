@@ -7,6 +7,7 @@
  * a phone in another time zone cannot pick the wrong day. Later choices are
  * explicit dates in the household's local calendar.
  */
+import type { DeliveryWeekday } from "#/lib/api";
 
 /** One day button. */
 export interface DeliveryDayChoice {
@@ -45,6 +46,50 @@ export function deliveryDayChoices(
 			? { date: null, label: `Tomorrow (${name(day)})` }
 			: { date: localDate(day), label: name(day) };
 	});
+}
+
+/** The weekdays in the order `Date.getDay()` counts them. */
+const WEEKDAYS_BY_INDEX: DeliveryWeekday[] = [
+	"sunday",
+	"monday",
+	"tuesday",
+	"wednesday",
+	"thursday",
+	"friday",
+	"saturday",
+];
+
+/** The weekdays as Settings lists them, Monday first. */
+export const WEEKDAY_CHOICES: { value: DeliveryWeekday; label: string }[] = [
+	{ value: "monday", label: "Monday" },
+	{ value: "tuesday", label: "Tuesday" },
+	{ value: "wednesday", label: "Wednesday" },
+	{ value: "thursday", label: "Thursday" },
+	{ value: "friday", label: "Friday" },
+	{ value: "saturday", label: "Saturday" },
+	{ value: "sunday", label: "Sunday" },
+];
+
+/**
+ * The `date` Send to store starts on: the next `weekday` after `today`, as
+ * its day button sends it (`null` when that is tomorrow, or with no saved
+ * weekday). A week of days is offered, so every weekday has one button.
+ */
+export function defaultDeliveryDate(
+	weekday: DeliveryWeekday | null | undefined,
+	today: Date,
+): string | null {
+	if (!weekday) return null;
+	const daysAhead =
+		((WEEKDAYS_BY_INDEX.indexOf(weekday) - today.getDay() + 6) % 7) + 1;
+	if (daysAhead === 1) return null;
+	return localDate(
+		new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate() + daysAhead,
+		),
+	);
 }
 
 /** "Sat 3 Oct" for a store-local "YYYY-MM-DDTHH:MM:SS". */

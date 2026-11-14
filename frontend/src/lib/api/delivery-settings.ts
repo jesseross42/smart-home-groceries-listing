@@ -17,6 +17,16 @@ export type OrderMode =
 	| "coles_only"
 	| "manual";
 
+/** A day of the week, as the API spells it. */
+export type DeliveryWeekday =
+	| "monday"
+	| "tuesday"
+	| "wednesday"
+	| "thursday"
+	| "friday"
+	| "saturday"
+	| "sunday";
+
 /** One store's delivery fee rules. */
 export interface StoreFeeRules {
 	store: StoreId;
@@ -36,6 +46,8 @@ export interface DeliverySettings {
 	mode: OrderMode;
 	/** Options with more delivery fees than this are not recommended. */
 	max_delivery_spend: string | null;
+	/** The day Send to store starts on; `null` or absent = tomorrow. */
+	default_delivery_day?: DeliveryWeekday | null;
 }
 
 export const deliverySettingsApi = {

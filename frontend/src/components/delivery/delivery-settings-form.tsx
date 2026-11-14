@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { AmountField } from "#/components/delivery/amount-field";
+import { DefaultDayChoice } from "#/components/delivery/default-day-choice";
 import { OrderModeChoice } from "#/components/delivery/order-mode-choice";
 import { StoreFeeFields } from "#/components/delivery/store-fee-fields";
 import { Button } from "#/components/ui/button";
@@ -9,7 +10,7 @@ import { fromForm, toForm } from "#/lib/delivery-form";
 
 /**
  * Settings › Delivery's form: each store's fee rules, the default way to pick
- * stores, and a cap on delivery fees per order.
+ * stores, a cap on delivery fees per order, and the usual delivery day.
  *
  * Starts from `settings`; give it a `key` that changes when they do, so a
  * saved or undone value shows. A wrong amount is explained under the form and
@@ -79,6 +80,13 @@ export function DeliverySettingsForm({
 					}
 				/>
 			</div>
+
+			<DefaultDayChoice
+				value={form.defaultDeliveryDay}
+				onChange={(defaultDeliveryDay) =>
+					setForm({ ...form, defaultDeliveryDay })
+				}
+			/>
 
 			{error && (
 				<p role="alert" className="text-sm text-destructive">

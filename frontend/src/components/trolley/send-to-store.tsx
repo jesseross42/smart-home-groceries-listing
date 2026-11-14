@@ -19,9 +19,11 @@ import { useHandoffNotice } from "#/hooks/useHandoffNotice";
 import { useTrolleyHandoff } from "#/hooks/useTrolleyHandoff";
 import {
 	type DeliveryWanted,
+	type DeliveryWeekday,
 	isHandoffFinished,
 	type StoreId,
 } from "#/lib/api";
+import { defaultDeliveryDate } from "#/lib/delivery-days";
 import { abilitiesAt, type StoreAbilities } from "#/lib/desktop/commands";
 import type { StoreTab } from "#/lib/store-tab/store-tab";
 import { STORE_TABS } from "#/lib/store-tab/store-tabs";
@@ -35,7 +37,7 @@ export const DEFAULT_DELIVERY: DeliveryWanted = {
 /**
  * Puts every product chosen at one store into the household's own trolley
  * at that store, in a sheet. Where the store's bookmark can, it reserves a
- * delivery time first (default: tomorrow, any time — changeable on the
+ * delivery time first (default: the saved weekday or tomorrow, any time — changeable on the
  * store's website later).
  *
  * ```tsx
@@ -52,15 +54,21 @@ export const DEFAULT_DELIVERY: DeliveryWanted = {
 function SendToStoreRoot({
 	store,
 	chosenCount,
+	defaultDay,
 	children,
 }: {
 	store: StoreId;
 	chosenCount: number;
+	/** The household's saved delivery weekday; the day starts there. */
+	defaultDay?: DeliveryWeekday | null;
 	children: ReactNode;
 }) {
 	const handoff = useTrolleyHandoff(store);
 	useHandoffNotice(handoff.handoff);
-	const [delivery, setDelivery] = useState<DeliveryWanted>(DEFAULT_DELIVERY);
+	const [delivery, setDelivery] = useState<DeliveryWanted>(() => ({
+		...DEFAULT_DELIVERY,
+		date: defaultDeliveryDate(defaultDay, new Date()),
+	}));
 	const router = useRouter({ warn: false });
 	// A filled trolley is saved as bought and its items leave the list (or
 	// come back after Undo). Re-read the page once the sheet closes — not

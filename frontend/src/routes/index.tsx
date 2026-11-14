@@ -20,18 +20,25 @@ import {
 	selectionsByItem,
 } from "#/lib/api";
 import { chosenAtStore } from "#/lib/chosen-at-store";
+import { loadDefaultDeliveryDay } from "#/lib/default-delivery-day";
 import { loadDislikeMarks } from "#/lib/dislike-marks";
 
 export const Route = createFileRoute("/")({
 	// The list and every item's chosen product, read together so a card never
 	// shows an item without knowing its choice, or who dislikes it.
 	loader: async () => {
-		const [items, selections, dislikeMarks] = await Promise.all([
+		const [items, selections, dislikeMarks, defaultDay] = await Promise.all([
 			api.grocery.list(),
 			api.selections.list(),
 			loadDislikeMarks(),
+			loadDefaultDeliveryDay(),
 		]);
-		return { items, selections: selectionsByItem(selections), dislikeMarks };
+		return {
+			items,
+			selections: selectionsByItem(selections),
+			dislikeMarks,
+			defaultDay,
+		};
 	},
 	component: GroceryListPage,
 });
@@ -53,7 +60,7 @@ interface HeldAddition {
  * the single source of truth.
  */
 function GroceryListPage() {
-	const { items, selections, dislikeMarks } = Route.useLoaderData();
+	const { items, selections, dislikeMarks, defaultDay } = Route.useLoaderData();
 	useListSync();
 	const choices = useProductChoices();
 	const actions = useGroceryListActions(items);
@@ -121,11 +128,19 @@ function GroceryListPage() {
 				/>
 
 				<div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-					<SendToStore store="woolworths" chosenCount={chosenAtWoolworths}>
+					<SendToStore
+						store="woolworths"
+						chosenCount={chosenAtWoolworths}
+						defaultDay={defaultDay}
+					>
 						<SendToStore.Trigger />
 						<SendToStore.Content />
 					</SendToStore>
-					<SendToStore store="coles" chosenCount={chosenAtColes}>
+					<SendToStore
+						store="coles"
+						chosenCount={chosenAtColes}
+						defaultDay={defaultDay}
+					>
 						<SendToStore.Trigger />
 						<SendToStore.Content />
 					</SendToStore>

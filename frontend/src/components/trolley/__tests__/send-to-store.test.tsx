@@ -1,9 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SendToStore } from "#/components/trolley/send-to-store";
-import { api, type StoreId, type TrolleyHandoff } from "#/lib/api";
+import {
+	api,
+	type DeliveryWeekday,
+	type StoreId,
+	type TrolleyHandoff,
+} from "#/lib/api";
 import { COLES_TAB, WOOLWORTHS_TAB } from "#/lib/store-tab/store-tabs";
 
 function handoff(overrides: Partial<TrolleyHandoff> = {}): TrolleyHandoff {
@@ -39,9 +44,17 @@ function handoff(overrides: Partial<TrolleyHandoff> = {}): TrolleyHandoff {
 	};
 }
 
-function renderSheet(chosenCount = 1, store: StoreId = "woolworths") {
+function renderSheet(
+	chosenCount = 1,
+	store: StoreId = "woolworths",
+	defaultDay: DeliveryWeekday | null = null,
+) {
 	render(
-		<SendToStore store={store} chosenCount={chosenCount}>
+		<SendToStore
+			store={store}
+			chosenCount={chosenCount}
+			defaultDay={defaultDay}
+		>
 			<SendToStore.Trigger />
 			<SendToStore.Content />
 		</SendToStore>,
@@ -56,6 +69,32 @@ describe("SendToStore at Woolworths", () => {
 		expect(
 			screen.getByRole("button", { name: /Send to Woolworths \(0 items\)/ }),
 		).toBeDisabled();
+	});
+
+	it("starts on the saved delivery weekday, still changeable", async () => {
+		vi.spyOn(api.trolleyHandoffs, "storeTabSecret").mockResolvedValue({
+			secret: "s",
+		});
+		const user = userEvent.setup();
+		renderSheet(1, "woolworths", "wednesday");
+
+		await user.click(
+			screen.getByRole("button", { name: /Send to Woolworths \(1 item\)/ }),
+		);
+		const pressed = await screen.findByRole("button", {
+			name: /Wed/,
+			pressed: true,
+		});
+		expect(pressed).toBeInTheDocument();
+
+		const days = screen.getByRole("group", { name: "Delivery day" });
+		const other = within(days)
+			.getAllByRole("button")
+			.find((button) => button !== pressed);
+		if (!other) throw new Error("no other day button");
+		await user.click(other);
+		expect(other).toHaveAttribute("aria-pressed", "true");
+		expect(pressed).toHaveAttribute("aria-pressed", "false");
 	});
 
 	it("builds the bookmark, sends the list and opens the trolley", async () => {

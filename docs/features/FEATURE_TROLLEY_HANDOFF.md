@@ -31,7 +31,9 @@ The steps below are for Woolworths. Coles differs only where "Coles" says so.
    N = items still to buy (active or committed) whose chosen product is at
    Woolworths (`lib/chosen-at-store.ts`). Disabled when N is 0.
 2. Once only: drag **Fill Woolworths trolley** to the bookmarks bar.
-3. Pick a **delivery day** (default **Tomorrow**, then the next 6 days) and a
+3. Pick a **delivery day** (**Tomorrow**, then the next 6 days; it starts on
+   the next **Usual delivery day** saved in Settings › Delivery, else
+   Tomorrow, and stays changeable per order; `lib/delivery-days.ts`) and a
    **time of day** (Any · Morning < 12pm · Afternoon 12–5pm · Evening ≥ 5pm).
 4. **Send and open Woolworths** creates a handoff and opens
    `woolworths.com.au/shop/mytrolley`. Log in there if asked.
@@ -170,7 +172,7 @@ program, endpoints and rules. See `FEATURE_DESKTOP_APP.md`.
   `POST /api/bff/slots/{slotId}`; its body is not captured yet.
 - Showing the store's real windows and fees in the app before sending (the
   app cannot see them without the household's Woolworths login).
-- A saved delivery day default. Checkout is a confirm step after the fill (`FEATURE_CHECKOUT.md`).
+- Checkout is a confirm step after the fill (`FEATURE_CHECKOUT.md`).
 - A server-only route with imported cookies (see the access doc).
 
 ## Tests

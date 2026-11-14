@@ -46,7 +46,15 @@ describe("toForm and fromForm", () => {
 				stores: saved.stores.map(({ store_name: _, ...rules }) => rules),
 				mode: "minimise_delivery",
 				max_delivery_spend: null,
+				default_delivery_day: null,
 			},
+		});
+	});
+
+	it("keeps the saved delivery day", () => {
+		const back = fromForm(toForm({ ...saved, default_delivery_day: "friday" }));
+		expect(back).toMatchObject({
+			settings: { default_delivery_day: "friday" },
 		});
 	});
 

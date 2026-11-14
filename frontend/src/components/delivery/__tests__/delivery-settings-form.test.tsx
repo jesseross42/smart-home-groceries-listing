@@ -72,7 +72,20 @@ describe("DeliverySettingsForm", () => {
 			],
 			mode: "coles_only",
 			max_delivery_spend: "15",
+			default_delivery_day: null,
 		});
+	});
+
+	it("saves a usual delivery day", async () => {
+		const onSave = renderForm();
+
+		expect(screen.getByRole("radio", { name: "Tomorrow" })).toBeChecked();
+		await userEvent.click(screen.getByRole("radio", { name: "Friday" }));
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+		expect(onSave).toHaveBeenCalledWith(
+			expect.objectContaining({ default_delivery_day: "friday" }),
+		);
 	});
 
 	it("explains a wrong amount and sends nothing", async () => {
