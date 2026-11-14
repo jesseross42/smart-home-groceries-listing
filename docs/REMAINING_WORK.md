@@ -26,7 +26,6 @@ behavioral contract.
 - [#74 — Add delivery constraints to order planning](https://github.com/jesseross42/smart-home-groceries-listing/issues/74)
 - [#71 — Add one-tap order placement through the desktop app](https://github.com/jesseross42/smart-home-groceries-listing/issues/71)
 - [#79 — Use member pricing and cross-product multibuys](https://github.com/jesseross42/smart-home-groceries-listing/issues/79)
-- [#87 — Add a product specials preference to order planning](https://github.com/jesseross42/smart-home-groceries-listing/issues/87)
 - [#78 — Import Woolworths and Coles order history](https://github.com/jesseross42/smart-home-groceries-listing/issues/78)
 - [#80 — Add a product lookup screen](https://github.com/jesseross42/smart-home-groceries-listing/issues/80)
 - [#91 — Store product and category data for spending analysis](https://github.com/jesseross42/smart-home-groceries-listing/issues/91)

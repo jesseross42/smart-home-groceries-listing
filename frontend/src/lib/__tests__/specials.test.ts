@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { productFixture } from "#/components/products/__tests__/fixtures";
-import { isPromoted, visibleProducts } from "#/lib/specials";
+import { isPromoted, specialsFirst, visibleProducts } from "#/lib/specials";
 
 const plain = productFixture({ product_id: "plain" });
 const special = productFixture({ product_id: "special", on_special: true });
@@ -23,5 +23,21 @@ describe("visibleProducts", () => {
 		const all = [plain, special, multibuy];
 		expect(visibleProducts(all, false)).toEqual(all);
 		expect(visibleProducts(all, true)).toEqual([special, multibuy]);
+	});
+});
+
+describe("specialsFirst", () => {
+	it("moves promoted products up and keeps the sorted order in each group", () => {
+		const listing = (product: typeof plain) => ({
+			store: "coles" as const,
+			storeName: "Coles",
+			product,
+		});
+		const plainTwo = productFixture({ product_id: "plain-2" });
+		const sorted = [plain, special, plainTwo, multibuy].map(listing);
+
+		expect(
+			specialsFirst(sorted).map(({ product }) => product.product_id),
+		).toEqual(["special", "multibuy", "plain", "plain-2"]);
 	});
 });

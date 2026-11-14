@@ -2,6 +2,7 @@ import { type ReactNode, useState } from "react";
 
 import { ProductDislikesProvider } from "#/components/dislikes/product-dislikes";
 import { PastPurchasesProvider } from "#/components/products/past-purchases";
+import { PreferSpecialsSwitch } from "#/components/products/prefer-specials-switch";
 import { ProductFilterBar } from "#/components/products/product-filter-bar";
 import { ProductList } from "#/components/products/product-list";
 import { ProductSortSelect } from "#/components/products/product-sort-select";
@@ -25,10 +26,12 @@ import {
 	type ProductSort,
 	sortListings,
 } from "#/lib/product-sort";
+import { specialsFirst } from "#/lib/specials";
 
 /**
  * Searches both stores for one list item and shows the products in one
- * list, with sort, filters and the display settings applied. Mounting it
+ * list, with sort, filters and the display settings applied ("Prefer
+ * specials" at the top moves promoted products first). Mounting it
  * starts the search.
  */
 export function ProductResults({ item }: { item: GroceryItem }) {
@@ -57,15 +60,21 @@ export function ProductResults({ item }: { item: GroceryItem }) {
 		);
 	}
 
-	const listings = shownListings(
-		state.data.stores,
-		filters,
-		display.showUnavailable,
+	const sorted = sortListings(
+		shownListings(state.data.stores, filters, display.showUnavailable),
+		sort,
+		{
+			quantity: state.data.item.quantity,
+			basis: commonBasis(
+				state.data.stores.flatMap((results) => results.products),
+			),
+		},
 	);
 
 	return (
 		<ProductDislikesProvider value={{ itemId: item.id, ...dislikes }}>
 			<div className="flex flex-col gap-4">
+				<PreferSpecialsSwitch />
 				<div className="flex flex-wrap items-center justify-between gap-2">
 					<ProductSortSelect value={sort} onValueChange={setSort} />
 					<SpecialsOnlySwitch
@@ -82,12 +91,7 @@ export function ProductResults({ item }: { item: GroceryItem }) {
 				/>
 				<WithPastPurchases search={state.data}>
 					<ProductList
-						listings={sortListings(listings, sort, {
-							quantity: state.data.item.quantity,
-							basis: commonBasis(
-								state.data.stores.flatMap((results) => results.products),
-							),
-						})}
+						listings={display.preferSpecials ? specialsFirst(sorted) : sorted}
 						quantity={state.data.item.quantity}
 						display={display}
 					/>

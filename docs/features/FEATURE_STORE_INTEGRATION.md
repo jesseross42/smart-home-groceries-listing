@@ -138,7 +138,11 @@ to load; also used by the chosen product and the order review),
 `ProductPrice`, `UnitPriceLine`, `ProductSortSelect`, `SpecialsOnlySwitch`.
 `hooks/useItemProducts.ts` searches when the Select item page opens, and again
 when the item's name, quantity or chips change. "Specials only" is a display
-filter (special or multibuy) — it never reorders.
+filter (special or multibuy) — it never reorders. **Prefer specials** is the
+first control on the page (`PreferSpecialsSwitch`, off by default, saved as
+`preferSpecials` in the display settings): it moves promoted products above
+the rest, keeping the chosen sort within each group (`lib/specials.ts`
+`specialsFirst`). It never changes a chosen product and suggests nothing.
 
 **Display settings** (Settings › Display, `lib/display-settings.ts`, saved
 in the browser's localStorage): picture size, hide the original price, show
