@@ -18,6 +18,7 @@ import { api, type OrderMode, selectionsByItem } from "#/lib/api";
 import { chosenAtStore } from "#/lib/chosen-at-store";
 import { loadDislikeMarks } from "#/lib/dislike-marks";
 import { ORDER_MODES } from "#/lib/order-modes";
+import { loadUsualDeliveryDay } from "#/lib/usual-delivery-day";
 
 /** `?mode=` ranks the options another way for this visit. */
 interface OrderSearch {
@@ -33,19 +34,22 @@ export const Route = createFileRoute("/order/")({
 	// The order re-priced now, its options with delivery, plus the list and
 	// choices so the Send button counts exactly what a handoff would send.
 	loader: async ({ deps }) => {
-		const [review, plan, items, selections, dislikeMarks] = await Promise.all([
-			api.orderReview.get(),
-			api.orderOptions.get(deps.mode),
-			api.grocery.list(),
-			api.selections.list(),
-			loadDislikeMarks(),
-		]);
+		const [review, plan, items, selections, dislikeMarks, usualDay] =
+			await Promise.all([
+				api.orderReview.get(),
+				api.orderOptions.get(deps.mode),
+				api.grocery.list(),
+				api.selections.list(),
+				loadDislikeMarks(),
+				loadUsualDeliveryDay(),
+			]);
 		const chosen = selectionsByItem(selections);
 		return {
 			review,
 			plan,
 			chosen,
 			dislikeMarks,
+			usualDay,
 			chosenAtWoolworths: chosenAtStore(items, chosen, "woolworths"),
 			chosenAtColes: chosenAtStore(items, chosen, "coles"),
 		};
@@ -77,6 +81,7 @@ function OrderPage() {
 		plan,
 		chosen,
 		dislikeMarks,
+		usualDay,
 		chosenAtWoolworths,
 		chosenAtColes,
 	} = Route.useLoaderData();
@@ -142,13 +147,21 @@ function OrderPage() {
 						</Button>
 					</OrderReview.Unchosen>
 					<OrderReview.Store store="woolworths">
-						<SendToStore store="woolworths" chosenCount={chosenAtWoolworths}>
+						<SendToStore
+							store="woolworths"
+							chosenCount={chosenAtWoolworths}
+							usualDay={usualDay}
+						>
 							<SendToStore.Trigger />
 							<SendToStore.Content />
 						</SendToStore>
 					</OrderReview.Store>
 					<OrderReview.Store store="coles">
-						<SendToStore store="coles" chosenCount={chosenAtColes}>
+						<SendToStore
+							store="coles"
+							chosenCount={chosenAtColes}
+							usualDay={usualDay}
+						>
 							<SendToStore.Trigger />
 							<SendToStore.Content />
 						</SendToStore>

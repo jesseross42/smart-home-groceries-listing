@@ -132,7 +132,8 @@ Use Chrome for both the web app and the store tab.
    have up to 3 products; set each one's count with its dropdown.
 2. **Ready to order** commits the list. **Order** shows live prices and the
    total.
-3. **Send to Woolworths**, choose **Delivery day** (default **Tomorrow**) and
+3. **Send to Woolworths**, choose **Delivery day** (default: the **Usual delivery day**
+   from **Settings › Delivery**, else **Tomorrow**) and
    **Time of day** (default **Any time**), then **Send and open
    Woolworths**. This creates a trolley handoff and opens a store tab.
 

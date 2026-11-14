@@ -54,18 +54,21 @@ The app cannot read the stores' fees without the household's login
 (`docs/FEAT_WOOLWORTHS_ACCESS.md`), so each store's **delivery fee**, **free
 delivery from** and **minimum order** are typed once, with the default mode
 and **most to spend on delivery** (per order, all stores). Empty = not set.
+**Usual delivery day** (a weekday or none) is where the Send to Woolworths
+day chooser starts (`FEATURE_TROLLEY_HANDOFF.md`).
 An unset fee counts as $0 and every option using it says so. Saving shows
 **Undo**. Amounts are $0–$1000 in whole cents.
 
 | Method | Path | Auth | Answer |
 |---|---|---|---|
-| `GET` | `/api/delivery-settings` | Clerk | 200 `{stores: [{store, store_name, delivery_fee, free_delivery_over, minimum_order}], mode, max_delivery_spend}` |
+| `GET` | `/api/delivery-settings` | Clerk | 200 `{stores: [{store, store_name, delivery_fee, free_delivery_over, minimum_order}], mode, max_delivery_spend, default_delivery_day}` |
 | `PUT` | `/api/delivery-settings` | Clerk | 200 the saved settings; 422 amount out of range, unknown mode. Stores left out keep their rules |
 | `GET` | `/api/order-options[?mode=]` | Clerk | 200 `{mode, options: [{kind, label, recommended, is_current, stores: [{store, lines, subtotal, delivery_fee, fee_known, free_delivery, below_minimum, minimum_order}], missing: [{grocery_item_id, name, reason}], disliked: [{grocery_item_id, name, store, store_name, disliked_by, avoidable}], items_total, delivery_total, total, complete, fees_known, meets_minimums, within_delivery_cap, picks}], unchosen, exact, max_delivery_spend}`; 422 unknown mode |
 | `PUT` | `/api/order-stores` `{picks}` | Clerk | 204; 422 nothing changed when an item has no choice at its store |
 
 Data: migration `20261003080000_delivery_settings.sql` — `store_delivery_fees`
-(one row per store) and `order_preferences` (one row, `id = 1`).
+(one row per store) and `order_preferences` (one row, `id = 1`);
+`20261114090000_default_delivery_day.sql` adds `default_delivery_day`.
 Log: `order options planned` (mode, each option's total, recommended, exact),
 `delivery settings saved`, `order stores set for items`.
 

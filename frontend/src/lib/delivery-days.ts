@@ -7,6 +7,18 @@
  * a phone in another time zone cannot pick the wrong day. Later choices are
  * explicit dates in the household's local calendar.
  */
+import type { DeliveryDay } from "#/lib/api";
+
+/** Every weekday, in `Date.getDay()` order, with the word a person reads. */
+export const DELIVERY_WEEKDAYS: { day: DeliveryDay; label: string }[] = [
+	{ day: "sunday", label: "Sunday" },
+	{ day: "monday", label: "Monday" },
+	{ day: "tuesday", label: "Tuesday" },
+	{ day: "wednesday", label: "Wednesday" },
+	{ day: "thursday", label: "Thursday" },
+	{ day: "friday", label: "Friday" },
+	{ day: "saturday", label: "Saturday" },
+];
 
 /** One day button. */
 export interface DeliveryDayChoice {
@@ -45,6 +57,27 @@ export function deliveryDayChoices(
 			? { date: null, label: `Tomorrow (${name(day)})` }
 			: { date: localDate(day), label: name(day) };
 	});
+}
+
+/**
+ * The choice to start on for the household's usual delivery day: the next
+ * time that weekday comes, from tomorrow. `null` (tomorrow) with no usual day.
+ */
+export function usualDeliveryDate(
+	today: Date,
+	usualDay: DeliveryDay | null,
+): string | null {
+	if (!usualDay) return null;
+	const wanted = DELIVERY_WEEKDAYS.findIndex((w) => w.day === usualDay);
+	const daysAhead = ((wanted - today.getDay() + 6) % 7) + 1;
+	if (daysAhead === 1) return null;
+	return localDate(
+		new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate() + daysAhead,
+		),
+	);
 }
 
 /** "Sat 3 Oct" for a store-local "YYYY-MM-DDTHH:MM:SS". */

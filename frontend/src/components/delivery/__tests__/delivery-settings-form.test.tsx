@@ -23,6 +23,7 @@ const unset: DeliverySettings = {
 	],
 	mode: "minimise_total",
 	max_delivery_spend: null,
+	default_delivery_day: null,
 };
 
 function renderForm(onSave = vi.fn().mockResolvedValue(undefined)) {
@@ -72,7 +73,22 @@ describe("DeliverySettingsForm", () => {
 			],
 			mode: "coles_only",
 			max_delivery_spend: "15",
+			default_delivery_day: null,
 		});
+	});
+
+	it("saves the usual delivery day that was picked", async () => {
+		const onSave = renderForm();
+
+		expect(
+			screen.getByRole("button", { name: "No usual day" }),
+		).toHaveAttribute("aria-pressed", "true");
+		await userEvent.click(screen.getByRole("button", { name: "Saturday" }));
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+		expect(onSave).toHaveBeenCalledWith(
+			expect.objectContaining({ default_delivery_day: "saturday" }),
+		);
 	});
 
 	it("explains a wrong amount and sends nothing", async () => {
