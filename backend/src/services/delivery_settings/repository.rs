@@ -6,7 +6,9 @@ use sqlx::PgExecutor;
 
 use super::FeeRules;
 use crate::error::ApiError;
-use crate::models::delivery_rows::{OrderMode, OrderPreferences, StoreDeliveryFees};
+use crate::models::delivery_rows::{
+    DeliveryWeekday, OrderMode, OrderPreferences, StoreDeliveryFees,
+};
 use rust_decimal::Decimal;
 
 /// Every store's saved fee rules. A store never saved has no row.
@@ -58,7 +60,7 @@ where
     E: PgExecutor<'e>,
 {
     Ok(sqlx::query_as::<_, OrderPreferences>(
-        "SELECT mode, max_delivery_spend, updated_by, updated_at
+        "SELECT mode, max_delivery_spend, default_delivery_day, updated_by, updated_at
          FROM order_preferences WHERE id = 1",
     )
     .fetch_optional(executor)
@@ -70,23 +72,27 @@ pub async fn upsert_preferences<'e, E>(
     executor: E,
     mode: OrderMode,
     max_delivery_spend: Option<Decimal>,
+    default_delivery_day: Option<DeliveryWeekday>,
     user_id: &str,
 ) -> Result<(), ApiError>
 where
     E: PgExecutor<'e>,
 {
     sqlx::query(
-        "INSERT INTO order_preferences (id, mode, max_delivery_spend, updated_by)
-         VALUES (1, $1, $2, $3)
+        "INSERT INTO order_preferences
+             (id, mode, max_delivery_spend, updated_by, default_delivery_day)
+         VALUES (1, $1, $2, $3, $4)
          ON CONFLICT (id) DO UPDATE SET
              mode = EXCLUDED.mode,
              max_delivery_spend = EXCLUDED.max_delivery_spend,
+             default_delivery_day = EXCLUDED.default_delivery_day,
              updated_by = EXCLUDED.updated_by,
              updated_at = now()",
     )
     .bind(mode)
     .bind(max_delivery_spend)
     .bind(user_id)
+    .bind(default_delivery_day)
     .execute(executor)
     .await?;
     Ok(())

@@ -38,12 +38,28 @@ pub enum OrderMode {
     Manual,
 }
 
+/// A day of the week the household prefers deliveries on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "text", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum DeliveryWeekday {
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday,
+}
+
 /// The planner's saved preferences.
 #[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
 pub struct OrderPreferences {
     pub mode: OrderMode,
     /// Options whose delivery fees add up to more are not recommended.
     pub max_delivery_spend: Option<Decimal>,
+    /// The weekday the Send to store sheet picks first; `None` = tomorrow.
+    pub default_delivery_day: Option<DeliveryWeekday>,
     pub updated_by: String,
     pub updated_at: DateTime<Utc>,
 }

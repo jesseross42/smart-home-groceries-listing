@@ -130,3 +130,43 @@ async fn delivery_settings_need_a_session(pool: PgPool) {
         assert_eq!(status, StatusCode::UNAUTHORIZED, "{method}");
     }
 }
+
+#[sqlx::test]
+async fn the_default_delivery_day_is_saved_and_can_be_cleared(pool: PgPool) {
+    let app = TestApp::new(pool);
+    assert_eq!(read(&app).await["default_delivery_day"], json!(null));
+
+    let (status, saved) = app
+        .put_json(
+            "/api/delivery-settings",
+            &json!({ "stores": [], "mode": "minimise_total", "max_delivery_spend": null,
+                     "default_delivery_day": "saturday" }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{saved}");
+    assert_eq!(read(&app).await["default_delivery_day"], "saturday");
+
+    // A body without the field (an older client) means no preference.
+    app.put_json(
+        "/api/delivery-settings",
+        &json!({ "stores": [], "mode": "minimise_total", "max_delivery_spend": null }),
+    )
+    .await;
+    assert_eq!(read(&app).await["default_delivery_day"], json!(null));
+}
+
+#[sqlx::test]
+async fn an_unknown_delivery_day_is_refused(pool: PgPool) {
+    let app = TestApp::new(pool);
+
+    let (status, _) = app
+        .put_json(
+            "/api/delivery-settings",
+            &json!({ "stores": [], "mode": "minimise_total", "max_delivery_spend": null,
+                     "default_delivery_day": "someday" }),
+        )
+        .await;
+
+    assert!(status.is_client_error(), "{status}");
+    assert_eq!(read(&app).await["default_delivery_day"], json!(null));
+}

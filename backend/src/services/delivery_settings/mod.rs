@@ -16,7 +16,7 @@ use rust_decimal::Decimal;
 use sqlx::PgPool;
 
 use crate::error::ApiError;
-use crate::models::delivery_rows::OrderMode;
+use crate::models::delivery_rows::{DeliveryWeekday, OrderMode};
 use crate::services::stores::Store;
 
 /// One store's delivery fee rules.
@@ -52,6 +52,16 @@ pub struct DeliverySettings {
     pub mode: OrderMode,
     /// Options whose delivery fees add up to more are not recommended.
     pub max_delivery_spend: Option<Decimal>,
+    /// The weekday the Send to store sheet picks first; `None` = tomorrow.
+    pub default_delivery_day: Option<DeliveryWeekday>,
+}
+
+/// The planner's preferences as one save takes them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Preferences {
+    pub mode: OrderMode,
+    pub max_delivery_spend: Option<Decimal>,
+    pub default_delivery_day: Option<DeliveryWeekday>,
 }
 
 impl DeliverySettings {
@@ -101,6 +111,7 @@ impl<'a> DeliverySettingsService<'a> {
         Ok(DeliverySettings {
             stores,
             mode: preferences.as_ref().map_or(DEFAULT_MODE, |p| p.mode),
+            default_delivery_day: preferences.as_ref().and_then(|p| p.default_delivery_day),
             max_delivery_spend: preferences.and_then(|p| p.max_delivery_spend),
         })
     }
@@ -110,15 +121,21 @@ impl<'a> DeliverySettingsService<'a> {
     pub async fn save(
         &self,
         stores: &[FeeRules],
-        mode: OrderMode,
-        max_delivery_spend: Option<Decimal>,
+        preferences: Preferences,
         user_id: &str,
     ) -> Result<DeliverySettings, ApiError> {
         let mut tx = self.pool.begin().await?;
         for rules in stores {
             repository::upsert_fees(&mut *tx, rules, user_id).await?;
         }
-        repository::upsert_preferences(&mut *tx, mode, max_delivery_spend, user_id).await?;
+        repository::upsert_preferences(
+            &mut *tx,
+            preferences.mode,
+            preferences.max_delivery_spend,
+            preferences.default_delivery_day,
+            user_id,
+        )
+        .await?;
         tx.commit().await?;
         let settings = self.read().await?;
         log::saved(&settings, user_id);

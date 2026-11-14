@@ -7,8 +7,8 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use validator::{Validate, ValidationError};
 
-use crate::models::delivery_rows::OrderMode;
-use crate::services::delivery_settings::{DeliverySettings, FeeRules};
+use crate::models::delivery_rows::{DeliveryWeekday, OrderMode};
+use crate::services::delivery_settings::{DeliverySettings, FeeRules, Preferences};
 use crate::services::stores::Store;
 
 /// The largest amount accepted for a fee, a threshold or a cap.
@@ -37,9 +37,22 @@ pub struct DeliverySettingsBody {
     pub mode: OrderMode,
     #[validate(custom(function = "an_amount"))]
     pub max_delivery_spend: Option<Decimal>,
+    /// The weekday the Send to store sheet picks first. Absent or `null` =
+    /// no preference.
+    #[serde(default)]
+    pub default_delivery_day: Option<DeliveryWeekday>,
 }
 
 impl DeliverySettingsBody {
+    /// The planner's preferences, as the service takes them.
+    pub fn preferences(&self) -> Preferences {
+        Preferences {
+            mode: self.mode,
+            max_delivery_spend: self.max_delivery_spend,
+            default_delivery_day: self.default_delivery_day,
+        }
+    }
+
     /// The stores' rules, as the service takes them.
     pub fn fee_rules(&self) -> Vec<FeeRules> {
         self.stores
@@ -70,6 +83,7 @@ impl From<DeliverySettings> for DeliverySettingsBody {
                 .collect(),
             mode: settings.mode,
             max_delivery_spend: settings.max_delivery_spend,
+            default_delivery_day: settings.default_delivery_day,
         }
     }
 }

@@ -38,12 +38,7 @@ async fn save_settings(
     ValidatedJson(body): ValidatedJson<DeliverySettingsBody>,
 ) -> Result<Json<DeliverySettingsBody>, ApiError> {
     let settings = DeliverySettingsService::new(&state.pool)
-        .save(
-            &body.fee_rules(),
-            body.mode,
-            body.max_delivery_spend,
-            &user.id,
-        )
+        .save(&body.fee_rules(), body.preferences(), &user.id)
         .await?;
     Ok(Json(settings.into()))
 }
