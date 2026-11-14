@@ -8,6 +8,10 @@ reads these choices.
 - **Select item** on a list card opens `/items/$itemId/select`, a full page
   with both stores' products (`FEATURE_STORE_INTEGRATION.md`). Each product
   has **Choose**; pressing **Chosen** again clears it.
+- **Search with other words** (`components/products/other-words-search.tsx`,
+  under Prefer specials): searches both stores for the typed words
+  (`?q=`) instead of the item's name and chips. Products found that way are
+  chosen with `looked_up: true`. **Search for {item}** goes back.
 - **Look up by link** (`components/products/product-lookup.tsx`, below the
   products): paste a Woolworths (`/shop/productdetails/{stockcode}/…`) or
   Coles (`/product/{slug}-{id}`) product link (`lib/product-link.ts`). The

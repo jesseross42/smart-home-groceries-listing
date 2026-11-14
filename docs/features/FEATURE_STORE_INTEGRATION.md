@@ -22,8 +22,8 @@ goal).
 
 | Method | Path | Auth | Answer |
 |---|---|---|---|
-| `GET` | `/api/grocery-items/{id}/products` | Clerk session | 200 with every store's results, 404 unknown item |
-| `GET` | `/api/stores/{store}/products/{product_id}` | Clerk session | 200 one product (priced for 1), 404 not sold there, 503 store could not answer, 400 unknown store |
+| `GET` | `/api/grocery-items/{id}/products[?q=]` | Session | 200 with every store's results, 404 unknown item. `q` (≤ 100 chars): other words to search instead of the name and chips; chips are not applied; still priced at the item's quantity. Blank `q` = the item's own search |
+| `GET` | `/api/stores/{store}/products/{product_id}` | Session | 200 one product (priced for 1), 404 not sold there, 503 store could not answer, 400 unknown store |
 
 `{store}` is `woolworths` or `coles`; `{product_id}` is the store's own id
 (Woolworths stockcode, Coles product id — digits only; anything else is

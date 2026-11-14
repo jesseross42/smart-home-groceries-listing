@@ -78,9 +78,15 @@ export interface ItemProducts {
 }
 
 export const productsApi = {
-	/** Searches every store for one list item. */
-	forItem: (itemId: string, init?: RequestInit) =>
-		request<ItemProducts>(`/api/grocery-items/${itemId}/products`, init),
+	/**
+	 * Searches every store for one list item, or for other `words` (the
+	 * item's chips not applied), priced at the item's quantity.
+	 */
+	forItem: (itemId: string, init?: RequestInit, words?: string) =>
+		request<ItemProducts>(
+			`/api/grocery-items/${itemId}/products${words ? `?q=${encodeURIComponent(words)}` : ""}`,
+			init,
+		),
 	/** One product at one store by the store's own id, priced for one. */
 	lookup: (store: StoreId, productId: string) =>
 		request<StoreProduct>(

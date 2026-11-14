@@ -110,7 +110,8 @@ when a store changes its fees.
 2. To let the app compare stores for an item, **Select item → Choose** a
    product at **each** store. The newest store is the one bought; the other
    shows as **Also at …** on the item card. A product the search does not
-   show: paste its store link in **Look up by link**, then **Choose**.
+   show: type other words in **Search with other words**, or paste its
+   store link in **Look up by link**, then **Choose**.
 3. On **Order**, **Ways to buy** ranks the options with delivery included.
    **Rank by** tries another mode for this visit. **Use this** moves items
    to that option's stores (toast has **Undo**).

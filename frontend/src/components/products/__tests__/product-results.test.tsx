@@ -57,6 +57,7 @@ describe("ProductResults", () => {
 		expect(api.products.forItem).toHaveBeenCalledWith(
 			itemFixture().id,
 			expect.anything(),
+			undefined,
 		);
 		expect(articleNames(list)).toHaveLength(3);
 	});

@@ -44,17 +44,35 @@ impl<'a> ProductSearchService<'a> {
     /// Searches every store for the item with `item_id`. 404 if it is not
     /// on the list.
     pub async fn search_item(&self, item_id: Uuid) -> Result<ItemSearch, ApiError> {
+        self.search_item_with(item_id, None).await
+    }
+
+    /// Like [`Self::search_item`], but with the household's own `words`
+    /// when given: the stores are asked for those words, the item's chips
+    /// are not applied, and products are still priced at the item's
+    /// quantity.
+    pub async fn search_item_with(
+        &self,
+        item_id: Uuid,
+        words: Option<&str>,
+    ) -> Result<ItemSearch, ApiError> {
         let item = repository::find_item(self.pool, item_id)
             .await?
             .ok_or_else(|| ApiError::NotFound("Grocery item not found".into()))?;
-        let query = query::for_item(&item.name, &item.filter_terms);
+        let (query, terms): (String, &[String]) = match words {
+            Some(words) => (query::for_item(words, &[]), &[]),
+            None => (
+                query::for_item(&item.name, &item.filter_terms),
+                &item.filter_terms,
+            ),
+        };
 
         let results = join_all(self.stores.iter().map(|client| client.search(&query))).await;
         let mut stores: Vec<StoreOutcome> = self
             .stores
             .iter()
             .zip(results)
-            .map(|(client, result)| outcome_for(&item, &query, client.as_ref(), result))
+            .map(|(client, result)| outcome_for(&item, &query, terms, client.as_ref(), result))
             .collect();
 
         // One basis for every store, so Woolworths and Coles are compared
@@ -85,14 +103,22 @@ impl<'a> ProductSearchService<'a> {
         let client = self.stores.iter().find(|client| client.store() == store)?;
         let query = query::for_item(&item.name, &item.filter_terms);
         let result = client.search(&query).await;
-        Some(outcome_for(item, &query, client.as_ref(), result))
+        Some(outcome_for(
+            item,
+            &query,
+            &item.filter_terms,
+            client.as_ref(),
+            result,
+        ))
     }
 }
 
-/// Filters and prices one store's answer, or records its failure.
+/// Keeps the products matching every chip in `terms`, prices them, or
+/// records the store's failure.
 fn outcome_for(
     item: &GroceryItem,
     query: &str,
+    terms: &[String],
     client: &dyn StoreClient,
     result: Result<Vec<Product>, StoreError>,
 ) -> StoreOutcome {
@@ -101,7 +127,7 @@ fn outcome_for(
         Ok(found) => {
             let found_count = found.len();
             let quantity = u32::try_from(item.quantity).unwrap_or(1).max(1);
-            let products: Vec<PricedProduct> = filters::apply(found, &item.filter_terms)
+            let products: Vec<PricedProduct> = filters::apply(found, terms)
                 .into_iter()
                 .map(|product| PricedProduct::new(product, quantity))
                 .collect();

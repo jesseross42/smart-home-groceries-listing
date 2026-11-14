@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 
 import { ProductDislikesProvider } from "#/components/dislikes/product-dislikes";
+import { OtherWordsSearch } from "#/components/products/other-words-search";
 import { PastPurchasesProvider } from "#/components/products/past-purchases";
 import { PreferSpecialsSwitch } from "#/components/products/prefer-specials-switch";
 import { ProductFilterBar } from "#/components/products/product-filter-bar";
@@ -31,50 +32,67 @@ import { specialsFirst } from "#/lib/specials";
 /**
  * Searches both stores for one list item and shows the products in one
  * list, with sort, filters and the display settings applied ("Prefer
- * specials" at the top moves promoted products first). Mounting it
- * starts the search.
+ * specials" at the top moves promoted products first). "Search with other
+ * words" searches for typed words instead; products found that way are
+ * chosen as looked up. Mounting it starts the search.
  */
 export function ProductResults({ item }: { item: GroceryItem }) {
+	const [words, setWords] = useState("");
+	const { state, retry } = useItemProducts(item, words);
+
+	return (
+		<div className="flex flex-col gap-4">
+			<PreferSpecialsSwitch />
+			<OtherWordsSearch
+				itemName={item.name}
+				words={words}
+				onSearch={setWords}
+			/>
+			{state.status === "loading" ? (
+				<output className="block text-sm text-muted-foreground">
+					Searching the stores…
+				</output>
+			) : state.status === "failed" ? (
+				<div role="alert" className="flex flex-col items-start gap-2">
+					<p className="text-sm">The stores could not be searched.</p>
+					<Button size="sm" variant="outline" onClick={retry}>
+						Try again
+					</Button>
+				</div>
+			) : (
+				<FoundProducts item={item} search={state.data} lookedUp={!!words} />
+			)}
+		</div>
+	);
+}
+
+/** One search's products, with sort and filters. */
+function FoundProducts({
+	item,
+	search,
+	lookedUp,
+}: {
+	item: GroceryItem;
+	search: ItemProducts;
+	lookedUp: boolean;
+}) {
 	const dislikes = useItemDislikes(item.id);
 	const display = useDisplaySettings();
 	const [sort, setSort] = useState<ProductSort>(DEFAULT_SORT);
 	const [filters, setFilters] = useState<ProductFilters>(NO_FILTERS);
-	const { state, retry } = useItemProducts(item);
-
-	if (state.status === "loading") {
-		return (
-			<output className="block text-sm text-muted-foreground">
-				Searching the stores…
-			</output>
-		);
-	}
-
-	if (state.status === "failed") {
-		return (
-			<div role="alert" className="flex flex-col items-start gap-2">
-				<p className="text-sm">The stores could not be searched.</p>
-				<Button size="sm" variant="outline" onClick={retry}>
-					Try again
-				</Button>
-			</div>
-		);
-	}
 
 	const sorted = sortListings(
-		shownListings(state.data.stores, filters, display.showUnavailable),
+		shownListings(search.stores, filters, display.showUnavailable),
 		sort,
 		{
-			quantity: state.data.item.quantity,
-			basis: commonBasis(
-				state.data.stores.flatMap((results) => results.products),
-			),
+			quantity: search.item.quantity,
+			basis: commonBasis(search.stores.flatMap((results) => results.products)),
 		},
 	);
 
 	return (
 		<ProductDislikesProvider value={{ itemId: item.id, ...dislikes }}>
 			<div className="flex flex-col gap-4">
-				<PreferSpecialsSwitch />
 				<div className="flex flex-wrap items-center justify-between gap-2">
 					<ProductSortSelect value={sort} onValueChange={setSort} />
 					<SpecialsOnlySwitch
@@ -86,14 +104,15 @@ export function ProductResults({ item }: { item: GroceryItem }) {
 				</div>
 				<ProductFilterBar value={filters} onChange={setFilters} />
 				<StoreNotices
-					stores={storesShown(state.data.stores, filters)}
+					stores={storesShown(search.stores, filters)}
 					specialsOnly={filters.specialsOnly}
 				/>
-				<WithPastPurchases search={state.data}>
+				<WithPastPurchases search={search}>
 					<ProductList
 						listings={display.preferSpecials ? specialsFirst(sorted) : sorted}
-						quantity={state.data.item.quantity}
+						quantity={search.item.quantity}
 						display={display}
+						lookedUp={lookedUp}
 					/>
 				</WithPastPurchases>
 			</div>
