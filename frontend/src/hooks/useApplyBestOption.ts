@@ -17,7 +17,7 @@ function signature(option: OrderOption): string {
  * Applies the recommended way to buy as soon as the Order page shows it
  * (Jesse, 2026-11-15): the cheapest of one store alone or both together,
  * delivery included. Each plan is applied once per visit, so pressing Undo
- * or **Use this** on another option sticks until the plan itself changes.
+ * or the switch button on another option sticks until the plan itself changes.
  */
 export function useApplyBestOption(
 	plan: OrderOptions,

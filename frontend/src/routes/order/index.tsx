@@ -66,7 +66,7 @@ export const Route = createFileRoute("/order/")({
  * `/order` › In Progress — the order review and its options.
  *
  * "Ways to buy" ranks every way to split the order between the stores, with
- * delivery fees, by the household's mode; **Use this** moves items between
+ * delivery fees, by the household's mode; the switch button moves items between
  * the products the household chose (with Undo). Below, every committed item
  * with the product the order buys now, priced again at its store, grouped by
  * store with subtotals. Items with no product, and products a store no

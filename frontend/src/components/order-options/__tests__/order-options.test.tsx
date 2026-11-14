@@ -80,10 +80,24 @@ describe("OrderOptions", () => {
 		render(<OrderOptions plan={plan([option()])} onUse={onUse} />);
 
 		await userEvent.click(
-			screen.getByRole("button", { name: "Use All at Woolworths" }),
+			screen.getByRole("button", { name: "Switch to Woolworths" }),
 		);
 
 		expect(onUse).toHaveBeenCalledWith(option());
+	});
+
+	it("explains the switch button in an (i) note on focus", async () => {
+		render(<OrderOptions plan={plan([option()])} onUse={vi.fn()} />);
+
+		await userEvent.tab();
+		await userEvent.tab();
+
+		expect(
+			screen.getByRole("button", { name: "About Switch to Woolworths" }),
+		).toHaveFocus();
+		expect(await screen.findByRole("tooltip")).toHaveTextContent(
+			/Buys every item at Woolworths/,
+		);
 	});
 
 	it("says what an option leaves out and shows the fee hint", () => {

@@ -1,7 +1,5 @@
-import { useState } from "react";
-
+import { SwitchButton } from "#/components/order-options/switch-button";
 import { Badge } from "#/components/ui/badge";
-import { Button } from "#/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -16,8 +14,9 @@ import { deliveryPhrase, optionNotes } from "#/lib/option-notes";
 /**
  * One way to buy the order: its total, what each store's part costs with
  * delivery, the items it leaves out, and why it is not recommended when it
- * is not. **Use this** makes the order buy each item at this option's store;
- * it is hidden for the stores the order buys from now.
+ * is not. Its switch button ("Switch to Coles", with an (i) note) makes the
+ * order buy each item at this option's store, overriding the plan the page
+ * picked; it is hidden for the stores the order buys from now.
  */
 export function OptionCard({
 	option,
@@ -28,17 +27,7 @@ export function OptionCard({
 	maxDeliverySpend: string | null;
 	onUse: (option: OrderOption) => Promise<void>;
 }) {
-	const [using, setUsing] = useState(false);
 	const notes = optionNotes(option, maxDeliverySpend);
-
-	async function use() {
-		setUsing(true);
-		try {
-			await onUse(option);
-		} finally {
-			setUsing(false);
-		}
-	}
 
 	return (
 		<Card role="region" aria-label={option.label} className="gap-2">
@@ -86,16 +75,7 @@ export function OptionCard({
 			</CardContent>
 			{!option.is_current && option.picks.length > 0 && (
 				<CardFooter>
-					<Button
-						size="sm"
-						variant={option.recommended ? "default" : "outline"}
-						className="w-full sm:w-auto"
-						disabled={using}
-						onClick={use}
-						aria-label={`Use ${option.label}`}
-					>
-						{using ? "Switching…" : "Use this"}
-					</Button>
+					<SwitchButton option={option} onUse={onUse} />
 				</CardFooter>
 			)}
 		</Card>
