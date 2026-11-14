@@ -3,22 +3,34 @@
 
 use std::sync::Arc;
 
+use sqlx::PgPool;
+
 use super::assessor::Triage;
 use super::fake::FakeTriage;
-use super::model::{Classification, TriageError, TriageModel};
+use super::key::{FixedKey, KeySource};
+use super::model::TriageModel;
 use super::openai::OpenAiCompatible;
 use crate::config::{TriageProvider, TriageSettings};
-use crate::services::stores::client::BoxFuture;
+use crate::services::encryption::Encryptor;
+use crate::services::openai_key::source::SavedOrEnvironmentKey;
 
 /// Builds the classifier `settings` asks for.
-pub fn build(settings: &TriageSettings) -> Triage {
+///
+/// OpenAI's key is read from the database on every call (saved in Settings ›
+/// Help), falling back to `OPENAI_API_KEY`; with neither, every item is held
+/// with a reason that says what to fix. A local server's key is fixed.
+pub fn build(settings: &TriageSettings, pool: &PgPool, encryptor: Option<&Encryptor>) -> Triage {
+    let key: Arc<dyn KeySource> = match settings.provider {
+        TriageProvider::OpenAi => Arc::new(SavedOrEnvironmentKey::new(
+            pool.clone(),
+            encryptor.cloned(),
+            &settings.api_key,
+        )),
+        _ => Arc::new(FixedKey::new(&settings.api_key)),
+    };
     let model: Option<Arc<dyn TriageModel>> = match settings.provider {
         TriageProvider::Off => None,
         TriageProvider::Fake => Some(Arc::new(FakeTriage)),
-        TriageProvider::OpenAi if settings.api_key.is_empty() => {
-            tracing::warn!("OPENAI_API_KEY is empty: every intake item will be held for review");
-            Some(Arc::new(Unconfigured))
-        }
         TriageProvider::OpenAi
         | TriageProvider::Ollama
         | TriageProvider::LlamaCpp
@@ -26,23 +38,9 @@ pub fn build(settings: &TriageSettings) -> Triage {
             reqwest::Client::new(),
             &settings.base_url,
             &settings.model,
-            &settings.api_key,
+            key,
         ))),
     };
     tracing::info!(provider = ?settings.provider, model = %settings.model, "triage ready");
     Triage::new(model, settings.timeout, settings.min_confidence)
-}
-
-/// Stands in for OpenAI when no key is set, so every item is held with a
-/// reason that says what to fix, instead of a bare "answered 401".
-struct Unconfigured;
-
-impl TriageModel for Unconfigured {
-    fn classify<'a>(&'a self, _: &'a str) -> BoxFuture<'a, Result<Classification, TriageError>> {
-        Box::pin(async {
-            Err(TriageError::Unavailable(
-                "OPENAI_API_KEY is not set".to_string(),
-            ))
-        })
-    }
 }

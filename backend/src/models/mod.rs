@@ -8,6 +8,7 @@ pub mod db;
 pub mod delivery_rows;
 pub mod dislike_rows;
 pub mod google_tasks_rows;
+pub mod openai_key_rows;
 pub mod purchase_rows;
 pub mod schemas;
 pub mod trolley_handoff_rows;

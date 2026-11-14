@@ -5,9 +5,12 @@
 //! covers them all; [`crate::config::TriageSettings`] picks the base URL,
 //! model and key. This is the only file that talks to an LLM provider.
 
+use std::sync::Arc;
+
 use reqwest::Client;
 use serde_json::{json, Value};
 
+use super::key::KeySource;
 use super::model::{Classification, TriageError, TriageModel};
 use super::prompt::{first_choice_content, parse_reply, user_message, SYSTEM_PROMPT};
 use crate::services::stores::client::BoxFuture;
@@ -17,19 +20,19 @@ pub struct OpenAiCompatible {
     http: Client,
     url: String,
     model: String,
-    api_key: String,
+    key: Arc<dyn KeySource>,
 }
 
 impl OpenAiCompatible {
-    /// A client for `base_url` (e.g. `http://localhost:11434/v1`). An empty
-    /// `api_key` sends no `Authorization` header, which is what a local
+    /// A client for `base_url` (e.g. `http://localhost:11434/v1`). When `key`
+    /// gives none, no `Authorization` header is sent, which is what a local
     /// server started without `--api-key` wants.
-    pub fn new(http: Client, base_url: &str, model: &str, api_key: &str) -> Self {
+    pub fn new(http: Client, base_url: &str, model: &str, key: Arc<dyn KeySource>) -> Self {
         Self {
             http,
             url: format!("{}/chat/completions", base_url.trim_end_matches('/')),
             model: model.to_string(),
-            api_key: api_key.to_string(),
+            key,
         }
     }
 
@@ -49,8 +52,8 @@ impl OpenAiCompatible {
     /// Sends one item and returns the provider's whole JSON answer.
     async fn ask(&self, item_text: &str) -> Result<Value, TriageError> {
         let mut request = self.http.post(&self.url).json(&self.body(item_text));
-        if !self.api_key.is_empty() {
-            request = request.bearer_auth(&self.api_key);
+        if let Some(key) = self.key.key().await? {
+            request = request.bearer_auth(key);
         }
         let response = request.send().await.map_err(|err| {
             TriageError::Unavailable(

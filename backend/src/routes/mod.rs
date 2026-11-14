@@ -15,6 +15,7 @@ pub mod grocery;
 pub mod health;
 pub mod intake_settings;
 pub mod item_rules;
+pub mod openai_key;
 pub mod order_options;
 pub mod order_review;
 pub mod products;
@@ -64,6 +65,7 @@ pub fn api_router(state: &AppState) -> Router<AppState> {
         .merge(intake_settings::router())
         .merge(delivery_settings::router())
         .merge(item_rules::router())
+        .merge(openai_key::router())
         .merge(order_options::router())
         .merge(order_review::router())
         .merge(products::router())
