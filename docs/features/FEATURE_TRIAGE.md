@@ -71,7 +71,7 @@ household chose local models over OpenAI (cheaper, item names stay home), so
 | `ollama` (default) | Ollama | `http://localhost:11434/v1` · `llama3.2` | Compose profile `ollama` (`http://ollama:11434/v1`); pull the model once |
 | `llamacpp` | llama.cpp `llama-server` | `http://localhost:8080/v1` · `local` | Serves the one GGUF it started with and ignores the model name. Profile `llamacpp` downloads `LLAMACPP_HF_MODEL` |
 | `vllm` | vLLM `vllm serve` | `http://localhost:8000/v1` · `Qwen/Qwen2.5-1.5B-Instruct` | Model name must match what it serves. Profile `vllm` needs an NVIDIA GPU |
-| `openai` | OpenAI | `https://api.openai.com/v1` · `gpt-4o-mini` | Paid. Needs `OPENAI_API_KEY`; without it every item is held with "OPENAI_API_KEY is not set" |
+| `openai` | OpenAI | `https://api.openai.com/v1` · `gpt-4o-mini` | Paid. Needs a key (see "The OpenAI key"); without one every item is held with "no OpenAI key is saved in Settings › Help" |
 | `fake` | none | — | Keyword list: a service word ("service", "repair", "appointment", "haircut", "plumber", "dentist", "rego", "mechanic") → rejected, else approved, both at 0.9. Dev, tests, e2e |
 | `off` | none | — | No triage; every item is `skipped` |
 
@@ -105,13 +105,37 @@ item can do is move itself between queues a person still decides on. Item
 names leave the home server for OpenAI when `openai` is chosen; nothing else
 does. The key is never logged (`TriageSettings` has a redacting `Debug`).
 
+## The OpenAI key
+With `INTAKE_LLM_PROVIDER=openai`, **Settings › Help** shows an **OpenAI key**
+card: type a key and **Save**, or **Remove** the saved one. Each shows
+**Undo**, which puts back what was there before.
+
+- **At rest:** AES-256-GCM with `CREDENTIAL_ENCRYPTION_KEY`
+  (`services/encryption.rs`), in `openai_triage_key` (one row; the replaced
+  value is kept only for Undo). Without the encryption key, saving answers 500.
+- **Never returned or logged:** every route answers
+  `{saved, from_environment, changed_at}`. The request body's `Debug` is
+  redacted. The log line is `openai triage key changed` (what, who).
+- **Used without a restart:** the classifier reads the key on every call
+  (`services/openai_key/source.rs`).
+- **Environment during the migration:** a saved key wins. `OPENAI_API_KEY`
+  is the fallback while none is saved, so an existing `.env` keeps working.
+  Removing the saved key goes back to it. Local servers are unchanged
+  (`INTAKE_LLM_API_KEY`, fixed at start).
+
+| Method | Path | Answer |
+|---|---|---|
+| `GET` | `/api/triage/openai-key` | 200 status |
+| `PUT` | `/api/triage/openai-key` `{api_key}` | 200 status; 422 empty or over 500 characters; 500 no encryption key |
+| `DELETE` | `/api/triage/openai-key` | 200 status (also when none) |
+| `POST` | `/api/triage/openai-key/undo` | 200 status; swaps the saved and the replaced key |
+
+All need a session (401 without).
+
 ## Known gaps
 - **Restore to source** works for Google Tasks only; Keep is paused. The
   spec's `force_accept` flag is a row in `intake_restores` keyed by the new
   task's id, so a person cannot skip triage by typing a marker into a task.
-- The spec asks for the OpenAI key to be stored encrypted in PostgreSQL and set
-  on `/settings/help`. It is an environment variable for now; track the
-  settings-backed credential in [issue #89](https://github.com/jesseross42/smart-home-groceries-listing/issues/89).
 - The spec's `TriageResult` also has `normalised_name` and `quantity`. They are
   not asked for: the channel's own parse is kept, and the household corrects
   names in Pending Requests.
@@ -123,6 +147,7 @@ does. The key is never logged (`TriageSettings` has a redacting `Debug`).
 | Local model servers | `docker-compose.yml` (profiles `ollama`, `llamacpp`, `vllm`) |
 | Classifier trait, OpenAI/Ollama, fake | `backend/src/services/triage/{model,openai,fake}.rs` |
 | Prompt + reply parsing, answer → status (pure) | `services/triage/{prompt,verdict}.rs` |
+| OpenAI key: storage, key source, routes | `services/openai_key/`, `services/triage/key.rs`, `routes/openai_key.rs`, migration `20261114100000_openai_triage_key.sql`, `components/intake/openai-key-section.tsx` |
 | Time limit, picking the classifier | `services/triage/{assessor,registry}.rs` |
 | Background check + startup re-check | `services/triage/queue.rs` |
 | Triage view rules | `services/triage/review.rs` |

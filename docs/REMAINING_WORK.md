@@ -44,7 +44,6 @@ behavioral contract.
 ### Integration follow-ups and maintenance
 
 - [#86 — Handle Google Tasks subtasks, notes, and disconnect revocation](https://github.com/jesseross42/smart-home-groceries-listing/issues/86)
-- [#89 — Store the OpenAI triage key encrypted in application settings](https://github.com/jesseross42/smart-home-groceries-listing/issues/89)
 - [#85 — Verify live store and voice integrations end to end](https://github.com/jesseross42/smart-home-groceries-listing/issues/85)
 
 ## Deliberately out of the roadmap
