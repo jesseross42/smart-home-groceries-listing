@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { DislikeMarksProvider } from "#/components/dislikes/dislike-mark";
 import { OrderReview } from "#/components/order/order-review";
+import { DayPicker } from "#/components/order-options/day-picker";
 import { ModePicker } from "#/components/order-options/mode-picker";
 import { OrderOptions } from "#/components/order-options/order-options";
 import { SendToStore } from "#/components/trolley/send-to-store";
@@ -15,22 +16,36 @@ import { Button } from "#/components/ui/button";
 import { useApplyBestOption } from "#/hooks/useApplyBestOption";
 import { useListSync } from "#/hooks/useListSync";
 import { useOrderStores } from "#/hooks/useOrderStores";
-import { api, type OrderMode, selectionsByItem } from "#/lib/api";
+import { api, type OrderMode, type PlanDay, selectionsByItem } from "#/lib/api";
 import { chosenAtStore } from "#/lib/chosen-at-store";
+import { DELIVERY_WEEKDAYS } from "#/lib/delivery-days";
 import { loadDislikeMarks } from "#/lib/dislike-marks";
 import { ORDER_MODES } from "#/lib/order-modes";
 import { loadUsualDeliveryDay } from "#/lib/usual-delivery-day";
 
-/** `?mode=` ranks the options another way for this visit. */
+/**
+ * `?mode=` ranks the options another way for this visit; `?day=` costs
+ * delivery on another day (`any` = each store's cheapest).
+ */
 interface OrderSearch {
 	mode?: OrderMode;
+	day?: PlanDay;
 }
 
+const PLAN_DAYS: readonly string[] = [
+	...DELIVERY_WEEKDAYS.map((d) => d.day),
+	"any",
+];
+
 export const Route = createFileRoute("/order/")({
-	validateSearch: (search: Record<string, unknown>): OrderSearch =>
-		ORDER_MODES.some((m) => m.mode === search.mode)
+	validateSearch: (search: Record<string, unknown>): OrderSearch => ({
+		...(ORDER_MODES.some((m) => m.mode === search.mode)
 			? { mode: search.mode as OrderMode }
-			: {},
+			: {}),
+		...(typeof search.day === "string" && PLAN_DAYS.includes(search.day)
+			? { day: search.day as PlanDay }
+			: {}),
+	}),
 	loaderDeps: ({ search }) => search,
 	// The order re-priced now, its options with delivery, plus the list and
 	// choices so the Send button counts exactly what a handoff would send.
@@ -38,7 +53,7 @@ export const Route = createFileRoute("/order/")({
 		const [review, plan, items, selections, dislikeMarks, usualDay] =
 			await Promise.all([
 				api.orderReview.get(),
-				api.orderOptions.get(deps.mode),
+				api.orderOptions.get(deps.mode, deps.day),
 				api.grocery.list(),
 				api.selections.list(),
 				loadDislikeMarks(),
@@ -119,7 +134,17 @@ function OrderPage() {
 			{plan.options.length > 0 && (
 				<ModePicker
 					value={plan.mode}
-					onChange={(mode) => navigate({ search: { mode } })}
+					onChange={(mode) =>
+						navigate({ search: (prev) => ({ ...prev, mode }) })
+					}
+				/>
+			)}
+
+			{plan.options.length > 0 && (
+				<DayPicker
+					value={plan.delivery_day}
+					storeFees={plan.store_fees}
+					onChange={(day) => navigate({ search: (prev) => ({ ...prev, day }) })}
 				/>
 			)}
 
@@ -152,7 +177,7 @@ function OrderPage() {
 						<SendToStore
 							store="woolworths"
 							chosenCount={chosenAtWoolworths}
-							usualDay={usualDay}
+							usualDay={plan.delivery_day ?? usualDay}
 						>
 							<SendToStore.Trigger />
 							<SendToStore.Content />
@@ -162,7 +187,7 @@ function OrderPage() {
 						<SendToStore
 							store="coles"
 							chosenCount={chosenAtColes}
-							usualDay={usualDay}
+							usualDay={plan.delivery_day ?? usualDay}
 						>
 							<SendToStore.Trigger />
 							<SendToStore.Content />

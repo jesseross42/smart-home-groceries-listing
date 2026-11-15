@@ -112,12 +112,17 @@ when a store changes its fees.
    shows as **Also at …** on the item card. A product the search does not
    show: type other words in **Search with other words**, or paste its
    store link in **Look up by link**, then **Choose**.
-3. On **Order**, **Ways to buy** ranks the options with delivery included.
-   **Rank by** tries another mode for this visit. **Use this** moves items
-   to that option's stores (toast has **Undo**).
+3. On **Order**, **Ways to buy** ranks the options with delivery included,
+   and the order moves to the recommended one by itself (toast has
+   **Undo**). **Rank by** tries another mode for this visit. **Delivery day**
+   re-plans for another day, or **Cheapest day**. To override, press an
+   option's **Switch to …** button; hover its (i) for what it does.
+4. Each day's own store fees appear after the **Fill trolley** bookmark has
+   run once at that store; until then the typed fees are used.
 
-**Verify:** each option shows `items + delivery` per store, and the
-recommended one is badged **Recommended**.
+**Verify:** each option shows `items + delivery` per store, the
+recommended one is badged **Recommended**, and under **Delivery day** the
+store fees read e.g. `Woolworths $2.00 on Tue 17 Nov`.
 
 Behaviour: [`FEATURE_ORDER_OPTIMISATION.md`](features/FEATURE_ORDER_OPTIMISATION.md).
 

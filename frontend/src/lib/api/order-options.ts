@@ -7,7 +7,7 @@
  * `picks` to `api.selections.buyAt`. Money is a decimal string.
  */
 import { request } from "#/lib/api/client";
-import type { OrderMode } from "#/lib/api/delivery-settings";
+import type { DeliveryDay, OrderMode } from "#/lib/api/delivery-settings";
 import type { OrderLine, UnchosenItem } from "#/lib/api/order-review";
 import type { StoreId } from "#/lib/api/products";
 import type { OrderStorePick } from "#/lib/api/selections";
@@ -77,12 +77,31 @@ export interface OrderOptions {
 	/** The best mix was proven best (every combination tried). */
 	exact: boolean;
 	max_delivery_spend: string | null;
+	/** The day delivery is costed for; `null` = each store's cheapest day. */
+	delivery_day: DeliveryDay | null;
+	/** The stores' own fees the plan used instead of the typed ones. */
+	store_fees: StoreDayFee[];
 }
 
+/** The cheapest fee a store showed for a day (from the bookmark). */
+export interface StoreDayFee {
+	store: StoreId;
+	store_name: string;
+	/** "YYYY-MM-DD". */
+	date: string;
+	fee: string;
+}
+
+/** `?day=`: a weekday, or `any` for each store's cheapest day. */
+export type PlanDay = DeliveryDay | "any";
+
 export const orderOptionsApi = {
-	/** The options, ranked by `mode` or the saved one. */
-	get: (mode?: OrderMode) =>
-		request<OrderOptions>(
-			`/api/order-options${mode ? `?mode=${encodeURIComponent(mode)}` : ""}`,
-		),
+	/** The options, ranked by `mode` or the saved one, for `day` or the usual day. */
+	get: (mode?: OrderMode, day?: PlanDay) => {
+		const query = new URLSearchParams();
+		if (mode) query.set("mode", mode);
+		if (day) query.set("day", day);
+		const text = query.toString();
+		return request<OrderOptions>(`/api/order-options${text ? `?${text}` : ""}`);
+	},
 };

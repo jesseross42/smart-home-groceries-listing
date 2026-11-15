@@ -295,7 +295,8 @@ export async function fillColesTrolley(
 	await sendToBackend(
 		`/api/store-tab/trolley-handoffs/${handoff.handoff_id}/report`,
 		{
-			delivery,
+			delivery: { ...delivery, days: undefined },
+			delivery_days: delivery.days ?? [],
 			lines: [
 				...added.map((product_id) => ({ product_id, outcome: "added" })),
 				...failed.map((f) => ({

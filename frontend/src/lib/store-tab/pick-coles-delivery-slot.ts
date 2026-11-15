@@ -114,6 +114,8 @@ export async function pickColesDeliverySlot(
 			[...list().querySelectorAll<HTMLInputElement>('input[type="radio"]')]
 				.map((input) => input.value)
 				.join(" ");
+		// Each day looked at, as its cheapest open time, for the planner.
+		const seen: { date: string; cheapest_fee: string }[] = [];
 		for (const day of days) {
 			const input = day.input as HTMLInputElement;
 			if (!input.checked) {
@@ -121,10 +123,14 @@ export async function pickColesDeliverySlot(
 				input.click();
 				await wait(() => shown() !== before);
 			}
-			const slot = helpers.chooseSlot(
-				helpers.readSlots(list()),
-				wanted.time_of_day,
-			);
+			const slots = helpers.readSlots(list());
+			if (slots.length > 0) {
+				seen.push({
+					date: day.date as string,
+					cheapest_fee: String(Math.min(...slots.map((s) => s.fee))),
+				});
+			}
+			const slot = helpers.chooseSlot(slots, wanted.time_of_day);
 			if (!slot) continue;
 			const radio = [
 				...list().querySelectorAll<HTMLInputElement>('input[type="radio"]'),
@@ -149,13 +155,17 @@ export async function pickColesDeliverySlot(
 					date !== wantedDate
 						? `Nothing left on ${wantedDate}, so the next day with a time was used.`
 						: undefined,
+				days: seen,
 			};
 		}
-		return failed(
-			wanted.time_of_day === "any"
-				? "Coles has no delivery times left this week."
-				: `Coles has no ${wanted.time_of_day} delivery times left this week.`,
-		);
+		return {
+			...failed(
+				wanted.time_of_day === "any"
+					? "Coles has no delivery times left this week."
+					: `Coles has no ${wanted.time_of_day} delivery times left this week.`,
+			),
+			days: seen,
+		};
 	} catch (error) {
 		return failed(`Could not pick a delivery time: ${String(error)}`);
 	}

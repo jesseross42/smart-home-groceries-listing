@@ -17,19 +17,16 @@ pub fn router() -> Router<AppState> {
     Router::new().route("/api/order-options", get(order_options))
 }
 
-/// `GET /api/order-options[?mode=]` — the options, ranked by `mode` or the
-/// saved one. A store that cannot be asked does not fail the request; its
+/// `GET /api/order-options[?mode=&day=]` — the options, ranked by `mode` or
+/// the saved one, with delivery fees for `day` or the usual day. A store that cannot be asked does not fail the request; its
 /// lines say so, as in the order review.
 async fn order_options(
     State(state): State<AppState>,
     _user: AuthUser,
     ValidatedQuery(query): ValidatedQuery<OrderOptionsQuery>,
 ) -> Result<Json<OrderOptionsResponse>, ApiError> {
-    let (plan, settings) = OrderPlanService::new(&state.pool, &state.stores)
-        .plan(query.mode)
+    let planned = OrderPlanService::new(&state.pool, &state.stores)
+        .plan(query.mode, query.day.into())
         .await?;
-    Ok(Json(OrderOptionsResponse::new(
-        plan,
-        settings.max_delivery_spend,
-    )))
+    Ok(Json(OrderOptionsResponse::new(planned)))
 }

@@ -16,6 +16,7 @@ use crate::models::db::{
     TrolleyLineOutcome,
 };
 use crate::models::schemas::MAX_PRODUCT_ID_LEN;
+use crate::services::delivery_day_fees::MAX_REPORTED_DAYS;
 use crate::services::stores::Store;
 use crate::services::trolley_handoffs::delivery::{DeliveryRequest, ReportedDelivery};
 use crate::services::trolley_handoffs::store_tab::{ReportedLine, StoreTabLine};
@@ -232,6 +233,19 @@ pub struct StoreTabReportRequest {
     /// What happened to the delivery window; absent from older bookmarklets.
     #[validate(nested)]
     pub delivery: Option<StoreTabReportedDelivery>,
+    /// The cheapest fee the store showed for each day (issue #70); absent
+    /// from older bookmarklets.
+    #[serde(default)]
+    #[validate(length(max = MAX_REPORTED_DAYS), nested)]
+    pub delivery_days: Vec<StoreTabDeliveryDay>,
+}
+
+/// One day of the store's delivery times, as its cheapest fee.
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct StoreTabDeliveryDay {
+    pub date: NaiveDate,
+    #[validate(custom(function = "not_negative"))]
+    pub cheapest_fee: Decimal,
 }
 
 /// The delivery window the store tab reserved, kept, or could not reserve.

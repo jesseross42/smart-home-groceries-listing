@@ -3,6 +3,7 @@
 //!
 //! Money is a decimal string. Lines reuse the order review's shape.
 
+use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -10,16 +11,45 @@ use validator::Validate;
 
 use super::order_review::{OrderLineResponse, UnchosenItemResponse};
 use super::selections::OrderStorePick;
-use crate::models::delivery_rows::OrderMode;
+use crate::models::delivery_rows::{DeliveryDay, OrderMode};
 use crate::services::order_plan::{
-    DislikedPick, Missing, OptionKind, OrderPlan, PlanOption, StorePart,
+    DayChoice, DislikedPick, Missing, OptionKind, OrderPlan, PlanOption, PlannedOrder, StorePart,
 };
 use crate::services::stores::Store;
 
-/// `GET /api/order-options?mode=`: a mode to rank by instead of the saved one.
+/// `GET /api/order-options?mode=&day=`: a mode to rank by instead of the
+/// saved one, and a delivery day instead of the usual one.
 #[derive(Debug, Default, Deserialize, Validate)]
 pub struct OrderOptionsQuery {
     pub mode: Option<OrderMode>,
+    /// Cost delivery on this weekday, or `any` for each store's cheapest
+    /// day, instead of the usual day.
+    pub day: Option<DayQuery>,
+}
+
+/// `?day=`: a weekday, or `any`.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(untagged)]
+pub enum DayQuery {
+    Any(AnyDay),
+    On(DeliveryDay),
+}
+
+/// The word `any`.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AnyDay {
+    Any,
+}
+
+impl From<Option<DayQuery>> for DayChoice {
+    fn from(day: Option<DayQuery>) -> Self {
+        match day {
+            None => DayChoice::Usual,
+            Some(DayQuery::Any(_)) => DayChoice::Any,
+            Some(DayQuery::On(day)) => DayChoice::On(day),
+        }
+    }
 }
 
 /// The order's options.
@@ -35,6 +65,19 @@ pub struct OrderOptionsResponse {
     pub exact: bool,
     /// The household's cap on delivery fees per order, if any.
     pub max_delivery_spend: Option<Decimal>,
+    /// The day delivery is costed for; `null` = each store's cheapest day.
+    pub delivery_day: Option<DeliveryDay>,
+    /// The stores' own fees used instead of the typed ones.
+    pub store_fees: Vec<StoreDayFeeResponse>,
+}
+
+/// The cheapest fee a store showed for a day, as the plan used it.
+#[derive(Debug, Serialize)]
+pub struct StoreDayFeeResponse {
+    pub store: Store,
+    pub store_name: &'static str,
+    pub date: NaiveDate,
+    pub fee: Decimal,
 }
 
 /// One way to buy the order.
@@ -100,7 +143,13 @@ pub struct DislikedPickResponse {
 
 impl OrderOptionsResponse {
     /// The plan as the web app reads it.
-    pub fn new(plan: OrderPlan, max_delivery_spend: Option<Decimal>) -> Self {
+    pub fn new(planned: PlannedOrder) -> Self {
+        let PlannedOrder {
+            plan,
+            settings,
+            delivery_day,
+            store_fees,
+        } = planned;
         let OrderPlan {
             mode,
             options,
@@ -120,7 +169,17 @@ impl OrderOptionsResponse {
                 .collect(),
             unchosen: unchosen.into_iter().map(Into::into).collect(),
             exact,
-            max_delivery_spend,
+            max_delivery_spend: settings.max_delivery_spend,
+            delivery_day,
+            store_fees: store_fees
+                .into_iter()
+                .map(|fee| StoreDayFeeResponse {
+                    store: fee.store,
+                    store_name: fee.store.display_name(),
+                    date: fee.date,
+                    fee: fee.fee,
+                })
+                .collect(),
         }
     }
 }

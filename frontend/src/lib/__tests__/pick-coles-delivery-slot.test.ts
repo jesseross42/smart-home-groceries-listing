@@ -85,6 +85,7 @@ describe("pickColesDeliverySlot", () => {
 			window_end: "2026-11-15T17:00:00",
 			fee: "3",
 			problem: undefined,
+			days: [{ date: "2026-11-15", cheapest_fee: "3" }],
 		});
 	});
 
@@ -134,6 +135,11 @@ describe("pickColesDeliverySlot", () => {
 		expect(report).toEqual({
 			outcome: "failed",
 			problem: "Coles has no afternoon delivery times left this week.",
+			// Every day looked at, as its cheapest time, for the planner.
+			days: [
+				{ date: "2026-11-15", cheapest_fee: "3" },
+				{ date: "2026-11-16", cheapest_fee: "8" },
+			],
 		});
 	});
 });

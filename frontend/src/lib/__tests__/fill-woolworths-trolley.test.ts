@@ -122,6 +122,10 @@ describe("fillWoolworthsTrolley", () => {
 				window_end: "2026-10-03T07:00:00",
 				fee: "15",
 			},
+			delivery_days: [
+				{ date: "2026-10-02", cheapest_fee: "15" },
+				{ date: "2026-10-03", cheapest_fee: "15" },
+			],
 			lines: [
 				{ product_id: "88436", outcome: "added" },
 				{

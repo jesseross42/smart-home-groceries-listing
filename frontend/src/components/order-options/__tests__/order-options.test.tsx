@@ -44,6 +44,8 @@ function plan(options: OrderOption[]): Plan {
 		unchosen: [],
 		exact: true,
 		max_delivery_spend: null,
+		delivery_day: null,
+		store_fees: [],
 	};
 }
 
