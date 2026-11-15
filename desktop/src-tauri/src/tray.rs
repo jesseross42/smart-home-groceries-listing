@@ -5,23 +5,33 @@
 //! their own thread, because creating a webview inside an event handler
 //! deadlocks on Windows (tauri-apps/wry#583).
 
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, Runtime};
 
+use crate::autostart;
 use crate::fill_operation::FillOperations;
 use crate::stores::{Store, StorePage};
-use crate::windows::main_window::{self, MainPage};
+use crate::windows::main_window::{self, MainPage, Visibility};
 use crate::windows::store_window;
 
 const OPEN: &str = "open";
 const RELOAD: &str = "reload";
 const WOOLWORTHS: &str = "woolworths";
 const CHANGE_SERVER: &str = "change-server";
+const START_AT_LOGIN: &str = "start-at-login";
 const QUIT: &str = "quit";
 
 /// Adds the tray icon and its menu.
 pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let start_at_login = CheckMenuItem::with_id(
+        app,
+        START_AT_LOGIN,
+        "Start at login",
+        true,
+        autostart::is_enabled(app),
+        None::<&str>,
+    )?;
     let menu = Menu::with_items(
         app,
         &[
@@ -36,15 +46,20 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
                 true,
                 None::<&str>,
             )?,
+            &start_at_login,
             &MenuItem::with_id(app, QUIT, "Quit", true, None::<&str>)?,
         ],
     )?;
     let mut tray = TrayIconBuilder::with_id("main")
         .tooltip("Grocery List")
         .menu(&menu)
-        .on_menu_event(|app, event| {
+        .on_menu_event(move |app, event| {
             if let Some(action) = TrayAction::from_id(event.id().as_ref()) {
                 dispatch(app, action);
+                if action == TrayAction::StartAtLogin {
+                    // The tick shows what the system holds, also after a failure.
+                    let _ = start_at_login.set_checked(autostart::is_enabled(app));
+                }
             }
         });
     if let Some(icon) = app.default_window_icon() {
@@ -61,6 +76,7 @@ enum TrayAction {
     Reload,
     Woolworths,
     ChangeServer,
+    StartAtLogin,
     Quit,
 }
 
@@ -71,6 +87,7 @@ impl TrayAction {
             RELOAD => Some(Self::Reload),
             WOOLWORTHS => Some(Self::Woolworths),
             CHANGE_SERVER => Some(Self::ChangeServer),
+            START_AT_LOGIN => Some(Self::StartAtLogin),
             QUIT => Some(Self::Quit),
             _ => None,
         }
@@ -109,7 +126,13 @@ fn perform<R: Runtime>(app: &AppHandle<R>, action: TrayAction) -> tauri::Result<
             Ok(())
         }
         TrayAction::Woolworths => open_woolworths(app),
-        TrayAction::ChangeServer => main_window::open(app, MainPage::Setup),
+        TrayAction::ChangeServer => main_window::open(app, MainPage::Setup, Visibility::Shown),
+        TrayAction::StartAtLogin => {
+            if let Err(err) = autostart::toggle_for(app) {
+                log::error!("[tray] could not change start at login: {err}");
+            }
+            Ok(())
+        }
         TrayAction::Quit => {
             app.exit(0);
             Ok(())
@@ -142,6 +165,10 @@ mod tests {
             TrayAction::from_id(CHANGE_SERVER),
             Some(TrayAction::ChangeServer)
         );
+        assert_eq!(
+            TrayAction::from_id(START_AT_LOGIN),
+            Some(TrayAction::StartAtLogin)
+        );
         assert_eq!(TrayAction::from_id(QUIT), Some(TrayAction::Quit));
         assert_eq!(TrayAction::from_id("other"), None);
     }
@@ -152,6 +179,7 @@ mod tests {
         assert!(TrayAction::ChangeServer.creates_window());
         assert!(!TrayAction::Open.creates_window());
         assert!(!TrayAction::Reload.creates_window());
+        assert!(!TrayAction::StartAtLogin.creates_window());
         assert!(!TrayAction::Quit.creates_window());
     }
 }

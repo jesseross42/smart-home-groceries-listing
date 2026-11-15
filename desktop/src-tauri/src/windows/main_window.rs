@@ -21,9 +21,22 @@ pub enum MainPage {
     Setup,
 }
 
+/// Whether a newly opened main window is on screen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Visibility {
+    /// On screen, as after a normal launch.
+    Shown,
+    /// Loaded but off screen; the tray's **Open** shows it.
+    Hidden,
+}
+
 /// Opens the main window at `page`. An open main window is replaced, so the
 /// page always starts fresh (the setup page has no server state to keep).
-pub fn open<R: Runtime>(app: &AppHandle<R>, page: MainPage) -> tauri::Result<()> {
+pub fn open<R: Runtime>(
+    app: &AppHandle<R>,
+    page: MainPage,
+    visibility: Visibility,
+) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window(MAIN_LABEL) {
         window.destroy()?;
     }
@@ -38,6 +51,7 @@ pub fn open<R: Runtime>(app: &AppHandle<R>, page: MainPage) -> tauri::Result<()>
         .title("Grocery List")
         .inner_size(1100.0, 800.0)
         .min_inner_size(390.0, 600.0)
+        .visible(visibility == Visibility::Shown)
         .build()?;
     Ok(())
 }
