@@ -2,8 +2,8 @@
 
 Status: **first part built** — the app, its window on the server, the
 Woolworths window that keeps you logged in, "Fill trolley in the app",
-"Open checkout", and desktop notifications. **Planned:** one tap to place the
-order, Coles, start at login. Code: `desktop/`. Steps for people:
+"Open checkout", desktop notifications, and start at login. **Planned:** one
+tap to place the order, Coles. Code: `desktop/`. Steps for people:
 `docs/human-setup.md` (part "Desktop app") and `docs/using-the-app.md`
 ("Desktop connection and shopping").
 
@@ -37,7 +37,7 @@ or card details.
 | 7 | **Open checkout**: shows the store's checkout page after the fill, to check and pay | built (Woolworths) |
 | 8 | **One tap to buy**: the web app shows items, delivery time and total; the person taps **Place order**; the app places it with the card already saved on the store account | planned — needs the checkout calls captured from the live site |
 | 9 | Coles: login window, trolley fill, checkout | planned — needs the Coles trolley calls captured |
-| 10 | Start at login (optional setting) | planned |
+| 10 | Start at login: optional, off by default, a tick in the tray menu. A login start stays in the tray without showing the window | built |
 | 11 | Server pushes "trolley filled" over the WebSocket, so the notice arrives even when the sheet is closed | planned |
 
 ### Rules for goal 8 (one tap to buy)
@@ -100,6 +100,17 @@ platforms still need live background-delivery verification.
    WebView2 on Windows), which is how the login is kept. The app never reads
    them.
 
+## Start at login
+
+The tray's **Start at login** item is a tick. Pressing it adds or removes the
+operating system's login entry (`autostart.rs`, `tauri-plugin-autostart`): a
+Launch Agent on macOS, a `Run` registry value on Windows, an autostart entry
+on Linux. That entry is the only record of the choice; the tick is read from
+it, so pressing the item again undoes the change. The entry starts the app
+with `--started-at-login`, and the main window then loads hidden, so
+notifications arrive and the tray's **Open Grocery List** shows it. The
+plugin's commands are not granted to any web page.
+
 ## Commands (main window, server origin only)
 
 | Command | Args | Does |
@@ -124,7 +135,8 @@ refuses anything that is not `http(s)://host[:port]`.
   fails, and its sentence), `fill_watch.rs` and `fill_status.rs`
   (reading the program's progress), `windows/` (`main_window.rs`,
   `store_window.rs`), `commands/` (`desktop.rs`, `store.rs`, `setup.rs`),
-  `notify.rs`, `tray.rs`.
+  `notify.rs`, `tray.rs`, `autostart.rs` (the login entry and the login
+  start argument).
 - `desktop/setup/` — the first-run page.
 - Web app: `lib/desktop/` (`bridge.ts`, `commands.ts`, `notify.ts`: the one
   `notifyDesktop`), `hooks/useDesktop.ts`,
