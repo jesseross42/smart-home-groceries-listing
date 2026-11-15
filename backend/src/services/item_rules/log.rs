@@ -4,6 +4,7 @@
 
 use uuid::Uuid;
 
+use super::reapply::ReappliedItem;
 use crate::models::db::ItemRule;
 
 /// A rule was created or changed; `change` says which.
@@ -21,4 +22,14 @@ pub fn saved(rule: &ItemRule, change: &'static str) {
 /// A rule was deleted.
 pub fn deleted(rule_id: Uuid) {
     tracing::info!(rule_id = %rule_id, "item rule deleted");
+}
+
+/// A rule was applied to the items already on the list.
+pub fn reapplied(rule: &ItemRule, changed: &[ReappliedItem]) {
+    tracing::info!(
+        rule_id = %rule.id,
+        filter_terms = ?rule.filter_terms,
+        item_ids = ?changed.iter().map(|change| change.item.id).collect::<Vec<_>>(),
+        "item rule applied to the list"
+    );
 }

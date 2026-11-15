@@ -9,8 +9,16 @@ import type { ItemRule } from "#/lib/api";
 function renderCard(rule: ItemRule = ruleFixture()) {
 	const onSave = vi.fn().mockResolvedValue(undefined);
 	const onRemove = vi.fn().mockResolvedValue(undefined);
-	render(<ItemRuleCard rule={rule} onSave={onSave} onRemove={onRemove} />);
-	return { onSave, onRemove };
+	const onApply = vi.fn().mockResolvedValue(undefined);
+	render(
+		<ItemRuleCard
+			rule={rule}
+			onSave={onSave}
+			onRemove={onRemove}
+			onApply={onApply}
+		/>,
+	);
+	return { onSave, onRemove, onApply };
 }
 
 describe("ItemRuleCard", () => {
@@ -77,5 +85,17 @@ describe("ItemRuleCard", () => {
 			}),
 		);
 		expect(onRemove).toHaveBeenCalledWith(ruleFixture().id);
+	});
+
+	it("applies the rule to the items already on the list", async () => {
+		const { onApply } = renderCard();
+
+		await userEvent.click(
+			screen.getByRole("button", {
+				name: "Apply rule toilet paper to the list",
+			}),
+		);
+
+		expect(onApply).toHaveBeenCalledWith(ruleFixture().id);
 	});
 });

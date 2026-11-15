@@ -6,6 +6,7 @@ import { ItemRuleForm } from "#/components/item-rules/item-rule-form";
 import { ItemRuleList } from "#/components/item-rules/item-rule-list";
 import { Card } from "#/components/ui/card";
 import { api, type ItemRuleDraft } from "#/lib/api";
+import { toastWithUndo } from "#/lib/undo-toast";
 
 export const Route = createFileRoute("/settings/item-rules")({
 	loader: () => api.itemRules.list(),
@@ -59,6 +60,32 @@ function ItemRulesPage() {
 		}
 	}
 
+	/** Adds a rule's filters to the list's matching items, with Undo. */
+	async function applyRule(id: string) {
+		try {
+			const { changed } = await api.itemRules.applyToList(id);
+			if (changed.length === 0) {
+				toast.info("No items on the list needed these filters");
+				return;
+			}
+			const count = changed.length === 1 ? "1 item" : `${changed.length} items`;
+			toastWithUndo(`Filters added to ${count}`, {
+				description: changed.map((item) => item.name).join(", "),
+				undo: () =>
+					Promise.all(
+						changed.map((item) =>
+							api.grocery.update(item.id, {
+								filter_terms: item.previous_filter_terms,
+							}),
+						),
+					),
+				failure: "Could not undo — check the list.",
+			});
+		} catch {
+			toast.error("Could not apply that rule — try again.");
+		}
+	}
+
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col gap-1">
@@ -66,8 +93,8 @@ function ItemRulesPage() {
 				<p className="text-sm text-muted-foreground">
 					Give items filters automatically. A rule for "toilet paper" with the
 					filter "3 ply" narrows its product search to 3-ply whenever it is
-					added. Removing a filter from an item on the list leaves the rule as
-					it is.
+					added. "Apply to list" adds a rule's filters to items already on the
+					list.
 				</p>
 			</div>
 
@@ -93,6 +120,7 @@ function ItemRulesPage() {
 								rule={rule}
 								onSave={saveRule}
 								onRemove={removeRule}
+								onApply={applyRule}
 							/>
 						</ItemRuleList.Item>
 					))

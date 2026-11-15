@@ -35,10 +35,6 @@ behavioral contract.
 - [#75 — Add optional desktop start at login](https://github.com/jesseross42/smart-home-groceries-listing/issues/75)
 - [#73 — Push trolley-filled events to desktop clients](https://github.com/jesseross42/smart-home-groceries-listing/issues/73)
 
-### Household workflows
-
-- [#82 — Improve item rules and add a settings index](https://github.com/jesseross42/smart-home-groceries-listing/issues/82)
-
 ### Integration follow-ups and maintenance
 
 - [#86 — Handle Google Tasks subtasks, notes, and disconnect revocation](https://github.com/jesseross42/smart-home-groceries-listing/issues/86)

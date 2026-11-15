@@ -80,6 +80,23 @@ pub async fn lock_item(
     .await?)
 }
 
+/// Locks every item still under review for the rest of the transaction,
+/// oldest first so two callers take the locks in the same order.
+pub async fn lock_active_items(
+    tx: &mut Transaction<'_, Postgres>,
+) -> Result<Vec<GroceryItem>, ApiError> {
+    Ok(sqlx::query_as::<_, GroceryItem>(
+        "SELECT id, name, quantity, status, source, note, filter_terms,
+                added_by_user_id, created_at
+         FROM grocery_items
+         WHERE status = 'active'
+         ORDER BY created_at, id
+         FOR UPDATE",
+    )
+    .fetch_all(&mut **tx)
+    .await?)
+}
+
 /// Finds an active item whose normalised name matches, locking it so a
 /// concurrent merge cannot lose an increment.
 ///

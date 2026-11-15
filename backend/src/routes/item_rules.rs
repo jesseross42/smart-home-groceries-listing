@@ -1,18 +1,20 @@
 //! Item rules: the `/settings/item-rules` page's list, add, edit and delete.
 //!
-//! Every route needs a signed-in household member. Applying a rule to an item
-//! is not a route — it happens as items reach the list, in the grocery and
-//! intake services.
+//! Every route needs a signed-in household member. A rule reaches new items
+//! as they arrive, in the grocery and intake services; `/apply` is the one
+//! route that puts a rule's chips on items already on the list.
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::routing::{get, patch};
+use axum::routing::{get, patch, post};
 use axum::{Json, Router};
 use uuid::Uuid;
 
 use crate::auth::AuthUser;
 use crate::error::ApiError;
-use crate::models::schemas::{ItemRuleCreate, ItemRuleResponse, ItemRuleUpdate};
+use crate::models::schemas::{
+    ItemRuleApplyResponse, ItemRuleCreate, ItemRuleResponse, ItemRuleUpdate,
+};
 use crate::routes::extract::ValidatedJson;
 use crate::services::item_rules::ItemRuleService;
 use crate::state::AppState;
@@ -25,6 +27,7 @@ pub fn router() -> Router<AppState> {
             "/api/item-rules/{rule_id}",
             patch(update_rule).delete(delete_rule),
         )
+        .route("/api/item-rules/{rule_id}/apply", post(apply_rule))
 }
 
 /// `GET /api/item-rules` — every rule, in the order they were made.
@@ -67,4 +70,19 @@ async fn delete_rule(
 ) -> Result<StatusCode, ApiError> {
     ItemRuleService::new(&state.pool).delete(rule_id).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// `POST /api/item-rules/{id}/apply` — add the rule's chips to the matching
+/// items under review. 200 with the items it changed and their previous chips.
+async fn apply_rule(
+    State(state): State<AppState>,
+    _user: AuthUser,
+    Path(rule_id): Path<Uuid>,
+) -> Result<Json<ItemRuleApplyResponse>, ApiError> {
+    let changed = ItemRuleService::new(&state.pool)
+        .apply_to_list(rule_id)
+        .await?;
+    Ok(Json(ItemRuleApplyResponse {
+        changed: changed.into_iter().map(Into::into).collect(),
+    }))
 }

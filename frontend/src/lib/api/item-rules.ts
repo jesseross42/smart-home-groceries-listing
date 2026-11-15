@@ -26,6 +26,15 @@ export interface ItemRuleDraft {
 	apply_to_manual: boolean;
 }
 
+/** One list item that gained filters when a rule was applied to the list. */
+export interface ReappliedItem {
+	id: string;
+	name: string;
+	filter_terms: string[];
+	/** The item's filters before, which Undo writes back. */
+	previous_filter_terms: string[];
+}
+
 /** Longest single trigger the backend accepts. */
 export const MAX_TRIGGER_LENGTH = 100;
 /** Longest single filter term the backend accepts. */
@@ -44,6 +53,11 @@ export const itemRulesApi = {
 		request<ItemRule>(`/api/item-rules/${id}`, {
 			method: "PATCH",
 			body: JSON.stringify(edit),
+		}),
+	/** Adds the rule's filters to the matching items already on the list. */
+	applyToList: (id: string) =>
+		request<{ changed: ReappliedItem[] }>(`/api/item-rules/${id}/apply`, {
+			method: "POST",
 		}),
 	/** Chips the rule already put on items stay where they are. */
 	remove: (id: string) =>

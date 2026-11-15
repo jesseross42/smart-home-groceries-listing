@@ -12,6 +12,12 @@ import { formatMoney } from "#/lib/money";
 /** Most days ahead; the stores list about a week of times. */
 export const MAX_DAYS_AHEAD = 7;
 
+/** Every choice of days ahead, from today (0) to the most. */
+const DAYS_AHEAD = Array.from(
+	{ length: MAX_DAYS_AHEAD + 1 },
+	(_, days) => days,
+);
+
 /**
  * How soon the delivery must come, for this visit: today only, or within 1
  * to 7 days, each with the last day's name (Jesse, 2026-11-15). The plan
@@ -59,7 +65,7 @@ export function DayPicker({
 							On the usual day ({weekdayName(usualDay)})
 						</SelectItem>
 					)}
-					{Array.from({ length: MAX_DAYS_AHEAD + 1 }, (_, days) => (
+					{DAYS_AHEAD.map((days) => (
 						<SelectItem key={days} value={String(days)}>
 							{withinLabel(days, today)}
 						</SelectItem>
