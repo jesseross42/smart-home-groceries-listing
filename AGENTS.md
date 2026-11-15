@@ -139,8 +139,10 @@ feature specification as the source of the behavior and acceptance criteria.
   (`backend/src/services/encryption.rs`). Key in an env var. Never logged,
   never sent to the frontend.
 - **Optimisation:** minimise (item prices × qty) + all delivery fees.
-  Split-store evaluated. Delivery fees are typed in Settings. Live delivery
-  windows are not built.
+  Each store alone and the split are evaluated, and the best is applied by
+  itself (the household can always switch). Delivery fees are typed in
+  Settings, replaced by each store's cheapest fee per day once the bookmark
+  has reported it; the Order page picks "today" up to "within 7 days".
 - **Auth:** SuperTokens sessions on household API and WebSocket routes, verified by the server SDK.
   Intake endpoints use shared secrets instead, since they cannot carry a
   session. All of it behind `backend/src/auth/mod.rs`.

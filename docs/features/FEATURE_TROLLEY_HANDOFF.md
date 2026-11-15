@@ -34,7 +34,10 @@ The steps below are for Woolworths. Coles differs only where "Coles" says so.
 3. Pick a **delivery day** (**Tomorrow**, then the next 6 days) and a
    **time of day**. The day starts on the household's **usual delivery day**
    from Settings › Delivery (`default_delivery_day`: the next time that
-   weekday comes, from tomorrow), or on Tomorrow when none is saved. When
+   weekday comes, from tomorrow), or on Tomorrow when none is saved. From
+   `/order` it starts on that store's cheapest day in the plan's
+   **Delivery comes** range (`lib/send-start-day.ts`,
+   `FEATURE_ORDER_OPTIMISATION.md`). When
    the store has no window that day, the bookmark takes the next day with
    one and the sheet says so ("Nothing left on …"); with no window at all it
    reports the failure. Time of day: (Any · Morning < 12pm · Afternoon 12–5pm · Evening ≥ 5pm).
@@ -52,7 +55,10 @@ The steps below are for Woolworths. Coles differs only where "Coles" says so.
    no time is reserved and the report says why. A new address is added on
    Woolworths by hand. It then **reserves the delivery time**,
    then adds each product **on top of** what is already in the trolley, then
-   reports back. The sheet shows each
+   reports back. The report also carries `delivery_days`: the cheapest open
+   time of each day the bookmark saw (Woolworths: every day of the windows
+   call; Coles: each drawer day it looked at), which the planner uses as
+   that store's fee for the day. The sheet shows each
    product as Added / Not added (it re-reads every 3 s).
 6. The report also saves the shop as bought, in the background
    (`FEATURE_PURCHASE_HISTORY.md`). The sheet then shows **Saved as bought**
@@ -68,7 +74,7 @@ Nothing is bought and no Woolworths login or cookie is ever stored.
 | `GET` | `/api/trolley-handoffs/{id}` | Clerk | 200 handoff with each line's outcome; 404 |
 | `GET` | `/api/trolley-handoffs/store-tab-secret` | Clerk | 200 `{secret}`; 500 not configured |
 | `POST` | `/api/store-tab/trolley-handoffs/claim` `{secret, store}` | secret in body | 200 claimed handoff (one line per product); 204 nothing waiting |
-| `POST` | `/api/store-tab/trolley-handoffs/{id}/report` `{secret, lines}` | secret in body | 200; 404; 409 not claimed / already reported; 422 report misses or repeats a product |
+| `POST` | `/api/store-tab/trolley-handoffs/{id}/report` `{secret, lines, delivery?, delivery_days?: [{date, cheapest_fee}] (≤ 21)}` | secret in body | 200; 404; 409 not claimed / already reported; 422 report misses or repeats a product, a negative fee |
 
 Store-tab requests come from the **store's** origin. They send JSON as
 `text/plain` (a CORS simple request, no preflight), and only these two routes

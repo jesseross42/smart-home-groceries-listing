@@ -30,7 +30,10 @@ does not sell is never planned at that store.
 4. When the recommended option is not the current one, `/order` applies it by
    itself once per plan (`useApplyBestOption`), with a toast and **Undo**.
    An undone or replaced plan is not re-applied until the plan changes.
-5. **Use this** sends the option's `picks` to `PUT /api/order-stores`; the
+5. To override, each option that is not current has a short switch button
+   (**Switch to Woolworths**, **Switch to Coles**, **Switch to split**,
+   **Switch back**) with an (i) next to it; hovering or focusing the (i)
+   shows what it does (`switch-button.tsx`, `ui/tooltip.tsx`). It sends the option's `picks` to `PUT /api/order-stores`; the
    toast's **Undo** puts every moved item back. Send to Woolworths/Coles then
    sends only items bought at that store.
 6. **Rank by** (`?mode=`) tries another mode for this visit; the saved
