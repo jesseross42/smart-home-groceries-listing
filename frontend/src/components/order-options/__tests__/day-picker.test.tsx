@@ -2,28 +2,44 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { DayPicker } from "#/components/order-options/day-picker";
+import { DayPicker, withinLabel } from "#/components/order-options/day-picker";
+
+/** Sunday 15 Nov 2026. */
+const today = new Date(2026, 10, 15, 11, 0);
 
 describe("DayPicker", () => {
-	it("marks the day the plan used and asks for another", async () => {
+	it("offers today up to 7 days ahead, each with the day's name", async () => {
 		const onChange = vi.fn();
-		render(<DayPicker value="tuesday" storeFees={[]} onChange={onChange} />);
-
-		expect(screen.getByRole("button", { name: "Tuesday" })).toHaveAttribute(
-			"aria-pressed",
-			"true",
+		render(
+			<DayPicker
+				withinDays={null}
+				usualDay={null}
+				storeFees={[]}
+				today={today}
+				onChange={onChange}
+			/>,
 		);
-		await userEvent.click(screen.getByRole("button", { name: "Saturday" }));
-		await userEvent.click(screen.getByRole("button", { name: "Cheapest day" }));
 
-		expect(onChange.mock.calls).toEqual([["saturday"], ["any"]]);
+		const picker = screen.getByRole("combobox", { name: "Delivery comes" });
+		expect(picker).toHaveTextContent("Within 7 days, by Sunday 22 Nov");
+		await userEvent.click(picker);
+		const options = screen.getAllByRole("option").map((o) => o.textContent);
+		expect(options).toHaveLength(8);
+		expect(options[0]).toBe("Today (Sunday)");
+		expect(options[2]).toBe("Within 2 days, by Tuesday 17 Nov");
+		await userEvent.click(
+			screen.getByRole("option", { name: "Today (Sunday)" }),
+		);
+
+		expect(onChange).toHaveBeenCalledWith(0);
 		expect(screen.getByText(/Fees from Settings/)).toBeInTheDocument();
 	});
 
-	it("names the fees that came from the stores", () => {
+	it("shows the usual day when no range was picked", () => {
 		render(
 			<DayPicker
-				value={null}
+				withinDays={null}
+				usualDay="tuesday"
 				storeFees={[
 					{
 						store: "woolworths",
@@ -32,13 +48,18 @@ describe("DayPicker", () => {
 						fee: "2",
 					},
 				]}
+				today={today}
 				onChange={vi.fn()}
 			/>,
 		);
 
 		expect(
-			screen.getByRole("button", { name: "Cheapest day" }),
-		).toHaveAttribute("aria-pressed", "true");
+			screen.getByRole("combobox", { name: "Delivery comes" }),
+		).toHaveTextContent("On the usual day (Tuesday)");
 		expect(screen.getByText(/Woolworths \$2\.00 on Tue/)).toBeInTheDocument();
+	});
+
+	it("names one day in the singular", () => {
+		expect(withinLabel(1, today)).toBe("Within 1 day, by Monday 16 Nov");
 	});
 });

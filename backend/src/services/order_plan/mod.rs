@@ -41,7 +41,7 @@ use uuid::Uuid;
 use crate::error::ApiError;
 use crate::models::db::{GroceryItem, GroceryItemStatus, ItemSelection};
 use crate::models::delivery_rows::{DeliveryDay, OrderMode};
-use crate::services::delivery_day_fees::{DayFee, DeliveryDayFeeService};
+use crate::services::delivery_day_fees::{store_today, within, DayFee, DeliveryDayFeeService};
 use crate::services::delivery_settings::{DeliverySettings, DeliverySettingsService};
 use crate::services::dislikes::skip::DislikeBook;
 use crate::services::dislikes::DislikeService;
@@ -77,6 +77,8 @@ pub struct PlannedOrder {
     pub settings: DeliverySettings,
     /// The day asked for, else the usual one; `None` = the cheapest day.
     pub delivery_day: Option<DeliveryDay>,
+    /// Days ahead the delivery must come within, when that was asked.
+    pub within_days: Option<u8>,
     /// The stores' own fees the plan used instead of the typed ones.
     pub store_fees: Vec<DayFee>,
 }
@@ -92,6 +94,9 @@ pub enum DayChoice {
     Any,
     /// This weekday.
     On(DeliveryDay),
+    /// Each store's cheapest day from today up to this many days ahead
+    /// (0 = today only, at most 7).
+    Within(u8),
 }
 
 /// Plans the order.
@@ -120,10 +125,13 @@ impl<'a> OrderPlanService<'a> {
         let mode = mode.unwrap_or(settings.mode);
         let delivery_day = match day {
             DayChoice::Usual => settings.default_delivery_day,
-            DayChoice::Any => None,
             DayChoice::On(day) => Some(day),
+            DayChoice::Any | DayChoice::Within(_) => None,
         };
-        let reported = DeliveryDayFeeService::new(self.pool).upcoming().await?;
+        let mut reported = DeliveryDayFeeService::new(self.pool).upcoming().await?;
+        if let DayChoice::Within(days_ahead) = day {
+            reported = within(&reported, store_today(), days_ahead);
+        }
         let store_fees = fee_days::use_store_fees(&mut settings, &reported, delivery_day);
         let committed = items::list_items(self.pool)
             .await?
@@ -191,6 +199,10 @@ impl<'a> OrderPlanService<'a> {
             plan,
             settings,
             delivery_day,
+            within_days: match day {
+                DayChoice::Within(days_ahead) => Some(days_ahead),
+                _ => None,
+            },
             store_fees,
         })
     }

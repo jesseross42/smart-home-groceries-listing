@@ -35,13 +35,17 @@ does not sell is never planned at that store.
    sends only items bought at that store.
 6. **Rank by** (`?mode=`) tries another mode for this visit; the saved
    default is on Settings › Delivery.
-7. **Delivery day** (`?day=` a weekday, or `any` = **Cheapest day**) re-plans
-   for that day; it starts on the usual day. Each store's fee is the cheapest
-   it showed on the first coming date of that weekday (or on any day), from
-   `store_delivery_day_fees`; a store with nothing reported for it keeps the
-   typed fee. The options list which fees came from the stores. A new plan
-   is applied by itself (step 4), and Send to Woolworths/Coles starts on that
-   day. Every option still prices each item only at a store that sells it.
+7. **Delivery comes** is a dropdown: **Today (Sunday)** or **Within N
+   days, by <weekday> <date>**, N = 1–7 (`?within=N`). Each store's fee is
+   the cheapest it showed from today to that day. Nothing picked: the usual
+   day (Settings › Delivery), shown as **On the usual day (<weekday>)**, with
+   the fee on the first coming date of that weekday; no usual day = within 7
+   days. Fees come from `store_delivery_day_fees`; a store with nothing
+   reported in the range keeps the typed fee. The options list which fees
+   came from the stores. A new plan is applied by itself (step 4), and Send to
+   Woolworths/Coles starts on that store's cheapest day. Every option still
+   prices each item only at a store that sells it. The API also takes
+   `?day=<weekday|any>` (`within` wins).
 
 ### Fees per day (issue #70)
 The Fill trolley bookmark reads the store's delivery times while it reserves
@@ -84,7 +88,7 @@ An unset fee counts as $0 and every option using it says so. Saving shows
 |---|---|---|---|
 | `GET` | `/api/delivery-settings` | Clerk | 200 `{stores: [{store, store_name, delivery_fee, free_delivery_over, minimum_order}], mode, max_delivery_spend, default_delivery_day}` |
 | `PUT` | `/api/delivery-settings` | Clerk | 200 the saved settings; 422 amount out of range, unknown mode. Stores left out keep their rules |
-| `GET` | `/api/order-options[?mode=&day=]` | Clerk | 200 `{mode, delivery_day, store_fees: [{store, store_name, date, fee}], options: [{kind, label, recommended, is_current, stores: [{store, lines, subtotal, delivery_fee, fee_known, free_delivery, below_minimum, minimum_order}], missing: [{grocery_item_id, name, reason}], disliked: [{grocery_item_id, name, store, store_name, disliked_by, avoidable}], items_total, delivery_total, total, complete, fees_known, meets_minimums, within_delivery_cap, picks}], unchosen, exact, max_delivery_spend}`; 422 unknown mode or day |
+| `GET` | `/api/order-options[?mode=&day=&within=]` | Clerk | 200 `{mode, delivery_day, within_days, store_fees: [{store, store_name, date, fee}], options: [{kind, label, recommended, is_current, stores: [{store, lines, subtotal, delivery_fee, fee_known, free_delivery, below_minimum, minimum_order}], missing: [{grocery_item_id, name, reason}], disliked: [{grocery_item_id, name, store, store_name, disliked_by, avoidable}], items_total, delivery_total, total, complete, fees_known, meets_minimums, within_delivery_cap, picks}], unchosen, exact, max_delivery_spend}`; 422 unknown mode or day, `within` over 7 |
 | `PUT` | `/api/order-stores` `{picks}` | Clerk | 204; 422 nothing changed when an item has no choice at its store |
 
 Data: migration `20261003080000_delivery_settings.sql` — `store_delivery_fees`

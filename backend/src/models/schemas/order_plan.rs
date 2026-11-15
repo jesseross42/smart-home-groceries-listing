@@ -25,6 +25,9 @@ pub struct OrderOptionsQuery {
     /// Cost delivery on this weekday, or `any` for each store's cheapest
     /// day, instead of the usual day.
     pub day: Option<DayQuery>,
+    /// Deliver within this many days from today (0 = today); wins over `day`.
+    #[validate(range(max = 7))]
+    pub within: Option<u8>,
 }
 
 /// `?day=`: a weekday, or `any`.
@@ -40,6 +43,16 @@ pub enum DayQuery {
 #[serde(rename_all = "snake_case")]
 pub enum AnyDay {
     Any,
+}
+
+impl OrderOptionsQuery {
+    /// The day the plan costs delivery on.
+    pub fn day_choice(&self) -> DayChoice {
+        match (self.within, self.day) {
+            (Some(days_ahead), _) => DayChoice::Within(days_ahead),
+            (None, day) => day.into(),
+        }
+    }
 }
 
 impl From<Option<DayQuery>> for DayChoice {
@@ -67,6 +80,8 @@ pub struct OrderOptionsResponse {
     pub max_delivery_spend: Option<Decimal>,
     /// The day delivery is costed for; `null` = each store's cheapest day.
     pub delivery_day: Option<DeliveryDay>,
+    /// Delivery must come within this many days (0 = today), when asked.
+    pub within_days: Option<u8>,
     /// The stores' own fees used instead of the typed ones.
     pub store_fees: Vec<StoreDayFeeResponse>,
 }
@@ -148,6 +163,7 @@ impl OrderOptionsResponse {
             plan,
             settings,
             delivery_day,
+            within_days,
             store_fees,
         } = planned;
         let OrderPlan {
@@ -171,6 +187,7 @@ impl OrderOptionsResponse {
             exact,
             max_delivery_spend: settings.max_delivery_spend,
             delivery_day,
+            within_days,
             store_fees: store_fees
                 .into_iter()
                 .map(|fee| StoreDayFeeResponse {

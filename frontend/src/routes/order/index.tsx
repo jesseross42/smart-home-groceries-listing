@@ -8,7 +8,10 @@ import { useState } from "react";
 
 import { DislikeMarksProvider } from "#/components/dislikes/dislike-mark";
 import { OrderReview } from "#/components/order/order-review";
-import { DayPicker } from "#/components/order-options/day-picker";
+import {
+	DayPicker,
+	MAX_DAYS_AHEAD,
+} from "#/components/order-options/day-picker";
 import { ModePicker } from "#/components/order-options/mode-picker";
 import { OrderOptions } from "#/components/order-options/order-options";
 import { SendToStore } from "#/components/trolley/send-to-store";
@@ -16,34 +19,32 @@ import { Button } from "#/components/ui/button";
 import { useApplyBestOption } from "#/hooks/useApplyBestOption";
 import { useListSync } from "#/hooks/useListSync";
 import { useOrderStores } from "#/hooks/useOrderStores";
-import { api, type OrderMode, type PlanDay, selectionsByItem } from "#/lib/api";
+import { api, type OrderMode, selectionsByItem } from "#/lib/api";
 import { chosenAtStore } from "#/lib/chosen-at-store";
-import { DELIVERY_WEEKDAYS } from "#/lib/delivery-days";
 import { loadDislikeMarks } from "#/lib/dislike-marks";
 import { ORDER_MODES } from "#/lib/order-modes";
+import { sendStartDay } from "#/lib/send-start-day";
 import { loadUsualDeliveryDay } from "#/lib/usual-delivery-day";
 
 /**
- * `?mode=` ranks the options another way for this visit; `?day=` costs
- * delivery on another day (`any` = each store's cheapest).
+ * `?mode=` ranks the options another way for this visit; `?within=` costs
+ * delivery on each store's cheapest day up to that many days ahead (0 =
+ * today).
  */
 interface OrderSearch {
 	mode?: OrderMode;
-	day?: PlanDay;
+	within?: number;
 }
-
-const PLAN_DAYS: readonly string[] = [
-	...DELIVERY_WEEKDAYS.map((d) => d.day),
-	"any",
-];
 
 export const Route = createFileRoute("/order/")({
 	validateSearch: (search: Record<string, unknown>): OrderSearch => ({
 		...(ORDER_MODES.some((m) => m.mode === search.mode)
 			? { mode: search.mode as OrderMode }
 			: {}),
-		...(typeof search.day === "string" && PLAN_DAYS.includes(search.day)
-			? { day: search.day as PlanDay }
+		...(Number.isInteger(search.within) &&
+		(search.within as number) >= 0 &&
+		(search.within as number) <= MAX_DAYS_AHEAD
+			? { within: search.within as number }
 			: {}),
 	}),
 	loaderDeps: ({ search }) => search,
@@ -53,7 +54,7 @@ export const Route = createFileRoute("/order/")({
 		const [review, plan, items, selections, dislikeMarks, usualDay] =
 			await Promise.all([
 				api.orderReview.get(),
-				api.orderOptions.get(deps.mode, deps.day),
+				api.orderOptions.get(deps.mode, deps.within),
 				api.grocery.list(),
 				api.selections.list(),
 				loadDislikeMarks(),
@@ -142,9 +143,12 @@ function OrderPage() {
 
 			{plan.options.length > 0 && (
 				<DayPicker
-					value={plan.delivery_day}
+					withinDays={plan.within_days}
+					usualDay={plan.delivery_day}
 					storeFees={plan.store_fees}
-					onChange={(day) => navigate({ search: (prev) => ({ ...prev, day }) })}
+					onChange={(within) =>
+						navigate({ search: (prev) => ({ ...prev, within }) })
+					}
 				/>
 			)}
 
@@ -177,7 +181,7 @@ function OrderPage() {
 						<SendToStore
 							store="woolworths"
 							chosenCount={chosenAtWoolworths}
-							usualDay={plan.delivery_day ?? usualDay}
+							usualDay={sendStartDay(plan, "woolworths", usualDay)}
 						>
 							<SendToStore.Trigger />
 							<SendToStore.Content />
@@ -187,7 +191,7 @@ function OrderPage() {
 						<SendToStore
 							store="coles"
 							chosenCount={chosenAtColes}
-							usualDay={plan.delivery_day ?? usualDay}
+							usualDay={sendStartDay(plan, "coles", usualDay)}
 						>
 							<SendToStore.Trigger />
 							<SendToStore.Content />

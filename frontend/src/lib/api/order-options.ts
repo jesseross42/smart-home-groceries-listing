@@ -79,6 +79,8 @@ export interface OrderOptions {
 	max_delivery_spend: string | null;
 	/** The day delivery is costed for; `null` = each store's cheapest day. */
 	delivery_day: DeliveryDay | null;
+	/** Delivery comes within this many days (0 = today), when asked. */
+	within_days: number | null;
 	/** The stores' own fees the plan used instead of the typed ones. */
 	store_fees: StoreDayFee[];
 }
@@ -92,15 +94,15 @@ export interface StoreDayFee {
 	fee: string;
 }
 
-/** `?day=`: a weekday, or `any` for each store's cheapest day. */
-export type PlanDay = DeliveryDay | "any";
-
 export const orderOptionsApi = {
-	/** The options, ranked by `mode` or the saved one, for `day` or the usual day. */
-	get: (mode?: OrderMode, day?: PlanDay) => {
+	/**
+	 * The options, ranked by `mode` or the saved one, with delivery within
+	 * `within` days (0 = today) or on the usual day.
+	 */
+	get: (mode?: OrderMode, within?: number) => {
 		const query = new URLSearchParams();
 		if (mode) query.set("mode", mode);
-		if (day) query.set("day", day);
+		if (within !== undefined) query.set("within", String(within));
 		const text = query.toString();
 		return request<OrderOptions>(`/api/order-options${text ? `?${text}` : ""}`);
 	},

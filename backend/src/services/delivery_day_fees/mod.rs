@@ -71,6 +71,19 @@ pub fn store_today() -> NaiveDate {
     Utc::now().with_timezone(&STORE_ZONE).date_naive()
 }
 
+/// Most days ahead a delivery may be asked to come within; the stores list
+/// about a week of times.
+pub const MAX_DAYS_AHEAD: u8 = 7;
+
+/// The fees on `today` up to `days_ahead` days after it (0 = today only).
+pub fn within(fees: &[DayFee], today: NaiveDate, days_ahead: u8) -> Vec<DayFee> {
+    let last = today + chrono::Duration::days(i64::from(days_ahead.min(MAX_DAYS_AHEAD)));
+    fees.iter()
+        .filter(|fee| fee.date >= today && fee.date <= last)
+        .copied()
+        .collect()
+}
+
 /// The fee to charge at `store`: on the first coming `day` the store
 /// reported, or the cheapest of every reported day when `day` is `None`.
 /// `fees` must be earliest first. `None` when nothing fits.
@@ -135,6 +148,23 @@ mod tests {
         let any = cheapest(&reported(), Store::Woolworths, None).unwrap();
         assert_eq!(any.fee, dec!(1));
         assert_eq!(any.date.to_string(), "2026-11-24");
+    }
+
+    #[test]
+    fn within_keeps_today_up_to_the_last_day() {
+        let today = "2026-11-17".parse().unwrap();
+        let same_day = within(&reported(), today, 0);
+        assert_eq!(same_day.len(), 2);
+        let four_days = within(&reported(), today, 4);
+        assert_eq!(
+            cheapest(&four_days, Store::Woolworths, None).unwrap().fee,
+            dec!(2)
+        );
+        let week = within(&reported(), today, 7);
+        assert_eq!(
+            cheapest(&week, Store::Woolworths, None).unwrap().fee,
+            dec!(1)
+        );
     }
 
     #[test]

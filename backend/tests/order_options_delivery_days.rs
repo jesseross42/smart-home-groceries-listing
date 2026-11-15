@@ -142,9 +142,28 @@ async fn the_usual_day_is_used_unless_another_or_any_day_is_asked(pool: PgPool) 
 }
 
 #[sqlx::test]
-async fn an_unknown_day_is_refused(pool: PgPool) {
+async fn within_takes_the_cheapest_day_up_to_that_many_days_ahead(pool: PgPool) {
+    let app = TestApp::new(pool.clone());
+    order_at_both_stores(&app).await;
+    let today = store_today();
+    let six_days = today + Duration::days(6);
+    report_days(&pool, "woolworths", &[(today, "15"), (six_days, "0")]).await;
+
+    let same_day = options(&app, "?within=0").await;
+    assert_eq!(same_day["within_days"], 0);
+    assert_eq!(same_day["options"][0]["kind"], "coles", "{same_day}");
+
+    let a_week = options(&app, "?within=7").await;
+    assert_eq!(a_week["options"][0]["kind"], "woolworths", "{a_week}");
+    assert_eq!(a_week["store_fees"][0]["date"], six_days.to_string());
+}
+
+#[sqlx::test]
+async fn an_unknown_day_or_too_many_days_is_refused(pool: PgPool) {
     let app = TestApp::new(pool);
     let (status, _) = app.get("/api/order-options?day=someday").await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    let (status, _) = app.get("/api/order-options?within=8").await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
 }
 
