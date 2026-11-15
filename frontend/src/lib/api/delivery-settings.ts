@@ -38,6 +38,8 @@ export interface StoreFeeRules {
 	free_delivery_over: string | null;
 	/** The store refuses a smaller order; `null` = no minimum. */
 	minimum_order: string | null;
+	/** A saved address on the store's website to deliver to; `null` = the account's. */
+	delivery_address?: string | null;
 }
 
 /** Everything on Settings › Delivery. */

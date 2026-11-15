@@ -8,28 +8,45 @@ import { useState } from "react";
 
 import { DislikeMarksProvider } from "#/components/dislikes/dislike-mark";
 import { OrderReview } from "#/components/order/order-review";
+import {
+	DayPicker,
+	MAX_DAYS_AHEAD,
+} from "#/components/order-options/day-picker";
 import { ModePicker } from "#/components/order-options/mode-picker";
 import { OrderOptions } from "#/components/order-options/order-options";
 import { SendToStore } from "#/components/trolley/send-to-store";
 import { Button } from "#/components/ui/button";
+import { useApplyBestOption } from "#/hooks/useApplyBestOption";
 import { useListSync } from "#/hooks/useListSync";
 import { useOrderStores } from "#/hooks/useOrderStores";
 import { api, type OrderMode, selectionsByItem } from "#/lib/api";
 import { chosenAtStore } from "#/lib/chosen-at-store";
 import { loadDislikeMarks } from "#/lib/dislike-marks";
 import { ORDER_MODES } from "#/lib/order-modes";
+import { sendStartDay } from "#/lib/send-start-day";
 import { loadUsualDeliveryDay } from "#/lib/usual-delivery-day";
 
-/** `?mode=` ranks the options another way for this visit. */
+/**
+ * `?mode=` ranks the options another way for this visit; `?within=` costs
+ * delivery on each store's cheapest day up to that many days ahead (0 =
+ * today).
+ */
 interface OrderSearch {
 	mode?: OrderMode;
+	within?: number;
 }
 
 export const Route = createFileRoute("/order/")({
-	validateSearch: (search: Record<string, unknown>): OrderSearch =>
-		ORDER_MODES.some((m) => m.mode === search.mode)
+	validateSearch: (search: Record<string, unknown>): OrderSearch => ({
+		...(ORDER_MODES.some((m) => m.mode === search.mode)
 			? { mode: search.mode as OrderMode }
-			: {},
+			: {}),
+		...(Number.isInteger(search.within) &&
+		(search.within as number) >= 0 &&
+		(search.within as number) <= MAX_DAYS_AHEAD
+			? { within: search.within as number }
+			: {}),
+	}),
 	loaderDeps: ({ search }) => search,
 	// The order re-priced now, its options with delivery, plus the list and
 	// choices so the Send button counts exactly what a handoff would send.
@@ -37,7 +54,7 @@ export const Route = createFileRoute("/order/")({
 		const [review, plan, items, selections, dislikeMarks, usualDay] =
 			await Promise.all([
 				api.orderReview.get(),
-				api.orderOptions.get(deps.mode),
+				api.orderOptions.get(deps.mode, deps.within),
 				api.grocery.list(),
 				api.selections.list(),
 				loadDislikeMarks(),
@@ -65,7 +82,7 @@ export const Route = createFileRoute("/order/")({
  * `/order` › In Progress — the order review and its options.
  *
  * "Ways to buy" ranks every way to split the order between the stores, with
- * delivery fees, by the household's mode; **Use this** moves items between
+ * delivery fees, by the household's mode; the switch button moves items between
  * the products the household chose (with Undo). Below, every committed item
  * with the product the order buys now, priced again at its store, grouped by
  * store with subtotals. Items with no product, and products a store no
@@ -89,6 +106,7 @@ function OrderPage() {
 	useListSync();
 	const navigate = useNavigate({ from: Route.fullPath });
 	const orderStores = useOrderStores(chosen);
+	useApplyBestOption(plan, orderStores.use);
 	const [checking, setChecking] = useState(false);
 
 	async function checkAgain() {
@@ -117,7 +135,20 @@ function OrderPage() {
 			{plan.options.length > 0 && (
 				<ModePicker
 					value={plan.mode}
-					onChange={(mode) => navigate({ search: { mode } })}
+					onChange={(mode) =>
+						navigate({ search: (prev) => ({ ...prev, mode }) })
+					}
+				/>
+			)}
+
+			{plan.options.length > 0 && (
+				<DayPicker
+					withinDays={plan.within_days}
+					usualDay={plan.delivery_day}
+					storeFees={plan.store_fees}
+					onChange={(within) =>
+						navigate({ search: (prev) => ({ ...prev, within }) })
+					}
 				/>
 			)}
 
@@ -150,7 +181,7 @@ function OrderPage() {
 						<SendToStore
 							store="woolworths"
 							chosenCount={chosenAtWoolworths}
-							usualDay={usualDay}
+							usualDay={sendStartDay(plan, "woolworths", usualDay)}
 						>
 							<SendToStore.Trigger />
 							<SendToStore.Content />
@@ -160,7 +191,7 @@ function OrderPage() {
 						<SendToStore
 							store="coles"
 							chosenCount={chosenAtColes}
-							usualDay={usualDay}
+							usualDay={sendStartDay(plan, "coles", usualDay)}
 						>
 							<SendToStore.Trigger />
 							<SendToStore.Content />

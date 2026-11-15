@@ -57,6 +57,7 @@ describe("ProductResults", () => {
 		expect(api.products.forItem).toHaveBeenCalledWith(
 			itemFixture().id,
 			expect.anything(),
+			undefined,
 		);
 		expect(articleNames(list)).toHaveLength(3);
 	});
@@ -210,5 +211,42 @@ describe("ProductResults", () => {
 		await renderResults(searchFixture([storeFixture()]));
 
 		expect(screen.queryByRole("button", { name: /^Choose / })).toBeNull();
+	});
+
+	it("lists specials first when Prefer specials is turned on, and remembers it", async () => {
+		const list = await renderResults(
+			searchFixture([
+				storeFixture({
+					products: [
+						productFixture({ product_id: "cheap", brand: "A", price: "1.00" }),
+						productFixture({
+							product_id: "deal",
+							brand: "B",
+							price: "2.00",
+							on_special: true,
+						}),
+					],
+				}),
+			]),
+		);
+		await pick("Sort by", "Price: low to high");
+		expect(articleNames(list)).toEqual([
+			"A Full Cream Milk",
+			"B Full Cream Milk",
+		]);
+
+		await userEvent.click(
+			screen.getByRole("switch", { name: "Prefer specials" }),
+		);
+
+		expect(articleNames(list)).toEqual([
+			"B Full Cream Milk",
+			"A Full Cream Milk",
+		]);
+		expect(
+			JSON.parse(
+				window.localStorage.getItem("grocery.display-settings") ?? "{}",
+			),
+		).toMatchObject({ preferSpecials: true });
 	});
 });

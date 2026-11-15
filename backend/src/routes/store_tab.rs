@@ -25,6 +25,7 @@ use crate::models::schemas::{
     StoreTabClaimRequest, StoreTabClaimResponse, StoreTabReportRequest, TrolleyHandoffResponse,
 };
 use crate::routes::extract::AnyContentTypeJson;
+use crate::services::delivery_day_fees::DeliveryDayFeeService;
 use crate::services::purchases;
 use crate::services::stores::Store;
 use crate::services::trolley_handoffs::delivery::ReportedDelivery;
@@ -60,7 +61,8 @@ async fn claim_handoff(
 }
 
 /// `POST /api/store-tab/trolley-handoffs/{id}/report` — record what went
-/// into the trolley and which delivery window was reserved. 404 unknown, 409
+/// into the trolley, which delivery window was reserved, and the cheapest
+/// fee the store showed each day (for the planner). 404 unknown, 409
 /// not claimed, 422 incomplete report or a delivery window that makes no sense.
 ///
 /// Once recorded, the products that went in are saved as bought, in the
@@ -76,6 +78,14 @@ async fn report_handoff(
     let delivery: Option<ReportedDelivery> = body.delivery.map(Into::into);
     let closed = TrolleyHandoffService::new(&state.pool)
         .record_store_tab_report(handoff_id, &report, delivery.as_ref())
+        .await?;
+    let days: Vec<_> = body
+        .delivery_days
+        .iter()
+        .map(|day| (day.date, day.cheapest_fee))
+        .collect();
+    DeliveryDayFeeService::new(&state.pool)
+        .record(closed.handoff.store, &days)
         .await?;
     purchases::record_in_background(state.pool.clone(), state.stores.clone(), handoff_id);
     Ok(Json(closed.into()))

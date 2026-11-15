@@ -1,7 +1,8 @@
 //! Bodies for choosing products for list items.
 //!
 //! The request names only the store and the store's product id; every other
-//! detail in the response came from the store's search answer. Money is a
+//! detail in the response came from the store's own answer (its search, or
+//! its product page for a product looked up by link). Money is a
 //! decimal string, as everywhere else.
 
 use chrono::{DateTime, Utc};
@@ -18,12 +19,17 @@ use crate::services::stores::{Basis, Store};
 pub const MAX_PRODUCT_ID_LEN: u64 = 100;
 
 /// `PUT /api/grocery-items/{id}/selection`: the product picked in the
-/// item's price comparison. An unknown store fails to parse (422).
+/// item's price comparison, or looked up by its link (`looked_up`). An
+/// unknown store fails to parse (422).
 #[derive(Debug, Deserialize, Validate)]
 pub struct ItemSelectionChoose {
     pub store: Store,
     #[validate(length(min = 1, max = MAX_PRODUCT_ID_LEN))]
     pub product_id: String,
+    /// The product was looked up by id, so it need not be in the item's
+    /// search: it is read from the store's product page instead.
+    #[serde(default)]
+    pub looked_up: bool,
 }
 
 /// Most items one `PUT /api/order-stores` may switch.

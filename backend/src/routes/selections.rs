@@ -58,7 +58,7 @@ async fn list_selections(
 /// `PUT /api/grocery-items/{id}/selection` — choose the item's product.
 ///
 /// 404 unknown item; 422 the store does not offer that product for the item
-/// now; 503 the store could not be searched; 409 the item changed meanwhile
+/// now (or, `looked_up`, does not sell it or cannot deliver it); 503 the store could not be searched; 409 the item changed meanwhile
 /// or has already been ordered.
 async fn choose_product(
     State(state): State<AppState>,
@@ -67,7 +67,13 @@ async fn choose_product(
     ValidatedJson(body): ValidatedJson<ItemSelectionChoose>,
 ) -> Result<Json<ItemSelectionResponse>, ApiError> {
     let selection = SelectionService::new(&state.pool, &state.stores)
-        .choose(item_id, body.store, &body.product_id, &user.id)
+        .choose(
+            item_id,
+            body.store,
+            &body.product_id,
+            body.looked_up,
+            &user.id,
+        )
         .await?;
     Ok(Json(selection.into()))
 }

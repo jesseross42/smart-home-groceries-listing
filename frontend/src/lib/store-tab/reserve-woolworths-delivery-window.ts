@@ -11,6 +11,9 @@
  * - `POST /apis/ui/Fulfilment` `{addressId, fulfilmentMethod, timeslotId,
  *   windowDate}` — reserves one; answers `{IsSuccessful}`.
  *
+ * Every day's cheapest open time is returned as `days`, also when nothing new
+ * is reserved, so the planner can cost delivery per day.
+ *
  * A window already reserved on the right day and part of the day is kept, so
  * a time the household picked on Woolworths is not overwritten. The window
  * can always be changed on Woolworths later.
@@ -35,6 +38,19 @@ export interface DeliveryReport {
 	/** Decimal string. */
 	fee?: string;
 	problem?: string;
+	/**
+	 * The cheapest fee of each day's open times, for the planner (issue
+	 * #70). Sent beside the report as `delivery_days`, not inside it.
+	 */
+	days?: DayFee[];
+}
+
+/** One day's cheapest open delivery time. */
+export interface DayFee {
+	/** "YYYY-MM-DD". */
+	date: string;
+	/** Decimal string. */
+	cheapest_fee: string;
 }
 
 type ChooseWindow = (
@@ -57,6 +73,11 @@ export async function reserveWoolworthsDeliveryWindow(
 		outcome: "failed",
 		problem: problem.slice(0, 300),
 	});
+	const days: DayFee[] = [];
+	const withDays = (report: DeliveryReport): DeliveryReport => ({
+		...report,
+		days,
+	});
 	try {
 		const info = await fetch("/apis/ui/Delivery/DeliveryInfo", {
 			credentials: "include",
@@ -72,6 +93,29 @@ export async function reserveWoolworthsDeliveryWindow(
 			0,
 			10,
 		);
+
+		const query = new URLSearchParams({
+			areaId: String(address.AreaId),
+			fulfilmentMethod: method,
+			addressId: String(address.AddressId),
+		});
+		const listed = await fetch(`/api/v3/ui/fulfilment/windows?${query}`, {
+			credentials: "include",
+			headers: JSON_HEADERS,
+			cache: "no-store",
+		}).then((r) => (r.ok ? r.json() : null));
+		const listedDays: WoolworthsDay[] = listed?.Days ?? [];
+		for (const day of listedDays) {
+			const fees = (day.Times ?? [])
+				.filter((time) => time.Available)
+				.map((time) => Number(time.SalePrice))
+				.filter((fee) => Number.isFinite(fee) && fee >= 0);
+			if (!day.Available || fees.length === 0) continue;
+			days.push({
+				date: String(day.Date).slice(0, 10),
+				cheapest_fee: String(Math.min(...fees)),
+			});
+		}
 
 		const reserved = info.ReservedTime;
 		if (reserved?.Id && reserved.StartDateTime) {
@@ -98,26 +142,19 @@ export async function reserveWoolworthsDeliveryWindow(
 					window_label: reserved.TimeWindow,
 					window_start: seconds(reserved.StartDateTime),
 					window_end: seconds(reserved.EndDateTime),
+					days,
 				};
 			}
 		}
 
-		const query = new URLSearchParams({
-			areaId: String(address.AreaId),
-			fulfilmentMethod: method,
-			addressId: String(address.AddressId),
-		});
-		const listed = await fetch(`/api/v3/ui/fulfilment/windows?${query}`, {
-			credentials: "include",
-			headers: JSON_HEADERS,
-			cache: "no-store",
-		}).then((r) => (r.ok ? r.json() : null));
-		const chosen = chooseWindow(listed?.Days ?? [], wanted, storeToday);
+		const chosen = chooseWindow(listedDays, wanted, storeToday);
 		if (!chosen) {
-			return failed(
-				wanted.time_of_day === "any"
-					? "Woolworths has no delivery times left this week."
-					: `Woolworths has no ${wanted.time_of_day} delivery times left this week.`,
+			return withDays(
+				failed(
+					wanted.time_of_day === "any"
+						? "Woolworths has no delivery times left this week."
+						: `Woolworths has no ${wanted.time_of_day} delivery times left this week.`,
+				),
 			);
 		}
 
@@ -133,8 +170,10 @@ export async function reserveWoolworthsDeliveryWindow(
 			}),
 		}).then((r) => (r.ok ? r.json() : null));
 		if (!answer?.IsSuccessful) {
-			return failed(
-				answer?.Message || "Woolworths did not reserve the delivery time.",
+			return withDays(
+				failed(
+					answer?.Message || "Woolworths did not reserve the delivery time.",
+				),
 			);
 		}
 		return {
@@ -146,6 +185,7 @@ export async function reserveWoolworthsDeliveryWindow(
 			problem: chosen.movedToLaterDay
 				? `Nothing left on ${chosen.wantedDate}, so the next day with a time was used.`
 				: undefined,
+			days,
 		};
 	} catch (error) {
 		return failed(`Could not reserve a delivery time: ${String(error)}`);

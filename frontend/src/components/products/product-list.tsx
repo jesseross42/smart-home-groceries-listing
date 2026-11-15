@@ -10,16 +10,20 @@ import type { StoreListing } from "#/lib/product-sort";
  * The price comparison's products from both stores in one list, in the
  * order given. Each shows its store, a button to choose it when the
  * comparison can choose, how often it was bought before, a button to
- * dislike it, and a warning when someone dislikes it.
+ * dislike it, and a warning when someone dislikes it. `lookedUp` marks
+ * products found by other words, so choosing one does not need the item's
+ * own search.
  */
 export function ProductList({
 	listings,
 	quantity,
 	display,
+	lookedUp = false,
 }: {
 	listings: StoreListing[];
 	quantity: number;
 	display?: Pick<DisplaySettings, "imageSize" | "showWasPrice">;
+	lookedUp?: boolean;
 }) {
 	if (listings.length === 0) return null;
 
@@ -52,6 +56,7 @@ export function ProductList({
 							store={store}
 							storeName={storeName}
 							product={product}
+							lookedUp={lookedUp}
 						/>
 						<PastPurchases
 							store={store}

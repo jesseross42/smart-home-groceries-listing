@@ -4,11 +4,20 @@
 //! web app shows exactly what the store charged.
 
 use rust_decimal::Decimal;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::services::product_search::{ItemSearch, PricedProduct, StoreOutcome};
 use crate::services::stores::{Deal, Store, UnitPrice};
+
+/// `GET /api/grocery-items/{id}/products?q=`: other words to search the
+/// stores with instead of the item's name and chips.
+#[derive(Debug, Default, Deserialize, Validate)]
+pub struct ItemProductsQuery {
+    #[validate(length(max = 100))]
+    pub q: Option<String>,
+}
 
 /// `GET /api/grocery-items/{id}/products`.
 #[derive(Debug, Serialize)]

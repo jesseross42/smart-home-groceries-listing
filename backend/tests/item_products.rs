@@ -161,3 +161,38 @@ async fn needs_a_signed_in_household_member(pool: PgPool) {
 
     assert_eq!(status, StatusCode::UNAUTHORIZED);
 }
+
+#[sqlx::test]
+async fn other_words_search_without_the_chips_at_the_items_quantity(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let id = app
+        .add_item(&json!({ "name": "breakfast", "quantity": 2, "filter_terms": ["3 ply"] }))
+        .await;
+
+    let (status, body) = app.get(&format!("{}?q=oat%20%20milk", uri(&id))).await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["query"], "oat milk");
+    let coles = store(&body, "coles");
+    // The "3 ply" chip is not applied to other words.
+    assert!(product_ids(coles).contains(&"c-oat-1l"), "{coles}");
+    let oat = coles["products"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["product_id"] == "c-oat-1l")
+        .unwrap();
+    // Priced for the item's quantity, deals applied.
+    assert_eq!(oat["total_price"], "6.50");
+}
+
+#[sqlx::test]
+async fn blank_words_are_the_items_own_search(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let id = app.add_item(&json!({ "name": "Milk" })).await;
+
+    let (status, body) = app.get(&format!("{}?q=%20", uri(&id))).await;
+
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["query"], "Milk");
+}

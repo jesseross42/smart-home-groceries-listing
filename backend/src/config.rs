@@ -87,6 +87,9 @@ pub struct StoreSettings {
     pub timeout: Duration,
     /// How long a store's answer to a query is reused.
     pub cache_ttl: Duration,
+    /// Choose each new item's cheapest-per-unit products automatically
+    /// (`AUTO_PICK_PRODUCTS`, on unless `0`/`false`/`no`/`off`).
+    pub auto_pick: bool,
 }
 
 impl StoreSettings {
@@ -119,6 +122,12 @@ impl StoreSettings {
                 .unwrap_or_else(|| "https://www.coles.com.au".to_string()),
             timeout: Duration::from_secs(parse_or("STORE_TIMEOUT_SECONDS", 12)?),
             cache_ttl: Duration::from_secs(parse_or("STORE_SEARCH_CACHE_SECONDS", 600)?),
+            auto_pick: !matches!(
+                optional("AUTO_PICK_PRODUCTS")
+                    .map(|v| v.trim().to_ascii_lowercase())
+                    .as_deref(),
+                Some("0" | "false" | "no" | "off")
+            ),
         })
     }
 }

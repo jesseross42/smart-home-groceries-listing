@@ -11,7 +11,9 @@
  * Steps:
  * 1. Claim the newest waiting handoff from our backend (secret in the body,
  *    sent as `text/plain` so the browser sends no CORS preflight).
- * 2. Reserve the delivery time asked for (default: the next day) with
+ * 2. Pick the household's saved delivery address first, when one is set
+ *    (`helpers.pickAddress`); if it cannot be picked, no time is reserved.
+ *    Then reserve the delivery time asked for (default: the next day) with
  *    `helpers.reserveDeliveryWindow`, so availability is for a real delivery.
  *    The household can change it on Woolworths later.
  * 3. Read the current Woolworths trolley, so each product is *added on top*
@@ -37,6 +39,7 @@ import type {
 	DeliveryWanted,
 	WoolworthsDay,
 } from "#/lib/store-tab/choose-woolworths-window";
+import type { AddressOutcome } from "#/lib/store-tab/pick-woolworths-address";
 import type { DeliveryReport } from "#/lib/store-tab/reserve-woolworths-delivery-window";
 import type {
 	FillTrolleyConfig,
@@ -50,6 +53,7 @@ export interface FillTrolleyHelpers {
 		wanted: DeliveryWanted,
 		storeToday: string,
 	) => ChosenWindow | null;
+	pickAddress: (address: string) => Promise<AddressOutcome>;
 	reserveDeliveryWindow: (
 		wanted: DeliveryWanted,
 		chooseWindow: FillTrolleyHelpers["chooseWindow"],
@@ -119,13 +123,23 @@ export async function fillWoolworthsTrolley(
 	const handoff = (await claimed.json()) as {
 		handoff_id: string;
 		delivery?: DeliveryWanted;
+		delivery_address?: string | null;
 		lines: { product_id: string; name: string; quantity: number }[];
 	};
 
-	const delivery = await helpers.reserveDeliveryWindow(
-		handoff.delivery ?? { date: null, time_of_day: "any" },
-		helpers.chooseWindow,
-	);
+	const address = handoff.delivery_address
+		? await helpers.pickAddress(handoff.delivery_address)
+		: null;
+	const delivery: DeliveryReport =
+		address?.outcome === "failed"
+			? {
+					outcome: "failed",
+					problem: `${address.problem ?? "The address could not be picked"}, so no time was reserved`,
+				}
+			: await helpers.reserveDeliveryWindow(
+					handoff.delivery ?? { date: null, time_of_day: "any" },
+					helpers.chooseWindow,
+				);
 
 	const trolley = await fetch("/api/v3/ui/trolley", {
 		credentials: "include",
@@ -193,7 +207,8 @@ export async function fillWoolworthsTrolley(
 	await sendToBackend(
 		`/api/store-tab/trolley-handoffs/${handoff.handoff_id}/report`,
 		{
-			delivery,
+			delivery: { ...delivery, days: undefined },
+			delivery_days: delivery.days ?? [],
 			lines: [
 				...added.map((product_id) => ({ product_id, outcome: "added" })),
 				...failed.map((f) => ({
@@ -208,7 +223,7 @@ export async function fillWoolworthsTrolley(
 	const when =
 		delivery.outcome === "failed"
 			? `No delivery time: ${delivery.problem}`
-			: `Delivery: ${delivery.window_start?.slice(0, 10)}, ${delivery.window_label}. Change it on Woolworths any time.`;
+			: `Delivery${address?.outcome === "changed" ? ` to ${handoff.delivery_address}` : ""}: ${delivery.window_start?.slice(0, 10)}, ${delivery.window_label}. Change it on Woolworths any time.`;
 	const products =
 		failed.length === 0
 			? `Added ${added.length} products to your trolley.`

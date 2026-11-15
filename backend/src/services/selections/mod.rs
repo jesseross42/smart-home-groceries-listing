@@ -19,6 +19,7 @@
 //! grouping each item's choices in [`grouping`].
 
 pub mod allocation;
+pub mod auto_pick;
 mod grouping;
 mod log;
 mod offer;
@@ -33,7 +34,8 @@ use uuid::Uuid;
 use crate::error::ApiError;
 use crate::models::db::{GroceryItem, GroceryItemStatus, ItemSelection};
 use crate::services::grocery::repository as items;
-use crate::services::product_search::ProductSearchService;
+use crate::services::product_lookup;
+use crate::services::product_search::{PricedProduct, ProductSearchService};
 use crate::services::stores::{Store, StoreClients};
 pub use grouping::{Counted, ItemChoices};
 use repository::NewSelection;
@@ -67,7 +69,9 @@ impl<'a> SelectionService<'a> {
     /// the store's earlier choice; otherwise it is added beside them.
     ///
     /// The stores are searched first, outside any transaction, so a slow
-    /// store never holds a row lock. The item is then locked and must still
+    /// store never holds a row lock. A product `looked_up` by its link is
+    /// read from the store's product page instead, priced at the item's
+    /// quantity, so it need not be in the item's search. The item is then locked and must still
     /// be the item that was searched for; if a tab renamed it meanwhile the
     /// choice is refused with 409 rather than saved against the new name.
     pub async fn choose(
@@ -75,13 +79,18 @@ impl<'a> SelectionService<'a> {
         item_id: Uuid,
         store: Store,
         product_id: &str,
+        looked_up: bool,
         user_id: &str,
     ) -> Result<ItemSelection, ApiError> {
-        let search = ProductSearchService::new(self.pool, self.stores)
-            .search_item(item_id)
-            .await?;
-        let searched = search.item.clone();
-        let priced = offer::find(search, store, product_id).inspect_err(|err| {
+        let (searched, priced) = if looked_up {
+            self.look_up(item_id, store, product_id).await?
+        } else {
+            let search = ProductSearchService::new(self.pool, self.stores)
+                .search_item(item_id)
+                .await?;
+            (search.item.clone(), offer::find(search, store, product_id))
+        };
+        let priced = priced.inspect_err(|err| {
             log::refused(item_id, store.as_str(), product_id, &err.to_string());
         })?;
 
@@ -126,6 +135,27 @@ impl<'a> SelectionService<'a> {
         tx.commit().await?;
         log::chosen(&selection);
         Ok(selection)
+    }
+
+    /// The item, and the product read from the store's own product page,
+    /// priced at the item's quantity. Not sold there is a 422, like a
+    /// product the search does not offer.
+    async fn look_up(
+        &self,
+        item_id: Uuid,
+        store: Store,
+        product_id: &str,
+    ) -> Result<(GroceryItem, Result<PricedProduct, ApiError>), ApiError> {
+        let item = items::find_item(self.pool, item_id)
+            .await?
+            .ok_or_else(|| ApiError::NotFound("Grocery item not found".into()))?;
+        let quantity = u32::try_from(item.quantity).unwrap_or(1).max(1);
+        let priced = match product_lookup::find(self.stores, store, product_id).await {
+            Ok(product) => offer::available(PricedProduct::new(product, quantity), store),
+            Err(ApiError::NotFound(why)) => Err(ApiError::UnprocessableEntity(why)),
+            Err(err) => Err(err),
+        };
+        Ok((item, priced))
     }
 
     /// Clears one product at `store` (`product_id`), every product at

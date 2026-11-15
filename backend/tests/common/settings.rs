@@ -72,5 +72,7 @@ pub fn fake_store_settings() -> StoreSettings {
         coles_base_url: "http://127.0.0.1:8".to_string(),
         timeout: std::time::Duration::from_secs(2),
         cache_ttl: std::time::Duration::from_secs(60),
+        // Tests choose products themselves; `auto_pick` tests turn it on.
+        auto_pick: false,
     }
 }

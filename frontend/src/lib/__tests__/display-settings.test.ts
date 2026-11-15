@@ -19,6 +19,11 @@ describe("parseDisplay", () => {
 		);
 	});
 
+	it("keeps prefer specials off unless it was saved on", () => {
+		expect(parseDisplay(null).preferSpecials).toBe(false);
+		expect(parseDisplay('{"preferSpecials":true}').preferSpecials).toBe(true);
+	});
+
 	it("reads the store's own picture size", () => {
 		expect(parseDisplay('{"imageSize":"full"}').imageSize).toBe("full");
 	});
@@ -28,7 +33,12 @@ describe("parseDisplay", () => {
 			parseDisplay(
 				'{"imageSize":"lg","showWasPrice":false,"showUnavailable":false}',
 			),
-		).toEqual({ imageSize: "lg", showWasPrice: false, showUnavailable: false });
+		).toEqual({
+			imageSize: "lg",
+			showWasPrice: false,
+			showUnavailable: false,
+			preferSpecials: false,
+		});
 	});
 });
 

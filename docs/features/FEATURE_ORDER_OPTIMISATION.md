@@ -1,15 +1,16 @@
 # Feature: Order Optimisation
 
 Status: **built — the order review, delivery fees, the modes and the
-split-store planner (`/order`, `/settings/delivery`).** Live delivery windows,
-need-by dates, allowed days and perishable timing are **not built** (see
+split-store planner (`/order`, `/settings/delivery`).** Fees per day come from the
+bookmark (issue #70). Need-by dates, allowed days and perishable timing are **not built** (see
 "Not built").
 
 ## Ways to buy (the planner)
 An item may have a chosen product at **each** store
 (`FEATURE_PRODUCT_CHOICE.md`); one of them is the one the order buys. The
-planner never picks a product — it only moves an item between products the
-household chose.
+planner never picks a product: it only moves an item between products already
+chosen (by a person, or by auto-pick when the item was added). An item a store
+does not sell is never planned at that store.
 
 1. `/order` shows **Ways to buy** above the review. Up to four options, best
    first: **All at Woolworths**, **All at Coles**, **Split between stores**
@@ -26,11 +27,35 @@ household chose.
    (`FEATURE_DISLIKES.md`).
 3. **Recommended** marks the first option only when it buys every item,
    meets every store's minimum and is within the cap.
-4. **Use this** sends the option's `picks` to `PUT /api/order-stores`; the
+4. When the recommended option is not the current one, `/order` applies it by
+   itself once per plan (`useApplyBestOption`), with a toast and **Undo**.
+   An undone or replaced plan is not re-applied until the plan changes.
+5. To override, each option that is not current has a short switch button
+   (**Switch to Woolworths**, **Switch to Coles**, **Switch to split**,
+   **Switch back**) with an (i) next to it; hovering or focusing the (i)
+   shows what it does (`switch-button.tsx`, `ui/tooltip.tsx`). It sends the option's `picks` to `PUT /api/order-stores`; the
    toast's **Undo** puts every moved item back. Send to Woolworths/Coles then
    sends only items bought at that store.
-5. **Rank by** (`?mode=`) tries another mode for this visit; the saved
+6. **Rank by** (`?mode=`) tries another mode for this visit; the saved
    default is on Settings › Delivery.
+7. **Delivery comes** is a dropdown: **Today (Sunday)** or **Within N
+   days, by <weekday> <date>**, N = 1–7 (`?within=N`). Each store's fee is
+   the cheapest it showed from today to that day. Nothing picked: the usual
+   day (Settings › Delivery), shown as **On the usual day (<weekday>)**, with
+   the fee on the first coming date of that weekday; no usual day = within 7
+   days. Fees come from `store_delivery_day_fees`; a store with nothing
+   reported in the range keeps the typed fee. The options list which fees
+   came from the stores. A new plan is applied by itself (step 4), and Send to
+   Woolworths/Coles starts on that store's cheapest day. Every option still
+   prices each item only at a store that sells it. The API also takes
+   `?day=<weekday|any>` (`within` wins).
+
+### Fees per day (issue #70)
+The Fill trolley bookmark reads the store's delivery times while it reserves
+one and reports `delivery_days: [{date, cheapest_fee}]` (≤ 21) with its
+report; each report replaces the earlier one for those days. Woolworths: every
+open time of `GET /api/v3/ui/fulfilment/windows`. Coles: the open times in the
+"Choose delivery slot" drawer for the day it picked. Past days are ignored.
 
 ### Modes
 | Mode | Order |
@@ -55,7 +80,10 @@ The app cannot read the stores' fees without the household's login
 delivery from** and **minimum order** are typed once, with the default mode
 and **most to spend on delivery** (per order, all stores). Empty = not set.
 **Usual delivery day** (a weekday or none) is where the Send to Woolworths
-day chooser starts (`FEATURE_TROLLEY_HANDOFF.md`).
+day chooser starts (`FEATURE_TROLLEY_HANDOFF.md`). Woolworths also has a
+**Delivery address** (`store_delivery_fees.delivery_address`, ≤ 200 chars,
+blank = the account's): one of the account's saved addresses, which the
+bookmark picks before a time.
 An unset fee counts as $0 and every option using it says so. Saving shows
 **Undo**. Amounts are $0–$1000 in whole cents.
 
@@ -63,12 +91,13 @@ An unset fee counts as $0 and every option using it says so. Saving shows
 |---|---|---|---|
 | `GET` | `/api/delivery-settings` | Clerk | 200 `{stores: [{store, store_name, delivery_fee, free_delivery_over, minimum_order}], mode, max_delivery_spend, default_delivery_day}` |
 | `PUT` | `/api/delivery-settings` | Clerk | 200 the saved settings; 422 amount out of range, unknown mode. Stores left out keep their rules |
-| `GET` | `/api/order-options[?mode=]` | Clerk | 200 `{mode, options: [{kind, label, recommended, is_current, stores: [{store, lines, subtotal, delivery_fee, fee_known, free_delivery, below_minimum, minimum_order}], missing: [{grocery_item_id, name, reason}], disliked: [{grocery_item_id, name, store, store_name, disliked_by, avoidable}], items_total, delivery_total, total, complete, fees_known, meets_minimums, within_delivery_cap, picks}], unchosen, exact, max_delivery_spend}`; 422 unknown mode |
+| `GET` | `/api/order-options[?mode=&day=&within=]` | Clerk | 200 `{mode, delivery_day, within_days, store_fees: [{store, store_name, date, fee}], options: [{kind, label, recommended, is_current, stores: [{store, lines, subtotal, delivery_fee, fee_known, free_delivery, below_minimum, minimum_order}], missing: [{grocery_item_id, name, reason}], disliked: [{grocery_item_id, name, store, store_name, disliked_by, avoidable}], items_total, delivery_total, total, complete, fees_known, meets_minimums, within_delivery_cap, picks}], unchosen, exact, max_delivery_spend}`; 422 unknown mode or day, `within` over 7 |
 | `PUT` | `/api/order-stores` `{picks}` | Clerk | 204; 422 nothing changed when an item has no choice at its store |
 
 Data: migration `20261003080000_delivery_settings.sql` — `store_delivery_fees`
 (one row per store) and `order_preferences` (one row, `id = 1`);
-`20261114090000_default_delivery_day.sql` adds `default_delivery_day`.
+`20261114090000_default_delivery_day.sql` adds `default_delivery_day`;
+`20261115100000_store_delivery_day_fees.sql` keeps the stores' fees per day.
 Log: `order options planned` (mode, each option's total, recommended, exact),
 `delivery settings saved`, `order stores set for items`.
 
@@ -168,10 +197,9 @@ review; `order line needs attention` (warn) for a line with a problem;
 `chosen product's price changed` when a shelf price moved.
 
 ## Not built (spec "Order Optimisation")
-- Live delivery windows and per-window fees, and the 15-minute hold. The app
-  cannot see them without the household's store login
-  (`FEAT_WOOLWORTHS_ACCESS.md`); the Woolworths bookmark picks the cheapest
-  window on the day when it fills the trolley.
+- Fees for a day nobody has filled a trolley since: the stores' times are
+  read only by the bookmark, in the household's logged-in tab, and the
+  15-minute hold is the store's.
 - Delivery constraints that need windows: need-by date/time, allowed days,
   perishable timing.
 - "Prefer specials" mode.

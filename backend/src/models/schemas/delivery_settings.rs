@@ -26,6 +26,11 @@ pub struct StoreFeeRulesBody {
     pub free_delivery_over: Option<Decimal>,
     #[validate(custom(function = "an_amount"))]
     pub minimum_order: Option<Decimal>,
+    /// A saved address on the store's website, as it writes it; blank or
+    /// left out = keep the account's.
+    #[serde(default)]
+    #[validate(length(max = 200))]
+    pub delivery_address: Option<String>,
 }
 
 /// Settings › Delivery, both ways. `PUT` replaces the preferences and the
@@ -61,6 +66,12 @@ impl DeliverySettingsBody {
                 delivery_fee: body.delivery_fee,
                 free_delivery_over: body.free_delivery_over,
                 minimum_order: body.minimum_order,
+                delivery_address: body
+                    .delivery_address
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|a| !a.is_empty())
+                    .map(str::to_string),
             })
             .collect()
     }
@@ -78,6 +89,7 @@ impl From<DeliverySettings> for DeliverySettingsBody {
                     delivery_fee: rules.delivery_fee,
                     free_delivery_over: rules.free_delivery_over,
                     minimum_order: rules.minimum_order,
+                    delivery_address: rules.delivery_address,
                 })
                 .collect(),
             mode: settings.mode,

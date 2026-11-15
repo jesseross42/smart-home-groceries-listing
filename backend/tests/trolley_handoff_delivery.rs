@@ -147,3 +147,45 @@ async fn a_window_without_its_times_or_ending_before_it_starts_is_refused(pool: 
     let (status, _, _) = report(&app, id, backwards).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
 }
+
+#[sqlx::test]
+async fn the_saved_delivery_address_reaches_the_store_tab(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let settings = json!({
+        "stores": [{
+            "store": "woolworths",
+            "delivery_fee": null,
+            "free_delivery_over": null,
+            "minimum_order": null,
+            "delivery_address": "  33 Coventry St, SOUTHBANK VIC 3006 ",
+        }],
+        "mode": "minimise_total",
+        "max_delivery_spend": null,
+    });
+    let (status, saved) = app.put_json("/api/delivery-settings", &settings).await;
+    assert_eq!(status, StatusCode::OK, "{saved}");
+    assert_eq!(
+        saved["stores"][0]["delivery_address"],
+        "33 Coventry St, SOUTHBANK VIC 3006"
+    );
+    chosen_item(&app, "milk", 1, "woolworths", "w-milk-2l").await;
+
+    create(&app, "woolworths").await;
+    let (_, claimed, _) = claim(&app).await;
+
+    assert_eq!(
+        claimed["delivery_address"],
+        "33 Coventry St, SOUTHBANK VIC 3006"
+    );
+}
+
+#[sqlx::test]
+async fn without_a_saved_address_the_store_tab_keeps_the_accounts(pool: PgPool) {
+    let app = TestApp::new(pool);
+    chosen_item(&app, "milk", 1, "woolworths", "w-milk-2l").await;
+
+    create(&app, "woolworths").await;
+    let (_, claimed, _) = claim(&app).await;
+
+    assert!(claimed["delivery_address"].is_null(), "{claimed}");
+}

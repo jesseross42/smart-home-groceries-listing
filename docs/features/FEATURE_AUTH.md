@@ -1,23 +1,23 @@
-# Feature: Sign-in (Clerk)
+# Feature: Sign-in (SuperTokens with Authentik)
 
-Status: **implemented** — the web app signs people in with Clerk (Google, or
-email and password), and the backend checks a Clerk session token on every
-household route. Steps for people: `docs/human-setup.md` §2 and §6, and
-`docs/using-the-app.md` ("Add a household member") — keep those in step
-with this spec.
+Status: **implemented** — the web app signs people in through the
+household's Authentik (OIDC), with SuperTokens sessions. The backend asks the
+web app's private verifier about the session token on every household route.
+Steps for people: `docs/human-setup.md` §2 and `docs/production.md`
+("SuperTokens Core") — keep those in step with this spec.
 
-## Household model (from the spec)
+## Household model
 - Everyone signed in shares one grocery list. There are no admin roles.
-- Who may sign up is decided in Clerk, with its **allowlist** of household
-  email addresses. The app itself has no list of people.
-- Per-person records (dislikes, preferences) key on the Clerk user id,
-  `AuthUser.id` (`sub` in the token).
+- Who may sign in is decided in Authentik: the application is bound to the
+  household group. The app itself has no list of people.
+- Per-person records (dislikes, preferences) key on the SuperTokens user id,
+  `AuthUser.id`.
 
 ## What needs a session
 | Route | How it is checked |
 |---|---|
-| Every `/api/*` household route | `AuthUser` extractor: `Authorization: Bearer <token>` |
-| `GET /ws` (live counts) | `SocketUser` extractor: the header, or `?token=` (browsers cannot set headers on a WebSocket) |
+| Every `/api/*` household route | `AuthUser` extractor: `Authorization: Bearer <access token>` |
+| `GET /ws` (live counts) | `SocketUser` extractor (`backend/src/auth/socket.rs`); credentials in the URL are ignored |
 | `POST /api/intake/alexa` | Alexa bridge shared secret — not a session |
 | `POST /api/voice-requests` | webhook shared secret — not a session |
 | `/api/store-tab/*` | store-tab shared secret — not a session |
@@ -27,64 +27,38 @@ with this spec.
 no token and with a forged one, and expects 401. **A new route goes in its
 list.**
 
-## Backend
-- `backend/src/auth/mod.rs` — `AuthProvider` trait, `AuthUser` extractor,
-  `authenticate()` shared by both extractors, `build_provider()` (the one
-  place Clerk is named). Swap provider there only.
-- `backend/src/auth/clerk.rs` — verifies RS256 tokens against
-  `CLERK_JWKS_URL`, cached for an hour. The algorithm comes from the JWK,
-  never the token header. `exp`, `nbf` and `sub` are required.
-- `backend/src/auth/socket.rs` — the `/ws` extractor.
-- `jsonwebtoken` needs a crypto backend feature (`aws_lc_rs`). Without one it
-  **panics** on the first RS256 verification; that was the case before this
-  feature and every signed-in request would have crashed.
-- Request tracing logs the path only, not the query, so a `?token=` never
-  reaches the logs. Clerk session tokens last about a minute anyway.
+## How a session is checked
+1. The web app's server (`frontend/src/lib/server/auth-config.ts`) runs the
+   SuperTokens Node SDK against SuperTokens Core (`SUPERTOKENS_CONNECTION_URI`,
+   `SUPERTOKENS_API_KEY`). Sessions use header tokens, not cookies.
+2. Sign-in is the ThirdParty recipe with one OIDC provider, Authentik
+   (`AUTH_OIDC_DISCOVERY_URL`, client id and secret). The ID token's issuer
+   must match the discovery URL, its `sub` is required, and the callback must
+   be exactly `${AUTH_PUBLIC_ORIGIN}/sign-in/callback`.
+3. The backend (`backend/src/auth/supertokens.rs`) posts the bearer token to
+   `AUTH_VERIFIER_URL` (`/api/auth/internal/verify` on the web app) with
+   `x-grocery-auth-secret: AUTH_VERIFIER_SECRET`. 200 `{id, email}` signs the
+   request in; 401 is "Invalid or expired session"; anything else is 503,
+   never a sign-in.
+4. `backend/src/auth/mod.rs` is the only place that names the provider
+   (`build_provider`). Swap provider there only.
 
-`backend/tests/clerk_tokens.rs` signs tokens with test-only keys
-(`tests/fixtures/clerk/`) and serves their JWKS from a mock server. It covers
-a valid token, expired, wrong key, unknown key id, HS256 algorithm
-confusion, no subject, and the WebSocket with and without a token.
-
-## Frontend
-| File | Job |
-|---|---|
-| `lib/auth-mode.ts` | `clerk` or `off`, from `VITE_CLERK_PUBLISHABLE_KEY` and `VITE_AUTH_MODE` |
-| `lib/auth.ts` | `getAuthToken()`: Clerk's token in the browser; `auth().getToken()` during server rendering |
-| `lib/auth-state.ts` | server function: is this request signed in? |
-| `lib/sign-in-guard.ts` | pure rules: who goes to `/sign-in`; `/sign-in` and `/sign-up` stay public |
-| `lib/ws-url.ts` | adds `?token=` to the socket address |
-| `start.ts` | adds `clerkMiddleware()` with sign-in on |
-| `routes/__root.tsx` | `beforeLoad` guard, before any loader asks the backend |
-| `routes/sign-in.$.tsx` | Clerk's `<SignIn />`; goes home with sign-in off |
-| `routes/sign-up.$.tsx` | Clerk's `<SignUp />` for a first visit; the allowlist decides who finishes it |
-| `components/auth/` | provider (Clerk's `shadcn` theme from `@clerk/ui`), nav account button, "Sign-in is off" notice |
-
-The web app reads the repository's root `.env` (`envDir: ".."` in
-`vite.config.ts`). Clerk's server middleware needs `CLERK_SECRET_KEY` in the
-process environment, so the Vite config copies it across for the dev server.
+Tests: `backend/tests/supertokens_sessions.rs` (valid session, verifier
+failure never grants access, WebSocket protocol and URL credentials).
 
 ## Test mode (sign-in off)
-Real sign-in needs a real Clerk account, so the e2e suite runs with sign-in
-off on both sides:
+The e2e suite runs with sign-in off on both sides: `DEV_AUTH_BYPASS=true` on
+the backend and `VITE_AUTH_MODE=off` on the web app (`lib/auth-mode.ts`). With
+sign-in off but the bypass **not** set, the backend refuses everything — the
+backend is always the real gate.
 
-```bash
-# backend
-DEV_AUTH_BYPASS=true
-# web app — forces sign-in off even if .env has a publishable key
-VITE_AUTH_MODE=off pnpm dev
-```
-
-The web app then shows a "Sign-in is off" line on every page
-(`e2e/sign-in.spec.ts`). With sign-in off but the bypass **not** set, the
-backend refuses everything — the backend is always the real gate.
-
-## Known gaps
-- Not checked against a real Clerk instance from the cloud workspace (no
-  account). With a made-up key, the server middleware does start Clerk's
-  development "handshake" redirect, so the wiring is live.
-- A Clerk **development** instance shows a "Development mode" badge and uses
-  Clerk's shared Google credentials. Fine for a household; a production
-  instance needs its own Google OAuth app and a domain.
-- `azp` (authorised party) is not checked. Tokens arrive only as bearer
-  headers from this app, so cookie-based cross-site use does not apply.
+## Decisions
+- **No authorised-party (`azp`) check.** That was a Clerk concern (#83). Here
+  the access token is issued by this app's own SuperTokens Core, sent only as
+  a bearer header, and verified by this app's own SDK; Authentik's ID token
+  is checked for issuer and callback before a session exists.
+- **Going beyond the home network** (#94) needs no "production instance":
+  Core and Authentik are self-hosted. Set `AUTH_PUBLIC_ORIGIN` to the public
+  HTTPS origin, register its exact callback in Authentik, and add the origin
+  to `CORS_ORIGINS` (`docs/human-setup.md` "Optional: web app on your own
+  computer", `docs/production.md` "SuperTokens Core").

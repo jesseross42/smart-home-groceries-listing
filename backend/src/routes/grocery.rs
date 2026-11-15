@@ -5,6 +5,7 @@
 //! accepting an intake request in `routes/voice.rs`; from then on they are
 //! edited and committed through this module.
 
+use crate::services::selections::auto_pick;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{get, patch, post};
@@ -88,6 +89,14 @@ async fn add_item(
     let item = GroceryService::new(&state.pool)
         .add(&body, &user.id, query.on_duplicate)
         .await?;
+    auto_pick::pick_for_new_item(
+        state.settings.stores.auto_pick,
+        &state.pool,
+        &state.stores,
+        item.id,
+        &user.id,
+    )
+    .await;
     Ok((StatusCode::CREATED, Json(item.into())))
 }
 

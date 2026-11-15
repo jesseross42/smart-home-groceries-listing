@@ -59,6 +59,7 @@ mod tests {
             delivery_fee: fee,
             free_delivery_over: free_over,
             minimum_order: minimum,
+            delivery_address: None,
         }
     }
 

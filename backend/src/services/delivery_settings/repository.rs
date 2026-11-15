@@ -14,7 +14,8 @@ where
     E: PgExecutor<'e>,
 {
     Ok(sqlx::query_as::<_, StoreDeliveryFees>(
-        "SELECT store, delivery_fee, free_delivery_over, minimum_order, updated_by, updated_at
+        "SELECT store, delivery_fee, free_delivery_over, minimum_order, delivery_address,
+                updated_by, updated_at
          FROM store_delivery_fees",
     )
     .fetch_all(executor)
@@ -32,12 +33,14 @@ where
 {
     sqlx::query(
         "INSERT INTO store_delivery_fees
-             (store, delivery_fee, free_delivery_over, minimum_order, updated_by)
-         VALUES ($1, $2, $3, $4, $5)
+             (store, delivery_fee, free_delivery_over, minimum_order, delivery_address,
+              updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6)
          ON CONFLICT (store) DO UPDATE SET
              delivery_fee = EXCLUDED.delivery_fee,
              free_delivery_over = EXCLUDED.free_delivery_over,
              minimum_order = EXCLUDED.minimum_order,
+             delivery_address = EXCLUDED.delivery_address,
              updated_by = EXCLUDED.updated_by,
              updated_at = now()",
     )
@@ -45,6 +48,7 @@ where
     .bind(rules.delivery_fee)
     .bind(rules.free_delivery_over)
     .bind(rules.minimum_order)
+    .bind(rules.delivery_address.as_deref())
     .bind(user_id)
     .execute(executor)
     .await?;

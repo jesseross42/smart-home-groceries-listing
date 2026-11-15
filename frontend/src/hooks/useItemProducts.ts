@@ -9,26 +9,29 @@ export type ItemProductsState =
 	| { status: "failed" };
 
 /**
- * Searches the stores for one list item.
+ * Searches the stores for one list item, or for other `words` when given.
  *
  * The search runs again when the item's name, quantity or chips change (so
  * an edit refreshes the prices) and when `retry` is called. A search that
  * finishes after a newer one started is ignored.
  */
-export function useItemProducts(item: GroceryItem): {
+export function useItemProducts(
+	item: GroceryItem,
+	words = "",
+): {
 	state: ItemProductsState;
 	retry: () => void;
 } {
 	const [state, setState] = useState<ItemProductsState>({ status: "loading" });
 	const [attempt, setAttempt] = useState(0);
-	const searchKey = `${item.name}|${item.quantity}|${item.filter_terms.join(",")}`;
+	const searchKey = `${item.name}|${item.quantity}|${item.filter_terms.join(",")}|${words}`;
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: searchKey and attempt are deliberate re-run triggers.
 	useEffect(() => {
 		const controller = new AbortController();
 		setState({ status: "loading" });
 		api.products
-			.forItem(item.id, { signal: controller.signal })
+			.forItem(item.id, { signal: controller.signal }, words || undefined)
 			.then((data) => setState({ status: "loaded", data }))
 			.catch(() => {
 				if (!controller.signal.aborted) setState({ status: "failed" });

@@ -1,7 +1,12 @@
 import { AmountField } from "#/components/delivery/amount-field";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
 import type { StoreFeeFields as Fields } from "#/lib/delivery-form";
 
-/** One store's delivery fee, free-delivery amount and minimum order. */
+/**
+ * One store's delivery fee, free-delivery amount and minimum order, and for
+ * Woolworths the saved address the bookmark picks before a time.
+ */
 export function StoreFeeFields({
 	fields,
 	onChange,
@@ -38,6 +43,24 @@ export function StoreFeeFields({
 					onChange={(minimumOrder) => onChange({ ...fields, minimumOrder })}
 				/>
 			</div>
+			{fields.store === "woolworths" && (
+				<div className="flex flex-col gap-1">
+					<Label htmlFor={id("address")}>Delivery address</Label>
+					<Input
+						id={id("address")}
+						maxLength={200}
+						placeholder="U 2 8 Athelstan Rd, CAMBERWELL VIC 3124"
+						value={fields.deliveryAddress}
+						onChange={(event) =>
+							onChange({ ...fields, deliveryAddress: event.target.value })
+						}
+					/>
+					<p className="text-xs text-muted-foreground">
+						One of your saved Woolworths addresses, as Woolworths writes it. The
+						bookmark picks it before a time. Empty keeps the account's.
+					</p>
+				</div>
+			)}
 		</fieldset>
 	);
 }

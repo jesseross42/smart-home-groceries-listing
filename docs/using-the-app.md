@@ -109,13 +109,21 @@ when a store changes its fees.
    (toast has **Undo**).
 2. To let the app compare stores for an item, **Select item → Choose** a
    product at **each** store. The newest store is the one bought; the other
-   shows as **Also at …** on the item card.
-3. On **Order**, **Ways to buy** ranks the options with delivery included.
-   **Rank by** tries another mode for this visit. **Use this** moves items
-   to that option's stores (toast has **Undo**).
+   shows as **Also at …** on the item card. A product the search does not
+   show: type other words in **Search with other words**, or paste its
+   store link in **Look up by link**, then **Choose**.
+3. On **Order**, **Ways to buy** ranks the options with delivery included,
+   and the order moves to the recommended one by itself (toast has
+   **Undo**). **Rank by** tries another mode for this visit. **Delivery comes**
+   (today, or within 1–7 days) re-plans with each store's cheapest day in
+   that range. To override, press an
+   option's **Switch to …** button; hover its (i) for what it does.
+4. Each day's own store fees appear after the **Fill trolley** bookmark has
+   run once at that store; until then the typed fees are used.
 
-**Verify:** each option shows `items + delivery` per store, and the
-recommended one is badged **Recommended**.
+**Verify:** each option shows `items + delivery` per store, the
+recommended one is badged **Recommended**, and under **Delivery comes** the
+store fees read e.g. `Woolworths $2.00 on Tue 17 Nov`.
 
 Behaviour: [`FEATURE_ORDER_OPTIMISATION.md`](features/FEATURE_ORDER_OPTIMISATION.md).
 
@@ -139,7 +147,11 @@ Use Chrome for both the web app and the store tab.
 
 **Store tab**
 4. Sign in if prompted, then run the **Fill Woolworths trolley**
-   bookmarklet. First run: allow Chrome's local-network access prompt.
+   bookmarklet. First run: allow Chrome's local-network access prompt. If
+   **Settings › Delivery › Woolworths › Delivery address** is set, it
+   switches to that saved address first. The address must already be saved
+   on your Woolworths account (**Delivery to → Change → Add a new delivery
+   address** on woolworths.com.au); copy it as Woolworths writes it.
 5. The bookmarklet reports products added and the reserved delivery window,
    and asks **Go to checkout now?** **OK** opens the checkout page;
    **Cancel** stays on the trolley.
@@ -174,16 +186,19 @@ slot before the store's cut-off. The app does not track this.
 Same as the Woolworths shop, with these differences:
 
 **Web app**
-1. **Send to Coles**, then **Send and open Coles**. There is no delivery
-   choice: the Coles bookmarklet cannot reserve a window yet.
+1. **Send to Coles**: pick the delivery day and part of the day, then
+   **Send and open Coles**.
 
 **Store tab**
 2. Sign in if prompted, then run **Fill Coles trolley**. It checks you are
    signed in and a store is selected **before** claiming the handoff, so a
-   refusal leaves the handoff waiting; fix it and run it again.
+   refusal leaves the handoff waiting; fix it and run it again. It then
+   presses **When**, picks a time in the **Choose delivery slot** drawer,
+   presses **Confirm**, adds the products, and shows the **Order by** time
+   Coles gives for that slot. If the drawer does not open, no time is
+   picked: pick one on coles.com.au.
 3. On **Go to checkout now?**, **OK** opens Coles checkout (`/checkout`).
-   **Cancel**: reload the page and open the trolley.
-4. Pick a delivery window on coles.com.au, then pay there.
+   **Cancel**: reload the page and open the trolley. Pay there.
 
 **Verify:** the **Send to Coles** panel lists each line as **Added**, then
 **Saved as bought**.
@@ -289,7 +304,7 @@ sessions through the private Core.
 | "Nothing to add" | No open handoff: press **Send and open Woolworths**, then run the bookmarklet within 30 minutes. |
 | "The grocery app refused (HTTP 401)" | Stale bookmarklet secret; re-drag it. |
 | "Fill trolley failed" (network error) | Backend down, or Chrome's local-network prompt was denied. |
-| "No delivery time reserved" | Pick a slot manually on the store's site (always the case for Coles). |
+| "No delivery time reserved" | Pick a slot manually on the store's site. For Coles, run the bookmarklet on a page that shows **When** in the header. |
 | "Log in to Coles first" | Coles trolley read returned 401/403; sign in and re-run. Nothing was claimed. |
 | "Choose your delivery address on Coles first" | No Coles store selected; set a delivery address and re-run. |
 | "Coles is still loading" | Coles page config not ready; reload and re-run. |

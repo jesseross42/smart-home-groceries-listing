@@ -3,8 +3,12 @@
  * shared by the Coles fill and bookmarklet tests.
  */
 import { vi } from "vitest";
+import type { ColesFillHelpers } from "#/lib/store-tab/fill-coles-trolley";
+import { COLES_TAB } from "#/lib/store-tab/store-tabs";
 
 export const config = { apiBaseUrl: "https://grocery.test", secret: "s3cret" };
+/** The helpers the Coles bookmark is built with. */
+export const colesHelpers = COLES_TAB.helpers as unknown as ColesFillHelpers;
 const TROLLEY = "/api/bff/trolley/store/0584";
 
 /**
@@ -43,6 +47,7 @@ export function fakeNetwork({
 	slot?: Record<string, string> | null;
 } = {}) {
 	const trolley = new Map(Object.entries(inTrolley));
+	let heldSlot = slot;
 	const calls: {
 		url: string;
 		method: string;
@@ -69,7 +74,7 @@ export function fakeNetwork({
 					productId: Number(productId),
 					quantity,
 				})),
-				orderAttributes: { slot },
+				orderAttributes: { slot: heldSlot },
 			});
 		}
 		if (url === TROLLEY && method === "PATCH") {
@@ -110,7 +115,11 @@ export function fakeNetwork({
 		return json(404, null);
 	});
 	vi.stubGlobal("fetch", fetchMock);
-	return { calls, trolley };
+	/** What Coles holds once its time picker reserves a time. */
+	const setSlot = (next: Record<string, string> | null) => {
+		heldSlot = next;
+	};
+	return { calls, trolley, setSlot };
 }
 
 /** The Coles page as a logged-in household member sees it. */

@@ -14,12 +14,16 @@
 //! ([`dislikes`]); a disliked product an option still buys is named on it. Using an option is `PUT /api/order-stores`
 //! (`SelectionService::buy_at`).
 //!
+//! Each store's fee is the cheapest it showed on the delivery day when the
+//! bookmark reported one ([`fee_days`], issue #70), else the typed fee.
+//!
 //! Delivery charge in [`fees`]; one option in [`option`]; the best mix in
 //! [`search`]; ranking in [`rank`]; putting it together in [`build`].
 
 mod build;
 mod combine;
 mod dislikes;
+mod fee_days;
 mod fees;
 mod log;
 mod option;
@@ -36,7 +40,8 @@ use uuid::Uuid;
 
 use crate::error::ApiError;
 use crate::models::db::{GroceryItem, GroceryItemStatus, ItemSelection};
-use crate::models::delivery_rows::OrderMode;
+use crate::models::delivery_rows::{DeliveryDay, OrderMode};
+use crate::services::delivery_day_fees::{store_today, within, DayFee, DeliveryDayFeeService};
 use crate::services::delivery_settings::{DeliverySettings, DeliverySettingsService};
 use crate::services::dislikes::skip::DislikeBook;
 use crate::services::dislikes::DislikeService;
@@ -64,6 +69,36 @@ pub struct OrderPlan {
     pub exact: bool,
 }
 
+/// A plan, the settings it used, and the delivery day it was costed for.
+#[derive(Debug, Clone)]
+pub struct PlannedOrder {
+    pub plan: OrderPlan,
+    /// The settings, with the stores' own fees swapped in.
+    pub settings: DeliverySettings,
+    /// The day asked for, else the usual one; `None` = the cheapest day.
+    pub delivery_day: Option<DeliveryDay>,
+    /// Days ahead the delivery must come within, when that was asked.
+    pub within_days: Option<u8>,
+    /// The stores' own fees the plan used instead of the typed ones.
+    pub store_fees: Vec<DayFee>,
+}
+
+/// Which day the plan costs delivery on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DayChoice {
+    /// The usual day from Settings › Delivery (each store's cheapest day
+    /// when none is set).
+    #[default]
+    Usual,
+    /// Each store's cheapest reported day.
+    Any,
+    /// This weekday.
+    On(DeliveryDay),
+    /// Each store's cheapest day from today up to this many days ahead
+    /// (0 = today only, at most 7).
+    Within(u8),
+}
+
 /// Plans the order.
 pub struct OrderPlanService<'a> {
     pool: &'a PgPool,
@@ -76,16 +111,28 @@ impl<'a> OrderPlanService<'a> {
         Self { pool, stores }
     }
 
-    /// The committed list's options under `mode`, or the saved mode.
+    /// The committed list's options under `mode`, or the saved mode, with
+    /// delivery costed on `day`.
     ///
     /// Items are re-priced one store at a time, as the order review does;
     /// most answers come from the 10-minute search cache.
     pub async fn plan(
         &self,
         mode: Option<OrderMode>,
-    ) -> Result<(OrderPlan, DeliverySettings), ApiError> {
-        let settings = DeliverySettingsService::new(self.pool).read().await?;
+        day: DayChoice,
+    ) -> Result<PlannedOrder, ApiError> {
+        let mut settings = DeliverySettingsService::new(self.pool).read().await?;
         let mode = mode.unwrap_or(settings.mode);
+        let delivery_day = match day {
+            DayChoice::Usual => settings.default_delivery_day,
+            DayChoice::On(day) => Some(day),
+            DayChoice::Any | DayChoice::Within(_) => None,
+        };
+        let mut reported = DeliveryDayFeeService::new(self.pool).upcoming().await?;
+        if let DayChoice::Within(days_ahead) = day {
+            reported = within(&reported, store_today(), days_ahead);
+        }
+        let store_fees = fee_days::use_store_fees(&mut settings, &reported, delivery_day);
         let committed = items::list_items(self.pool)
             .await?
             .into_iter()
@@ -148,7 +195,16 @@ impl<'a> OrderPlanService<'a> {
 
         let plan = build::plan(mode, &candidates, unchosen, &settings);
         log::planned(&plan);
-        Ok((plan, settings))
+        Ok(PlannedOrder {
+            plan,
+            settings,
+            delivery_day,
+            within_days: match day {
+                DayChoice::Within(days_ahead) => Some(days_ahead),
+                _ => None,
+            },
+            store_fees,
+        })
     }
 }
 

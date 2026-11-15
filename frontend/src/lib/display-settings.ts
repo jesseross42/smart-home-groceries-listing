@@ -14,12 +14,15 @@ export interface DisplaySettings {
 	showWasPrice: boolean;
 	/** Show products the store has run out of. */
 	showUnavailable: boolean;
+	/** List products on special or with a multibuy first. Off by default. */
+	preferSpecials: boolean;
 }
 
 export const DEFAULT_DISPLAY: DisplaySettings = {
 	imageSize: "md",
 	showWasPrice: true,
 	showUnavailable: true,
+	preferSpecials: false,
 };
 
 const KEY = "grocery.display-settings";
@@ -47,6 +50,9 @@ export function parseDisplay(raw: string | null): DisplaySettings {
 		showUnavailable: isBoolean(stored.showUnavailable)
 			? stored.showUnavailable
 			: d.showUnavailable,
+		preferSpecials: isBoolean(stored.preferSpecials)
+			? stored.preferSpecials
+			: d.preferSpecials,
 	};
 }
 

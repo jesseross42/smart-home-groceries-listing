@@ -26,6 +26,7 @@ pub mod repository;
 mod split;
 pub mod store_tab;
 
+use crate::services::delivery_settings::DeliverySettingsService;
 use chrono::{Duration, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -51,6 +52,9 @@ pub struct HandoffWithLines {
 pub struct ClaimedHandoff {
     pub handoff: TrolleyHandoff,
     pub lines: Vec<StoreTabLine>,
+    /// The saved address on the store's website to deliver to
+    /// (Settings › Delivery); `None` = keep the account's.
+    pub delivery_address: Option<String>,
 }
 
 /// Creates, claims and closes trolley handoffs.
@@ -124,7 +128,16 @@ impl<'a> TrolleyHandoffService<'a> {
             store_tab::lines_for_store_tab(&line_repository::lines_of(&mut *tx, handoff.id).await?);
         tx.commit().await?;
         log::claimed(&handoff, lines.len());
-        Ok(Some(ClaimedHandoff { handoff, lines }))
+        let delivery_address = DeliverySettingsService::new(self.pool)
+            .read()
+            .await?
+            .rules_for(store)
+            .delivery_address;
+        Ok(Some(ClaimedHandoff {
+            handoff,
+            lines,
+            delivery_address,
+        }))
     }
 
     /// Records the store tab's report and closes the handoff.

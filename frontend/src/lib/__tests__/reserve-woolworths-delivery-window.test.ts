@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deliveryInfo, liveDays } from "#/lib/__tests__/woolworths-fixtures";
+import {
+	deliveryInfo,
+	liveDays,
+	windowAt,
+} from "#/lib/__tests__/woolworths-fixtures";
 import { chooseWoolworthsWindow } from "#/lib/store-tab/choose-woolworths-window";
 import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
 
@@ -28,6 +32,12 @@ function fakeWoolworths({
 	);
 	return calls;
 }
+
+/** Both live days' cheapest fee. */
+const BOTH_DAYS = [
+	{ date: "2026-10-02", cheapest_fee: "15" },
+	{ date: "2026-10-03", cheapest_fee: "15" },
+];
 
 describe("reserveWoolworthsDeliveryWindow", () => {
 	afterEach(() => vi.unstubAllGlobals());
@@ -59,6 +69,7 @@ describe("reserveWoolworthsDeliveryWindow", () => {
 			window_end: "2026-10-03T07:00:00",
 			fee: "15",
 			problem: undefined,
+			days: BOTH_DAYS,
 		});
 	});
 
@@ -79,7 +90,9 @@ describe("reserveWoolworthsDeliveryWindow", () => {
 
 		expect(report.outcome).toBe("kept");
 		expect(report.window_label).toBe("7:00am - 10:00am");
-		expect(calls).toHaveLength(1);
+		// Only read: the info and the times, for each day's fee.
+		expect(calls.map((c) => c.url)).not.toContain("/apis/ui/Fulfilment");
+		expect(report.days).toEqual(BOTH_DAYS);
 	});
 
 	it("replaces a reserved window that does not fit what was asked", async () => {
@@ -129,6 +142,38 @@ describe("reserveWoolworthsDeliveryWindow", () => {
 			{ date: null, time_of_day: "any" },
 			chooseWoolworthsWindow,
 		);
-		expect(full).toEqual({ outcome: "failed", problem: "Window full" });
+		expect(full).toEqual({
+			outcome: "failed",
+			problem: "Window full",
+			days: BOTH_DAYS,
+		});
+	});
+
+	it("reports each day's cheapest open time", async () => {
+		fakeWoolworths({
+			days: [
+				{
+					Date: "2026-10-03T00:00:00.0000000",
+					Available: true,
+					Times: [
+						windowAt(1, "2026-10-03", 7, 3, 15),
+						windowAt(2, "2026-10-03", 10, 3, 2, { Available: false }),
+						windowAt(3, "2026-10-03", 13, 3, 8.5),
+					],
+				},
+				{
+					Date: "2026-10-04T00:00:00.0000000",
+					Available: false,
+					Times: [windowAt(4, "2026-10-04", 7, 3, 1)],
+				},
+			],
+		});
+
+		const report = await reserveWoolworthsDeliveryWindow(
+			{ date: null, time_of_day: "any" },
+			chooseWoolworthsWindow,
+		);
+
+		expect(report.days).toEqual([{ date: "2026-10-03", cheapest_fee: "8.5" }]);
 	});
 });

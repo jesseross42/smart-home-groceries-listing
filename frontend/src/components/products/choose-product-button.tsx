@@ -14,16 +14,19 @@ import type { StoreId, StoreProduct } from "#/lib/api";
  *
  * Renders nothing outside a page that can choose. An unavailable product
  * cannot be chosen, and the button is disabled while saving so a double
- * click does not send two.
+ * click does not send two. `lookedUp` chooses a product found by its link
+ * rather than in the item's search.
  */
 export function ChooseProductButton({
 	store,
 	storeName,
 	product,
+	lookedUp = false,
 }: {
 	store: StoreId;
 	storeName: string;
 	product: StoreProduct;
+	lookedUp?: boolean;
 }) {
 	const choice = useProductChoice();
 	const [saving, setSaving] = useState(false);
@@ -37,7 +40,11 @@ export function ChooseProductButton({
 		if (!choice) return;
 		setSaving(true);
 		try {
-			await (chosen ? choice.onUnchoose : choice.onChoose)(thisProduct);
+			await (chosen
+				? choice.onUnchoose(thisProduct)
+				: choice.onChoose(
+						lookedUp ? { ...thisProduct, looked_up: true } : thisProduct,
+					));
 		} catch {
 			// The page has already said why; the button only has to recover.
 		} finally {

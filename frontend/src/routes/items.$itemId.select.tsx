@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
 import { ProductChoiceProvider } from "#/components/products/product-choice";
+import { ProductLookup } from "#/components/products/product-lookup";
 import { ProductResults } from "#/components/products/product-results";
 import { SelectItemPage } from "#/components/products/select-item-page";
 import { ChosenProduct } from "#/components/selections/chosen-product";
@@ -57,6 +58,7 @@ function SelectItemRoute() {
 				}}
 			>
 				<ProductResults item={item} />
+				<ProductLookup />
 			</ProductChoiceProvider>
 		</SelectItemPage>
 	);

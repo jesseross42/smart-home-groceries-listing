@@ -22,8 +22,8 @@ goal).
 
 | Method | Path | Auth | Answer |
 |---|---|---|---|
-| `GET` | `/api/grocery-items/{id}/products` | Clerk session | 200 with every store's results, 404 unknown item |
-| `GET` | `/api/stores/{store}/products/{product_id}` | Clerk session | 200 one product (priced for 1), 404 not sold there, 503 store could not answer, 400 unknown store |
+| `GET` | `/api/grocery-items/{id}/products[?q=]` | Session | 200 with every store's results, 404 unknown item. `q` (≤ 100 chars): other words to search instead of the name and chips; chips are not applied; still priced at the item's quantity. Blank `q` = the item's own search |
+| `GET` | `/api/stores/{store}/products/{product_id}` | Session | 200 one product (priced for 1), 404 not sold there, 503 store could not answer, 400 unknown store |
 
 `{store}` is `woolworths` or `coles`; `{product_id}` is the store's own id
 (Woolworths stockcode, Coles product id — digits only; anything else is
@@ -138,7 +138,11 @@ to load; also used by the chosen product and the order review),
 `ProductPrice`, `UnitPriceLine`, `ProductSortSelect`, `SpecialsOnlySwitch`.
 `hooks/useItemProducts.ts` searches when the Select item page opens, and again
 when the item's name, quantity or chips change. "Specials only" is a display
-filter (special or multibuy) — it never reorders.
+filter (special or multibuy) — it never reorders. **Prefer specials** is the
+first control on the page (`PreferSpecialsSwitch`, off by default, saved as
+`preferSpecials` in the display settings): it moves promoted products above
+the rest, keeping the chosen sort within each group (`lib/specials.ts`
+`specialsFirst`). It never changes a chosen product and suggests nothing.
 
 **Display settings** (Settings › Display, `lib/display-settings.ts`, saved
 in the browser's localStorage): picture size, hide the original price, show
@@ -161,7 +165,6 @@ starts at the default.
   were checked in a real browser (search 2026-10-01, lookup 2026-10-06),
   but not yet from the server's `wreq` client. If a store answers `blocked` there, the next step is the
   human-login + cookie-reuse route in `backend/skills/store-integration.md`.
-- A web app screen for the lookup route (backend only so far).
 - Delivery windows, cart and checkout, member/rewards pricing (`MemberPriceData` is ignored),
   "Pick any N" multibuys across different products (treated per product).
 - Storing products and categories for Spending Analysis.

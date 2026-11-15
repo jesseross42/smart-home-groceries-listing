@@ -58,7 +58,7 @@ try {
     const env = {
       ...base, GROCERY_ENV_FILE: emptyEnv, DATABASE_URL: databaseUrl,
       BIND_ADDRESS: `127.0.0.1:${apiPort}`, CORS_ORIGINS: webUrl,
-      DEV_AUTH_BYPASS: 'true', STORE_CLIENTS: 'fake', INTAKE_LLM_PROVIDER: 'fake',
+      DEV_AUTH_BYPASS: 'true', STORE_CLIENTS: 'fake', AUTO_PICK_PRODUCTS: 'false', INTAKE_LLM_PROVIDER: 'fake',
       GOOGLE_TASKS_CLIENT: 'fake', GOOGLE_TASKS_NO_BACKGROUND_POLL: 'true',
       GOOGLE_REDIRECT_URI: `${webUrl}/settings/help`,
       VOICE_WEBHOOK_SECRET: 'e2e-webhook-secret', ALEXA_BRIDGE_SECRET: 'e2e-bridge-secret', STORE_TAB_SECRET: 'e2e-store-tab-secret',

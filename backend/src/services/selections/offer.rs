@@ -32,7 +32,11 @@ pub fn find(search: ItemSearch, store: Store, product_id: &str) -> Result<Priced
         .into_iter()
         .find(|priced| priced.product.product_id == product_id)
         .ok_or_else(|| not_offered(store, &item_name))?;
+    available(priced, store)
+}
 
+/// The product, unless the store cannot deliver it now (422).
+pub fn available(priced: PricedProduct, store: Store) -> Result<PricedProduct, ApiError> {
     if !priced.product.available {
         return Err(ApiError::UnprocessableEntity(format!(
             "{} is unavailable at {} right now — choose another product.",
