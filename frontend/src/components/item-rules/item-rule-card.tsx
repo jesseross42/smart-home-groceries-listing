@@ -11,18 +11,25 @@ interface ItemRuleCardProps {
 	/** Resolves once saved, or rejects to keep the editor open. */
 	onSave: (id: string, draft: ItemRuleDraft) => Promise<void>;
 	onRemove: (id: string) => Promise<void>;
+	/** Puts the rule's filters on the matching items already on the list. */
+	onApply: (id: string) => Promise<void>;
 }
 
 /**
  * One rule on the Item Rules page, in one of two modes.
  *
  * Reading: the item names it matches, the filters it adds, and whether items
- * typed into the list get it too, with Edit and Delete.
+ * typed into the list get it too, with Apply to list, Edit and Delete.
  *
  * Editing: the whole rule at once, via [`ItemRuleForm`] — the spec's inline
  * edit, with the manual-additions toggle inside the form.
  */
-export function ItemRuleCard({ rule, onSave, onRemove }: ItemRuleCardProps) {
+export function ItemRuleCard({
+	rule,
+	onSave,
+	onRemove,
+	onApply,
+}: ItemRuleCardProps) {
 	const [editing, setEditing] = useState(false);
 	const [confirmingRemoval, setConfirmingRemoval] = useState(false);
 	// Buttons are named after the rule's first trigger so a screen reader (and
@@ -86,6 +93,14 @@ export function ItemRuleCard({ rule, onSave, onRemove }: ItemRuleCardProps) {
 								</>
 							) : (
 								<>
+									<Button
+										size="sm"
+										variant="outline"
+										onClick={() => onApply(rule.id)}
+										aria-label={`Apply rule ${name} to the list`}
+									>
+										Apply to list
+									</Button>
 									<Button
 										size="sm"
 										variant="outline"

@@ -130,3 +130,50 @@ test.describe("a rule reaching the list", () => {
 		);
 	});
 });
+
+test.describe("applying a rule to the list", () => {
+	test("chips an item already on the list, once", async ({
+		page,
+	}) => {
+		await gotoList(page);
+		await addItem(page, "Eggs");
+		await gotoList(page, "/settings/item-rules");
+		// The singular trigger matches the plural item name.
+		await addRule(page, ["egg"], ["free range"]);
+
+		await page
+			.getByRole("button", { name: "Apply rule egg to the list" })
+			.click();
+		await expect(page.getByText("Filters added to 1 item")).toBeVisible();
+
+		await gotoList(page);
+		await expect(
+			itemCard(page, "Eggs").getByLabel("Product filters"),
+		).toHaveText("free range");
+
+		await gotoList(page, "/settings/item-rules");
+		await page
+			.getByRole("button", { name: "Apply rule egg to the list" })
+			.click();
+		await expect(
+			page.getByText("No items on the list needed these filters"),
+		).toBeVisible();
+	});
+
+	test("Undo puts the item's filters back", async ({ page }) => {
+		await gotoList(page);
+		await addItem(page, "Eggs");
+		await gotoList(page, "/settings/item-rules");
+		await addRule(page, ["eggs"], ["free range"]);
+
+		await page
+			.getByRole("button", { name: "Apply rule eggs to the list" })
+			.click();
+		await page.getByRole("button", { name: "Undo" }).click();
+		await expect(page.getByText("Undone")).toBeVisible();
+
+		await gotoList(page);
+		await expect(itemCard(page, "Eggs")).toBeVisible();
+		await expect(itemCard(page, "Eggs").getByText("free range")).toHaveCount(0);
+	});
+});
