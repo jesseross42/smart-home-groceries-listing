@@ -7,15 +7,18 @@
 //!
 //! A rule is a template, not a link: its chips are copied onto an item when
 //! the item reaches the list, so changing or deleting a rule never touches an
-//! item already there.
+//! item already there. [`reapply`] is the one exception, and only on request:
+//! it copies a rule's chips onto the matching items already on the list.
 
 pub mod apply;
 mod log;
 pub mod matching;
+pub mod reapply;
 pub mod repository;
 pub mod triggers;
 
 pub use apply::{filter_terms_for, AddedVia};
+pub use reapply::ReappliedItem;
 
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -81,6 +84,11 @@ impl<'a> ItemRuleService<'a> {
             .ok_or_else(|| ApiError::NotFound(rule_id.to_string()))?;
         log::saved(&rule, "updated");
         Ok(rule)
+    }
+
+    /// Puts the rule's chips on the matching items already on the list.
+    pub async fn apply_to_list(&self, rule_id: Uuid) -> Result<Vec<ReappliedItem>, ApiError> {
+        reapply::apply_to_list(self.pool, rule_id).await
     }
 
     /// Removes a rule. Chips it already put on items stay where they are.

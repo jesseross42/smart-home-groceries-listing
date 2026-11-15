@@ -7,6 +7,7 @@ use validator::{Validate, ValidationError};
 
 use super::common::validate_filter_terms;
 use crate::models::db::ItemRule;
+use crate::services::item_rules::ReappliedItem;
 
 /// How many trigger phrases one rule may carry, matching the `triggers` CHECK.
 pub const MAX_TRIGGERS: usize = 10;
@@ -35,6 +36,34 @@ impl From<ItemRule> for ItemRuleResponse {
             updated_at: row.updated_at,
         }
     }
+}
+
+/// One list item that gained chips when a rule was applied to the list.
+#[derive(Debug, Serialize)]
+pub struct ReappliedItemResponse {
+    pub id: Uuid,
+    pub name: String,
+    /// The item's chips now.
+    pub filter_terms: Vec<String>,
+    /// The item's chips before, for Undo to write back.
+    pub previous_filter_terms: Vec<String>,
+}
+
+impl From<ReappliedItem> for ReappliedItemResponse {
+    fn from(change: ReappliedItem) -> Self {
+        Self {
+            id: change.item.id,
+            name: change.item.name,
+            filter_terms: change.item.filter_terms,
+            previous_filter_terms: change.previous_filter_terms,
+        }
+    }
+}
+
+/// The reply to applying a rule to the list: the items it changed.
+#[derive(Debug, Serialize)]
+pub struct ItemRuleApplyResponse {
+    pub changed: Vec<ReappliedItemResponse>,
 }
 
 /// A new rule from the settings page's add form.
