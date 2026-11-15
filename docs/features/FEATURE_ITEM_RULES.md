@@ -1,7 +1,8 @@
 # Feature: Item Rules
 
 Status: **implemented** — manage rules on `/settings/item-rules`; rules put
-filter chips on items as they reach the list.
+filter chips on items as they reach the list, and on request on items
+already there.
 
 ## What this feature does
 A rule attaches persistent filters to grocery item names. The spec's example:
@@ -24,14 +25,22 @@ rule that tidies down to no trigger or no term is a `422`.
 
 ## Matching
 A trigger matches when its words appear together and in order among the item
-name's words, ignoring case and punctuation (`services/item_rules/matching.rs`):
+name's words, ignoring case and punctuation (`services/item_rules/matching.rs`).
+A word and its plural are the same word: an ending of `s`, `es` or `ies`→`y`
+is ignored when at least three characters remain and the word does not end
+in `ss`.
 
 | Trigger | Item name | Match |
 |---|---|---|
 | `toilet paper` | `Quilton Toilet-Paper` | yes |
 | `toilet paper` | `paper towel` | no — the phrase is not there |
 | `milk` | `milkshake` | no — part of a word |
-| `egg` | `eggs` | no — no stemming; give the rule both triggers |
+| `egg` | `eggs` | yes — plural |
+| `tomato` | `roma tomatoes` | yes — plural |
+| `egg` | `eggplant` | no — part of a word |
+
+There is no synonym dictionary. A rule's several triggers are its synonyms
+("toilet paper", "loo roll").
 
 Every matching rule contributes, in the order the rules were made; repeated
 terms keep their first spelling, and the total is capped at the item's 10-chip
@@ -51,11 +60,21 @@ they made one. Rules are read inside the transaction that inserts the item.
 **Chips are copied, not linked.** Removing a chip from an item never edits the
 rule (the spec's "remove or override a filter chip directly on the grocery
 list"), and editing or deleting a rule never changes an item already on the
-list. A merge leaves chips alone so a chip somebody took off does not come
+list by itself. A merge leaves chips alone so a chip somebody took off does not come
 back with the next request.
 
+## Applying a rule to the list
+`POST /api/item-rules/{id}/apply` copies one rule's chips onto every `active`
+item its triggers match, after the item's own chips and within the 10-chip
+limit (`services/item_rules/reapply.rs`). It ignores `apply_to_manual`, since
+the request is the consent. Committed items are not touched. An item whose
+chips change loses its chosen products, as with any chip edit. The reply
+lists each changed item with `previous_filter_terms`; the web app's Undo
+writes those back with `PATCH /api/grocery-items/{id}` (chosen products are
+not restored).
+
 ## Endpoints
-All require a Clerk JWT.
+All require a household session.
 
 - `GET /api/item-rules` — every rule, oldest first.
 - `POST /api/item-rules` — `{"triggers": [str], "filter_terms": [str],
@@ -63,10 +82,15 @@ All require a Clerk JWT.
 - `PATCH /api/item-rules/{id}` — every field optional; a list that is sent
   replaces the stored one. `404` if missing, `422` if emptied.
 - `DELETE /api/item-rules/{id}` — `204`, `404` if missing.
+- `POST /api/item-rules/{id}/apply` — `200` with
+  `{"changed": [{"id", "name", "filter_terms", "previous_filter_terms"}]}`.
+  `404` if missing.
 
 ## Web app
-`/settings/item-rules`, linked from the nav as "Item Rules": an add form, then
-every rule as a card with inline Edit and Delete (Delete asks first). The
+`/settings/item-rules`, linked from the `/settings` index and its side
+navigation as "Item rules": an add form, then
+every rule as a card with Apply to list, inline Edit and Delete (Delete asks
+first). Apply to list shows "Filters added to N items" with Undo. The
 manual-additions switch is part of the rule's form, not a global setting.
 
 When an item is added or accepted and rules gave it chips, the success toast
@@ -90,16 +114,14 @@ and request-accepted events carry the resulting `filter_terms`.
 | Trigger tidying | `backend/src/services/item_rules/triggers.rs` |
 | Matcher | `backend/src/services/item_rules/matching.rs` |
 | Applying | `backend/src/services/item_rules/apply.rs` |
+| Applying to the list | `backend/src/services/item_rules/reapply.rs` |
 | SQL | `backend/src/services/item_rules/repository.rs` |
-| Backend tests | `backend/tests/item_rules.rs`, `item_rules_applied.rs` |
+| Backend tests | `backend/tests/item_rules.rs`, `item_rules_applied.rs`, `item_rules_reapply.rs` |
 | Page | `frontend/src/routes/settings/item-rules.tsx` |
 | Components | `frontend/src/components/item-rules/`, `components/terms/` |
 | API client | `frontend/src/lib/api/item-rules.ts` |
 | E2e | `frontend/e2e/item-rules.spec.ts` |
 
 ## Known gaps / next steps
-- No stemming or synonyms: "egg" and "eggs" need two triggers.
-- Rules are not re-applied to items already on the list when a rule is added.
-- No `/settings` index page yet; the nav links straight to Item Rules.
-
-Track these refinements in [issue #82](https://github.com/jesseross42/smart-home-groceries-listing/issues/82).
+- Irregular plurals ("leaf"/"leaves") need both forms as triggers.
+- Undo of Apply to list restores chips, not the products chosen before.
