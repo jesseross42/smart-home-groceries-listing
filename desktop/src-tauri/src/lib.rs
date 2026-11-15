@@ -2,6 +2,7 @@
 //! Woolworths (later Coles) steps on this computer.
 //! Spec: `docs/features/FEATURE_DESKTOP_APP.md`.
 
+mod autostart;
 mod commands;
 mod fill_failure;
 mod fill_operation;
@@ -18,7 +19,7 @@ mod windows;
 use tauri::WindowEvent;
 
 use fill_operation::FillOperations;
-use windows::main_window::{self, MAIN_LABEL};
+use windows::main_window::{self, Visibility, MAIN_LABEL};
 
 /// Builds and runs the app.
 pub fn run() {
@@ -34,6 +35,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_notification::init())
+        .plugin(autostart::plugin())
         .manage(FillOperations::default())
         .invoke_handler(tauri::generate_handler![
             commands::desktop::desktop_abilities,
@@ -45,7 +47,14 @@ pub fn run() {
         ])
         .setup(|app| {
             let handle = app.handle();
-            main_window::open(handle, startup::first_page(handle))?;
+            // A login start stays in the tray until the person opens it.
+            let visibility = if autostart::started_at_login(std::env::args()) {
+                log::info!("[app] started at login; staying in the tray");
+                Visibility::Hidden
+            } else {
+                Visibility::Shown
+            };
+            main_window::open(handle, startup::first_page(handle), visibility)?;
             tray::build(handle)?;
             Ok(())
         })

@@ -321,7 +321,8 @@ sessions through the private Core.
 Connect Tailscale before opening a private server address. The tray's **Reload
 server** retries the current page after a connection failure. **Change server
 address** saves a new frontend origin and restarts the app. Store login cookies
-remain in the native store window.
+remain in the native store window. Tick **Start at login** in the tray to
+launch the app into the tray at sign-in; untick it to stop.
 
 In **Send to Woolworths**, log in to Woolworths in its native window, choose a
 delivery time, then press **Fill trolley in the app**. The app reports the
