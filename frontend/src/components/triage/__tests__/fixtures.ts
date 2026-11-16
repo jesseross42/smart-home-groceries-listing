@@ -15,6 +15,7 @@ export function heldRequest(
 		triage_status: "held",
 		triage_reason: "Not sure what this is.",
 		triage_confidence: 0.4,
+		source_note: null,
 		...overrides,
 	};
 }

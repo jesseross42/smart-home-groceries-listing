@@ -45,6 +45,7 @@ pub fn google_tasks_settings(mode: GoogleTasksMode, base_url: &str) -> GoogleTas
         redirect_uri: "http://localhost:3000/settings/help".to_string(),
         auth_url: format!("{base_url}/o/oauth2/v2/auth"),
         token_url: format!("{base_url}/token"),
+        revoke_url: format!("{base_url}/revoke"),
         api_base: base_url.to_string(),
         timeout: std::time::Duration::from_secs(2),
         poll_in_background: false,

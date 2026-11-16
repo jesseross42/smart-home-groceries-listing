@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DeliverySettingsForm } from "#/components/delivery/delivery-settings-form";
@@ -26,6 +26,7 @@ const unset: DeliverySettings = {
 	mode: "minimise_total",
 	max_delivery_spend: null,
 	default_delivery_day: null,
+	allowed_delivery_days: [],
 };
 
 function renderForm(onSave = vi.fn().mockResolvedValue(undefined)) {
@@ -78,6 +79,7 @@ describe("DeliverySettingsForm", () => {
 			mode: "coles_only",
 			max_delivery_spend: "15",
 			default_delivery_day: null,
+			allowed_delivery_days: [],
 		});
 	});
 
@@ -87,12 +89,48 @@ describe("DeliverySettingsForm", () => {
 		expect(
 			screen.getByRole("button", { name: "No usual day" }),
 		).toHaveAttribute("aria-pressed", "true");
-		await userEvent.click(screen.getByRole("button", { name: "Saturday" }));
+		await userEvent.click(
+			within(
+				screen.getByRole("group", { name: "Usual delivery day" }),
+			).getByRole("button", { name: "Saturday" }),
+		);
 		await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
 		expect(onSave).toHaveBeenCalledWith(
 			expect.objectContaining({ default_delivery_day: "saturday" }),
 		);
+	});
+
+	it("saves the allowed delivery days, and pressing a day again takes it out", async () => {
+		const onSave = renderForm();
+		const allowed = within(
+			screen.getByRole("group", { name: "Allowed delivery days" }),
+		);
+
+		await userEvent.click(allowed.getByRole("button", { name: "Tuesday" }));
+		await userEvent.click(allowed.getByRole("button", { name: "Friday" }));
+		await userEvent.click(allowed.getByRole("button", { name: "Friday" }));
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+		expect(onSave).toHaveBeenCalledWith(
+			expect.objectContaining({ allowed_delivery_days: ["tuesday"] }),
+		);
+	});
+
+	it("refuses a usual day that is not an allowed day", async () => {
+		const onSave = renderForm();
+		const group = (name: string) => within(screen.getByRole("group", { name }));
+
+		await userEvent.click(
+			group("Usual delivery day").getByRole("button", { name: "Saturday" }),
+		);
+		await userEvent.click(
+			group("Allowed delivery days").getByRole("button", { name: "Tuesday" }),
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+		expect(screen.getByRole("alert")).toHaveTextContent("allowed days");
+		expect(onSave).not.toHaveBeenCalled();
 	});
 
 	it("explains a wrong amount and sends nothing", async () => {

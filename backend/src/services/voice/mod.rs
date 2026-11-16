@@ -69,6 +69,7 @@ impl<'a> VoiceService<'a> {
             payload.item.trim(),
             payload.quantity,
             triage.initial_status(),
+            None,
         )
         .await?;
         self.after_recorded(&request, triage).await?;
@@ -107,6 +108,7 @@ impl<'a> VoiceService<'a> {
             payload.item.trim(),
             payload.quantity,
             triage.initial_status(),
+            None,
         )
         .await?;
         self.after_recorded(&request, triage).await?;

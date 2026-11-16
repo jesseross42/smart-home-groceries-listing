@@ -129,7 +129,7 @@ async fn a_poll_turns_each_task_into_a_pending_request_and_deletes_it(pool: PgPo
     let (_, again) = app.poll_google_tasks().await;
     assert_eq!(
         again,
-        json!({ "recorded": 0, "already_seen": 0, "blank": 0, "not_deleted": 0 })
+        json!({ "recorded": 0, "already_seen": 0, "blank": 0, "headings": 0, "not_deleted": 0 })
     );
 }
 

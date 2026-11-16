@@ -56,6 +56,8 @@ impl FakeTasksApi {
         let task = RemoteTask {
             id: self.new_id(),
             title: title.to_string(),
+            notes: None,
+            parent: None,
         };
         let mut lists = self.lists.lock().expect("fake lists lock");
         let list = lists
@@ -154,6 +156,10 @@ impl TasksApi for FakeTasksApi {
             }
             Ok(())
         })
+    }
+
+    fn revoke<'a>(&'a self, refresh_token: &'a str) -> BoxFuture<'a, Result<(), GoogleError>> {
+        Box::pin(async move { Self::check(refresh_token) })
     }
 
     fn insert_task<'a>(

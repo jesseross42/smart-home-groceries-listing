@@ -19,6 +19,7 @@ pub fn saved(settings: &DeliverySettings, user_id: &str) {
         mode = ?settings.mode,
         max_delivery_spend = ?settings.max_delivery_spend,
         default_delivery_day = ?settings.default_delivery_day,
+        allowed_delivery_days = ?settings.allowed_delivery_days,
         user_id,
         "delivery settings saved"
     );

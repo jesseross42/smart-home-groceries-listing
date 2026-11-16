@@ -48,6 +48,8 @@ export interface PollReport {
 	recorded: number;
 	already_seen: number;
 	blank: number;
+	/** Tasks with subtasks: group names, not items. */
+	headings: number;
 	not_deleted: number;
 }
 
@@ -62,8 +64,12 @@ export const intakeApi = {
 			method: "POST",
 			body: JSON.stringify({ code, state }),
 		}),
+	/** Takes the sign-in back at Google and forgets it here. */
 	disconnect: () =>
-		request<void>("/api/intake/google-tasks/sign-in", { method: "DELETE" }),
+		request<{ revoked_at_google: boolean }>(
+			"/api/intake/google-tasks/sign-in",
+			{ method: "DELETE" },
+		),
 	lists: () => request<TaskList[]>("/api/intake/google-tasks/lists"),
 	saveChoices: (choices: GoogleTasksChoices) =>
 		request<GoogleTasksStatus>("/api/intake/google-tasks", {

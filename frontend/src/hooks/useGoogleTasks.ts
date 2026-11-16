@@ -104,10 +104,7 @@ export function useGoogleTasks(initial: GoogleTasksStatus) {
 	async function disconnect() {
 		const done = await run(
 			"disconnect",
-			async () => {
-				await api.intake.disconnect();
-				return true;
-			},
+			() => api.intake.disconnect(),
 			"Could not disconnect — try again.",
 		);
 		if (done) {
@@ -119,7 +116,13 @@ export function useGoogleTasks(initial: GoogleTasksStatus) {
 				polling: false,
 			}));
 			setLists(null);
-			toast("Google Tasks disconnected");
+			if (done.revoked_at_google) {
+				toast("Google Tasks disconnected");
+			} else {
+				toast.error(
+					"Disconnected here, but Google could not be reached. Remove the app's access in your Google account.",
+				);
+			}
 		}
 	}
 

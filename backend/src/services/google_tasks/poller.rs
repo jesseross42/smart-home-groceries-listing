@@ -5,10 +5,14 @@
 //! request is safely stored, so a crash or a database error can never lose
 //! one. A task whose delete failed is seen again next poll, recognised by its
 //! id, and its delete is retried; no second card appears.
+//!
+//! A task with subtasks is a heading, not an item ([`outline`]): it is
+//! deleted only after every subtask under it was stored and deleted.
 
 use sqlx::PgPool;
 
 use super::api::RemoteTask;
+use super::outline::{note_of, outline, subtasks_of};
 use super::registry::GoogleTasks;
 use super::title::parse_title;
 use super::{link_repository, log, sign_in};
@@ -87,30 +91,43 @@ impl<'a> TasksPoller<'a> {
     ) -> Result<PollReport, ApiError> {
         let token = sign_in::open(self.encryptor, link)?;
         let tasks = self.google.api.open_tasks(&token, list_id).await?;
+        let split = outline(&tasks);
         let mut report = PollReport::default();
-        for task in &tasks {
-            self.take_task(&token, list_id, task, &mut report).await?;
+        let mut gone = Vec::new();
+        for task in split.items {
+            if self.take_task(&token, list_id, task, &mut report).await? {
+                gone.push(task.id.as_str());
+            }
+        }
+        for heading in split.headings {
+            report.headings += 1;
+            let subtasks = subtasks_of(heading, &tasks);
+            if subtasks.iter().all(|id| gone.contains(id)) {
+                self.delete(&token, list_id, &heading.id, &mut report).await;
+            }
         }
         Ok(report)
     }
 
-    /// Records one task, then deletes it from Google.
+    /// Records one task, then deletes it from Google. True when it is gone
+    /// from Google.
     async fn take_task(
         &self,
         token: &str,
         list_id: &str,
         task: &RemoteTask,
         report: &mut PollReport,
-    ) -> Result<(), ApiError> {
+    ) -> Result<bool, ApiError> {
         let Some(parsed) = parse_title(&task.title) else {
             report.blank += 1;
-            return Ok(());
+            return Ok(false);
         };
         let item = PolledItem {
             external_id: task.id.clone(),
             raw_text: parsed.raw_text,
             name: parsed.name,
             quantity: parsed.quantity,
+            note: note_of(task),
         };
         let (_, delivery) = VoiceService::new(self.pool, self.hub)
             .record_polled(IntakeSource::Tasks, &item, self.triage)
@@ -120,11 +137,26 @@ impl<'a> TasksPoller<'a> {
             Delivery::AlreadySeen => report.already_seen += 1,
         }
         // Stored; only now may the task leave Google.
-        if let Err(err) = self.google.api.delete_task(token, list_id, &task.id).await {
-            log::delete_failed(&task.id, &err);
-            report.not_deleted += 1;
+        Ok(self.delete(token, list_id, &task.id, report).await)
+    }
+
+    /// Deletes one task from Google. True when it is gone; a failure is
+    /// counted and tried again next poll.
+    async fn delete(
+        &self,
+        token: &str,
+        list_id: &str,
+        task_id: &str,
+        report: &mut PollReport,
+    ) -> bool {
+        match self.google.api.delete_task(token, list_id, task_id).await {
+            Ok(()) => true,
+            Err(err) => {
+                log::delete_failed(task_id, &err);
+                report.not_deleted += 1;
+                false
+            }
         }
-        Ok(())
     }
 }
 

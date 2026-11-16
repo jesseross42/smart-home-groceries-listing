@@ -50,6 +50,8 @@ export interface DeliverySettings {
 	max_delivery_spend: string | null;
 	/** The day the delivery chooser starts on; `null` = tomorrow. */
 	default_delivery_day: DeliveryDay | null;
+	/** The weekdays a delivery may come on; empty = any day. */
+	allowed_delivery_days: DeliveryDay[];
 }
 
 export const deliverySettingsApi = {

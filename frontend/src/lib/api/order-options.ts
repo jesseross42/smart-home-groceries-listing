@@ -83,7 +83,14 @@ export interface OrderOptions {
 	within_days: number | null;
 	/** The stores' own fees the plan used instead of the typed ones. */
 	store_fees: StoreDayFee[];
+	/** The weekdays a delivery may come on; empty = any day. */
+	allowed_delivery_days: DeliveryDay[];
+	/** Set when the delivery asked for cannot come on an allowed day. */
+	delivery_problem: DeliveryProblem | null;
 }
+
+/** Why the delivery asked for breaks the allowed delivery days. */
+export type DeliveryProblem = "day_not_allowed" | "no_allowed_day_in_range";
 
 /** The cheapest fee a store showed for a day (from the bookmark). */
 export interface StoreDayFee {

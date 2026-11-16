@@ -59,5 +59,6 @@ pub fn settings(
         mode: OrderMode::MinimiseTotal,
         max_delivery_spend: None,
         default_delivery_day: None,
+        allowed_delivery_days: Vec::new(),
     }
 }

@@ -58,14 +58,18 @@ pub struct DeliverySettings {
     pub max_delivery_spend: Option<Decimal>,
     /// The day the delivery chooser starts on; `None` = tomorrow.
     pub default_delivery_day: Option<DeliveryDay>,
+    /// The weekdays a delivery may come on, Monday first; empty = any day.
+    pub allowed_delivery_days: Vec<DeliveryDay>,
 }
 
 /// The preferences saved with the stores' rules.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Preferences {
     pub mode: OrderMode,
     pub max_delivery_spend: Option<Decimal>,
     pub default_delivery_day: Option<DeliveryDay>,
+    /// The weekdays a delivery may come on; empty = any day.
+    pub allowed_delivery_days: Vec<DeliveryDay>,
 }
 
 impl DeliverySettings {
@@ -117,7 +121,10 @@ impl<'a> DeliverySettingsService<'a> {
             stores,
             mode: preferences.as_ref().map_or(DEFAULT_MODE, |p| p.mode),
             max_delivery_spend: preferences.as_ref().and_then(|p| p.max_delivery_spend),
-            default_delivery_day: preferences.and_then(|p| p.default_delivery_day),
+            default_delivery_day: preferences.as_ref().and_then(|p| p.default_delivery_day),
+            allowed_delivery_days: preferences
+                .map(|p| p.allowed_delivery_days)
+                .unwrap_or_default(),
         })
     }
 

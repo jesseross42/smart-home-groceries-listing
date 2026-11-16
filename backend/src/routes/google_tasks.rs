@@ -18,7 +18,7 @@ use crate::models::schemas::{
 };
 use crate::routes::extract::ValidatedJson;
 use crate::services::google_tasks::fake::FAKE_GROCERIES_LIST;
-use crate::services::google_tasks::{TasksConnection, TasksPoller};
+use crate::services::google_tasks::{Disconnected, TasksConnection, TasksPoller};
 use crate::state::AppState;
 
 /// Routes under `/api/intake/google-tasks`, plus the fake's test door.
@@ -76,10 +76,13 @@ async fn finish_sign_in(
     Ok(Json(status_of(&state, Some(&link))))
 }
 
-/// `DELETE /api/intake/google-tasks/sign-in` — forget the sign-in.
-async fn disconnect(State(state): State<AppState>, user: AuthUser) -> Result<StatusCode, ApiError> {
-    connection(&state).disconnect(&user.id).await?;
-    Ok(StatusCode::NO_CONTENT)
+/// `DELETE /api/intake/google-tasks/sign-in` — take the sign-in back at
+/// Google and forget it here: `{revoked_at_google}`.
+async fn disconnect(
+    State(state): State<AppState>,
+    user: AuthUser,
+) -> Result<Json<Disconnected>, ApiError> {
+    Ok(Json(connection(&state).disconnect(&user.id).await?))
 }
 
 /// `GET /api/intake/google-tasks/lists` — the lists on the account.

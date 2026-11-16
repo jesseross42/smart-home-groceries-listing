@@ -20,8 +20,13 @@ pub fn sign_in_refused(user_id: &str) {
 }
 
 /// A household member disconnected Google Tasks.
-pub fn disconnected(user_id: &str) {
-    tracing::info!(user_id, "google tasks disconnected");
+pub fn disconnected(revoked_at_google: bool, user_id: &str) {
+    tracing::info!(revoked_at_google, user_id, "google tasks disconnected");
+}
+
+/// Google did not take the sign-in back on Disconnect. Never the token.
+pub fn revoke_failed(err: &super::api::GoogleError, user_id: &str) {
+    tracing::warn!(error = %err, user_id, "google tasks sign-in not revoked at google");
 }
 
 /// The list, polling switch or interval changed.
@@ -44,6 +49,7 @@ pub fn polled(report: &PollReport) {
             recorded = report.recorded,
             already_seen = report.already_seen,
             blank = report.blank,
+            headings = report.headings,
             not_deleted = report.not_deleted,
             "google tasks polled"
         );

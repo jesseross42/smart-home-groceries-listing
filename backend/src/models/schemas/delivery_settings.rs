@@ -36,6 +36,7 @@ pub struct StoreFeeRulesBody {
 /// Settings › Delivery, both ways. `PUT` replaces the preferences and the
 /// rules of every store it lists; stores it leaves out keep theirs.
 #[derive(Debug, Serialize, Deserialize, Validate)]
+#[validate(schema(function = "usual_day_is_allowed"))]
 pub struct DeliverySettingsBody {
     #[validate(length(max = 2), nested)]
     pub stores: Vec<StoreFeeRulesBody>,
@@ -45,6 +46,10 @@ pub struct DeliverySettingsBody {
     /// The day the delivery chooser starts on. Left out or `null` = tomorrow.
     #[serde(default)]
     pub default_delivery_day: Option<DeliveryDay>,
+    /// The weekdays a delivery may come on. Left out or empty = any day.
+    #[serde(default)]
+    #[validate(length(max = 7))]
+    pub allowed_delivery_days: Vec<DeliveryDay>,
 }
 
 impl DeliverySettingsBody {
@@ -54,7 +59,16 @@ impl DeliverySettingsBody {
             mode: self.mode,
             max_delivery_spend: self.max_delivery_spend,
             default_delivery_day: self.default_delivery_day,
+            allowed_delivery_days: self.allowed_days(),
         }
+    }
+
+    /// The allowed days, each once, Monday first.
+    fn allowed_days(&self) -> Vec<DeliveryDay> {
+        let mut days = self.allowed_delivery_days.clone();
+        days.sort();
+        days.dedup();
+        days
     }
 
     /// The stores' rules, as the service takes them.
@@ -95,7 +109,21 @@ impl From<DeliverySettings> for DeliverySettingsBody {
             mode: settings.mode,
             max_delivery_spend: settings.max_delivery_spend,
             default_delivery_day: settings.default_delivery_day,
+            allowed_delivery_days: settings.allowed_delivery_days,
         }
+    }
+}
+
+/// The usual day must be one of the allowed days, when both are set.
+fn usual_day_is_allowed(body: &DeliverySettingsBody) -> Result<(), ValidationError> {
+    match body.default_delivery_day {
+        Some(day)
+            if !body.allowed_delivery_days.is_empty()
+                && !body.allowed_delivery_days.contains(&day) =>
+        {
+            Err(ValidationError::new("usual_day_not_allowed"))
+        }
+        _ => Ok(()),
     }
 }
 

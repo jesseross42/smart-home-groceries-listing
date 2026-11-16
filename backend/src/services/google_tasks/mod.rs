@@ -9,6 +9,7 @@
 //! | `fake.rs` | an in-memory account for development, tests and e2e |
 //! | `registry.rs` | picks the client from `GOOGLE_TASKS_CLIENT` |
 //! | `title.rs` | "2 oat milk" → name and quantity (pure) |
+//! | `outline.rs` | headings, subtasks and notes (pure) |
 //! | `sign_in.rs` | sealing and opening the stored refresh token |
 //! | `oauth_states.rs` | one-use sign-in `state` values (SQL) |
 //! | `link_repository.rs` | the stored link and choices (SQL) |
@@ -25,6 +26,7 @@ pub mod link_repository;
 pub mod live;
 mod log;
 mod oauth_states;
+pub mod outline;
 mod poller;
 pub mod registry;
 mod restore;
@@ -33,7 +35,7 @@ mod sign_in;
 pub mod title;
 
 pub use api::{GoogleError, RemoteTask, TaskList, TasksApi};
-pub use connection::TasksConnection;
+pub use connection::{Disconnected, TasksConnection};
 pub use fake::FakeTasksApi;
 pub use poller::TasksPoller;
 pub use registry::GoogleTasks;

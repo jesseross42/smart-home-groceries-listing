@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { DeliveryProblemNote } from "#/components/order-options/delivery-problem-note";
 import { OptionCard } from "#/components/order-options/option-card";
 import type { OrderOption, OrderOptions as OrderOptionsData } from "#/lib/api";
 
@@ -7,7 +8,8 @@ import type { OrderOption, OrderOptions as OrderOptionsData } from "#/lib/api";
  * The ways to buy the committed list, best first, each with delivery fees.
  *
  * `children` are shown when a delivery fee is not set yet (a link to
- * Settings › Delivery), so this part never needs the router. Renders nothing
+ * Settings › Delivery), so this part never needs the router. A delivery
+ * that cannot come on an allowed day is said above the options. Renders nothing
  * when there is nothing to buy.
  */
 export function OrderOptions({
@@ -32,6 +34,12 @@ export function OrderOptions({
 						" Many items can go either way, so the mix shown is a very good one, not every combination."}
 				</p>
 			</div>
+			{plan.delivery_problem && (
+				<DeliveryProblemNote
+					problem={plan.delivery_problem}
+					allowedDays={plan.allowed_delivery_days}
+				/>
+			)}
 			{feesMissing && children}
 			{plan.options.map((option) => (
 				<OptionCard

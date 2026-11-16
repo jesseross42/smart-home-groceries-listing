@@ -15,6 +15,11 @@ export function pollReportMessage(report: PollReport): string {
 			`${plural(report.blank, "empty task", "empty tasks")} left alone.`,
 		);
 	}
+	if (report.headings > 0) {
+		parts.push(
+			`${plural(report.headings, "task with subtasks", "tasks with subtasks")} read as a group name, not an item.`,
+		);
+	}
 	if (report.not_deleted > 0) {
 		parts.push(
 			`${plural(report.not_deleted, "task", "tasks")} could not be removed from Google — will try again.`,

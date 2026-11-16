@@ -154,3 +154,45 @@ async fn the_usual_delivery_day_is_saved_cleared_and_checked(pool: PgPool) {
         .await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
 }
+
+#[sqlx::test]
+async fn allowed_delivery_days_are_saved_sorted_cleared_and_checked(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let with_days = |days: Value, usual: Value| {
+        json!({
+            "stores": [],
+            "mode": "manual",
+            "allowed_delivery_days": days,
+            "default_delivery_day": usual,
+        })
+    };
+    assert_eq!(read(&app).await["allowed_delivery_days"], json!([]));
+
+    let days = json!(["saturday", "tuesday", "saturday"]);
+    let (status, body) = app
+        .put_json("/api/delivery-settings", &with_days(days, json!("tuesday")))
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(
+        read(&app).await["allowed_delivery_days"],
+        json!(["tuesday", "saturday"])
+    );
+
+    // A usual day that is not allowed, and an unknown day, are refused.
+    for refused in [
+        with_days(json!(["tuesday"]), json!("friday")),
+        with_days(json!(["someday"]), Value::Null),
+    ] {
+        let (status, _) = app.put_json("/api/delivery-settings", &refused).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{refused}");
+    }
+    assert_eq!(
+        read(&app).await["allowed_delivery_days"],
+        json!(["tuesday", "saturday"])
+    );
+
+    // Saving the earlier settings again is the Undo.
+    app.put_json("/api/delivery-settings", &with_days(json!([]), Value::Null))
+        .await;
+    assert_eq!(read(&app).await["allowed_delivery_days"], json!([]));
+}

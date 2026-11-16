@@ -30,7 +30,7 @@ where
 {
     Ok(sqlx::query_as::<_, VoiceRequest>(
         "SELECT id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence
+                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence, source_note
          FROM voice_requests
          WHERE status = 'pending' AND triage_status IN ('approved', 'skipped')
          ORDER BY created_at DESC",
@@ -75,7 +75,7 @@ where
 {
     Ok(sqlx::query_as::<_, VoiceRequest>(
         "SELECT id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence
+                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence, source_note
          FROM voice_requests
          WHERE source = $1 AND external_id = $2",
     )
@@ -95,6 +95,7 @@ pub async fn insert_request<'e, E>(
     parsed_name: &str,
     quantity: i32,
     triage_status: TriageStatus,
+    source_note: Option<&str>,
 ) -> Result<VoiceRequest, ApiError>
 where
     E: PgExecutor<'e>,
@@ -102,11 +103,11 @@ where
     Ok(sqlx::query_as::<_, VoiceRequest>(
         "INSERT INTO voice_requests
              (id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-              triage_status)
-         VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)
+              triage_status, source_note)
+         VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)
          RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
                    grocery_item_id, created_at, triage_status, triage_reason,
-                   triage_confidence",
+                   triage_confidence, source_note",
     )
     .bind(Uuid::new_v4())
     .bind(source)
@@ -115,6 +116,7 @@ where
     .bind(parsed_name)
     .bind(quantity)
     .bind(triage_status)
+    .bind(source_note)
     .fetch_one(executor)
     .await?)
 }
@@ -132,7 +134,7 @@ where
          WHERE id = $1 AND status = 'pending'
          RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
                    grocery_item_id, created_at, triage_status, triage_reason,
-                   triage_confidence",
+                   triage_confidence, source_note",
     )
     .bind(request_id)
     .fetch_optional(executor)
@@ -146,7 +148,7 @@ pub async fn lock_request(
 ) -> Result<Option<VoiceRequest>, ApiError> {
     Ok(sqlx::query_as::<_, VoiceRequest>(
         "SELECT id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence
+                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence, source_note
          FROM voice_requests
          WHERE id = $1
          FOR UPDATE",
@@ -170,7 +172,7 @@ pub async fn mark_accepted(
          WHERE id = $1
          RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
                    grocery_item_id, created_at, triage_status, triage_reason,
-                   triage_confidence",
+                   triage_confidence, source_note",
     )
     .bind(request_id)
     .bind(name)

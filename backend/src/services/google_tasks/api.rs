@@ -20,6 +20,10 @@ pub struct RemoteTask {
     pub id: String,
     /// What the person typed or said, e.g. "2 oat milk".
     pub title: String,
+    /// The task's notes, if any ("the lactose-free one").
+    pub notes: Option<String>,
+    /// The task this one is a subtask of, if any.
+    pub parent: Option<String>,
 }
 
 /// Why a call to Google did not work. Shown to the household, so the message
@@ -71,6 +75,10 @@ pub trait TasksApi: Send + Sync {
         list_id: &'a str,
         task_id: &'a str,
     ) -> BoxFuture<'a, Result<(), GoogleError>>;
+
+    /// Takes the sign-in back at Google, as "Remove access" in the Google
+    /// account does. A sign-in that is already gone counts as taken back.
+    fn revoke<'a>(&'a self, refresh_token: &'a str) -> BoxFuture<'a, Result<(), GoogleError>>;
 
     /// Adds a task to a list and returns it, with its new id.
     fn insert_task<'a>(

@@ -37,6 +37,8 @@ pub struct GoogleTasksSettings {
     pub auth_url: String,
     /// Google's token endpoint. Overridable only for tests.
     pub token_url: String,
+    /// Google's endpoint that takes a sign-in back. Overridable only for tests.
+    pub revoke_url: String,
     /// The Tasks API root. Overridable only for tests.
     pub api_base: String,
     /// How long one call to Google may take.
@@ -72,6 +74,10 @@ impl GoogleTasksSettings {
             token_url: google_endpoint(
                 "GOOGLE_OAUTH_TOKEN_URL",
                 "https://oauth2.googleapis.com/token",
+            )?,
+            revoke_url: google_endpoint(
+                "GOOGLE_OAUTH_REVOKE_URL",
+                "https://oauth2.googleapis.com/revoke",
             )?,
             api_base: google_endpoint("GOOGLE_TASKS_API_BASE", "https://tasks.googleapis.com")?,
             timeout: Duration::from_secs(parse_or("GOOGLE_TIMEOUT_SECONDS", 15)?),
@@ -144,6 +150,7 @@ mod tests {
             redirect_uri: String::new(),
             auth_url: String::new(),
             token_url: String::new(),
+            revoke_url: String::new(),
             api_base: String::new(),
             timeout: Duration::from_secs(1),
             poll_in_background: false,
