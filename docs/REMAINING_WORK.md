@@ -23,7 +23,7 @@ behavioral contract.
 
 - [#72 — Enable Coles login, trolley fill, and checkout in the desktop app](https://github.com/jesseross42/smart-home-groceries-listing/issues/72)
 - [#70 — Read live delivery windows and fees from Woolworths and Coles](https://github.com/jesseross42/smart-home-groceries-listing/issues/70)
-- [#74 — Add delivery constraints to order planning](https://github.com/jesseross42/smart-home-groceries-listing/issues/74)
+- [#74 — Add delivery constraints to order planning](https://github.com/jesseross42/smart-home-groceries-listing/issues/74) (allowed days built; need-by time and perishable timing left)
 - [#71 — Add one-tap order placement through the desktop app](https://github.com/jesseross42/smart-home-groceries-listing/issues/71)
 - [#79 — Use member pricing and cross-product multibuys](https://github.com/jesseross42/smart-home-groceries-listing/issues/79)
 - [#78 — Import Woolworths and Coles order history](https://github.com/jesseross42/smart-home-groceries-listing/issues/78)
@@ -36,7 +36,6 @@ behavioral contract.
 
 ### Integration follow-ups and maintenance
 
-- [#86 — Handle Google Tasks subtasks, notes, and disconnect revocation](https://github.com/jesseross42/smart-home-groceries-listing/issues/86)
 - [#85 — Verify live store and voice integrations end to end](https://github.com/jesseross42/smart-home-groceries-listing/issues/85)
 
 ## Deliberately out of the roadmap
