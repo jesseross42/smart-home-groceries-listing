@@ -99,7 +99,7 @@ pub fn cheapest(fees: &[DayFee], store: Store, day: Option<DeliveryDay>) -> Opti
 }
 
 /// The chrono weekday for a delivery day.
-fn weekday(day: DeliveryDay) -> Weekday {
+pub fn weekday(day: DeliveryDay) -> Weekday {
     match day {
         DeliveryDay::Monday => Weekday::Mon,
         DeliveryDay::Tuesday => Weekday::Tue,

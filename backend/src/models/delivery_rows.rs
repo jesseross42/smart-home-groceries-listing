@@ -41,7 +41,9 @@ pub enum OrderMode {
 }
 
 /// A day of the week the household usually takes deliveries on.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, sqlx::Type,
+)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum DeliveryDay {
@@ -62,6 +64,8 @@ pub struct OrderPreferences {
     pub max_delivery_spend: Option<Decimal>,
     /// The day the delivery chooser starts on; `None` = tomorrow.
     pub default_delivery_day: Option<DeliveryDay>,
+    /// The weekdays a delivery may come on; empty = any day.
+    pub allowed_delivery_days: Vec<DeliveryDay>,
     pub updated_by: String,
     pub updated_at: DateTime<Utc>,
 }

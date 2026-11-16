@@ -15,11 +15,14 @@
 //! (`SelectionService::buy_at`).
 //!
 //! Each store's fee is the cheapest it showed on the delivery day when the
-//! bookmark reported one ([`fee_days`], issue #70), else the typed fee.
+//! bookmark reported one ([`fee_days`], issue #70), else the typed fee. Only
+//! the household's allowed delivery days count, and nothing is recommended
+//! when the delivery asked for cannot come on one ([`allowed_days`], #74).
 //!
 //! Delivery charge in [`fees`]; one option in [`option`]; the best mix in
 //! [`search`]; ranking in [`rank`]; putting it together in [`build`].
 
+mod allowed_days;
 mod build;
 mod combine;
 mod dislikes;
@@ -30,6 +33,7 @@ mod option;
 mod rank;
 mod search;
 
+pub use allowed_days::DayProblem;
 pub use fees::DeliveryCharge;
 pub use option::{DislikedPick, Missing, OptionKind, PlanOption, StorePart};
 
@@ -81,6 +85,8 @@ pub struct PlannedOrder {
     pub within_days: Option<u8>,
     /// The stores' own fees the plan used instead of the typed ones.
     pub store_fees: Vec<DayFee>,
+    /// Why the delivery asked for cannot come on an allowed day, if so.
+    pub day_problem: Option<DayProblem>,
 }
 
 /// Which day the plan costs delivery on.
@@ -128,8 +134,17 @@ impl<'a> OrderPlanService<'a> {
             DayChoice::On(day) => Some(day),
             DayChoice::Any | DayChoice::Within(_) => None,
         };
-        let mut reported = DeliveryDayFeeService::new(self.pool).upcoming().await?;
-        if let DayChoice::Within(days_ahead) = day {
+        let within_days = match day {
+            DayChoice::Within(days_ahead) => Some(days_ahead),
+            _ => None,
+        };
+        let allowed = &settings.allowed_delivery_days;
+        let day_problem = allowed_days::problem(allowed, delivery_day, store_today(), within_days);
+        let mut reported = allowed_days::only_allowed(
+            &DeliveryDayFeeService::new(self.pool).upcoming().await?,
+            allowed,
+        );
+        if let Some(days_ahead) = within_days {
             reported = within(&reported, store_today(), days_ahead);
         }
         let store_fees = fee_days::use_store_fees(&mut settings, &reported, delivery_day);
@@ -193,17 +208,19 @@ impl<'a> OrderPlanService<'a> {
             });
         }
 
-        let plan = build::plan(mode, &candidates, unchosen, &settings);
+        let mut plan = build::plan(mode, &candidates, unchosen, &settings);
+        if day_problem.is_some() {
+            // No option can be delivered as asked, so none is recommended.
+            plan.recommended = None;
+        }
         log::planned(&plan);
         Ok(PlannedOrder {
             plan,
             settings,
             delivery_day,
-            within_days: match day {
-                DayChoice::Within(days_ahead) => Some(days_ahead),
-                _ => None,
-            },
+            within_days,
             store_fees,
+            day_problem,
         })
     }
 }

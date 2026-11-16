@@ -13,7 +13,8 @@ use super::order_review::{OrderLineResponse, UnchosenItemResponse};
 use super::selections::OrderStorePick;
 use crate::models::delivery_rows::{DeliveryDay, OrderMode};
 use crate::services::order_plan::{
-    DayChoice, DislikedPick, Missing, OptionKind, OrderPlan, PlanOption, PlannedOrder, StorePart,
+    DayChoice, DayProblem, DislikedPick, Missing, OptionKind, OrderPlan, PlanOption, PlannedOrder,
+    StorePart,
 };
 use crate::services::stores::Store;
 
@@ -84,6 +85,30 @@ pub struct OrderOptionsResponse {
     pub within_days: Option<u8>,
     /// The stores' own fees used instead of the typed ones.
     pub store_fees: Vec<StoreDayFeeResponse>,
+    /// The weekdays a delivery may come on; empty = any day.
+    pub allowed_delivery_days: Vec<DeliveryDay>,
+    /// Why the delivery asked for cannot come on an allowed day; when set,
+    /// no option is recommended.
+    pub delivery_problem: Option<DeliveryProblemResponse>,
+}
+
+/// Why the delivery asked for breaks the allowed delivery days.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeliveryProblemResponse {
+    /// The weekday asked for is not an allowed day.
+    DayNotAllowed,
+    /// No allowed day falls within the days asked for.
+    NoAllowedDayInRange,
+}
+
+impl From<DayProblem> for DeliveryProblemResponse {
+    fn from(problem: DayProblem) -> Self {
+        match problem {
+            DayProblem::DayNotAllowed => Self::DayNotAllowed,
+            DayProblem::NoAllowedDayInRange => Self::NoAllowedDayInRange,
+        }
+    }
 }
 
 /// The cheapest fee a store showed for a day, as the plan used it.
@@ -165,6 +190,7 @@ impl OrderOptionsResponse {
             delivery_day,
             within_days,
             store_fees,
+            day_problem,
         } = planned;
         let OrderPlan {
             mode,
@@ -186,6 +212,8 @@ impl OrderOptionsResponse {
             unchosen: unchosen.into_iter().map(Into::into).collect(),
             exact,
             max_delivery_spend: settings.max_delivery_spend,
+            allowed_delivery_days: settings.allowed_delivery_days,
+            delivery_problem: day_problem.map(Into::into),
             delivery_day,
             within_days,
             store_fees: store_fees
