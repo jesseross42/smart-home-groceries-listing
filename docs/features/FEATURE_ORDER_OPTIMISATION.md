@@ -2,8 +2,8 @@
 
 Status: **built — the order review, delivery fees, the modes and the
 split-store planner (`/order`, `/settings/delivery`).** Fees per day come from the
-bookmark (issue #70). Need-by dates, allowed days and perishable timing are **not built** (see
-"Not built").
+bookmark (issue #70). Allowed delivery days are built (issue #74). Need-by
+time of day and perishable timing are **not built** (see "Not built").
 
 ## Ways to buy (the planner)
 An item may have a chosen product at **each** store
@@ -84,20 +84,28 @@ day chooser starts (`FEATURE_TROLLEY_HANDOFF.md`). Woolworths also has a
 **Delivery address** (`store_delivery_fees.delivery_address`, ≤ 200 chars,
 blank = the account's): one of the account's saved addresses, which the
 bookmark picks before a time.
+**Allowed delivery days** (weekday toggles; none = any day,
+`order_preferences.allowed_delivery_days`): the planner only uses the
+stores' fees on these days. When the weekday asked for (or the usual day)
+is not allowed, or no allowed day falls within the **Delivery comes** range,
+`/order` says so above the options and nothing is **Recommended**, so
+nothing is applied by itself. The usual day must be an allowed day (422).
 An unset fee counts as $0 and every option using it says so. Saving shows
 **Undo**. Amounts are $0–$1000 in whole cents.
 
 | Method | Path | Auth | Answer |
 |---|---|---|---|
-| `GET` | `/api/delivery-settings` | Clerk | 200 `{stores: [{store, store_name, delivery_fee, free_delivery_over, minimum_order}], mode, max_delivery_spend, default_delivery_day}` |
-| `PUT` | `/api/delivery-settings` | Clerk | 200 the saved settings; 422 amount out of range, unknown mode. Stores left out keep their rules |
-| `GET` | `/api/order-options[?mode=&day=&within=]` | Clerk | 200 `{mode, delivery_day, within_days, store_fees: [{store, store_name, date, fee}], options: [{kind, label, recommended, is_current, stores: [{store, lines, subtotal, delivery_fee, fee_known, free_delivery, below_minimum, minimum_order}], missing: [{grocery_item_id, name, reason}], disliked: [{grocery_item_id, name, store, store_name, disliked_by, avoidable}], items_total, delivery_total, total, complete, fees_known, meets_minimums, within_delivery_cap, picks}], unchosen, exact, max_delivery_spend}`; 422 unknown mode or day, `within` over 7 |
+| `GET` | `/api/delivery-settings` | Clerk | 200 `{stores: [{store, store_name, delivery_fee, free_delivery_over, minimum_order}], mode, max_delivery_spend, default_delivery_day, allowed_delivery_days}` |
+| `PUT` | `/api/delivery-settings` | Clerk | 200 the saved settings; 422 amount out of range, unknown mode or day, usual day not an allowed day. Stores left out keep their rules |
+| `GET` | `/api/order-options[?mode=&day=&within=]` | Clerk | 200 `{mode, delivery_day, within_days, store_fees: [{store, store_name, date, fee}], options: [{kind, label, recommended, is_current, stores: [{store, lines, subtotal, delivery_fee, fee_known, free_delivery, below_minimum, minimum_order}], missing: [{grocery_item_id, name, reason}], disliked: [{grocery_item_id, name, store, store_name, disliked_by, avoidable}], items_total, delivery_total, total, complete, fees_known, meets_minimums, within_delivery_cap, picks}], unchosen, exact, max_delivery_spend, allowed_delivery_days, delivery_problem: null|day_not_allowed|no_allowed_day_in_range}`; 422 unknown mode or day, `within` over 7 |
 | `PUT` | `/api/order-stores` `{picks}` | Clerk | 204; 422 nothing changed when an item has no choice at its store |
 
 Data: migration `20261003080000_delivery_settings.sql` — `store_delivery_fees`
 (one row per store) and `order_preferences` (one row, `id = 1`);
 `20261114090000_default_delivery_day.sql` adds `default_delivery_day`;
-`20261115100000_store_delivery_day_fees.sql` keeps the stores' fees per day.
+`20261115100000_store_delivery_day_fees.sql` keeps the stores' fees per day;
+`20261116040000_allowed_delivery_days.sql` adds `allowed_delivery_days`.
+Code: `services/order_plan/allowed_days.rs`.
 Log: `order options planned` (mode, each option's total, recommended, exact),
 `delivery settings saved`, `order stores set for items`.
 
@@ -200,8 +208,8 @@ review; `order line needs attention` (warn) for a line with a problem;
 - Fees for a day nobody has filled a trolley since: the stores' times are
   read only by the bookmark, in the household's logged-in tab, and the
   15-minute hold is the store's.
-- Delivery constraints that need windows: need-by date/time, allowed days,
-  perishable timing.
+- Delivery constraints that need windows: need-by time of day, perishable
+  timing (issue #74 stays open for these).
 - "Prefer specials" mode.
 - Skipping disliked products, and the warning before confirming. The rule
   is ready to call: `services/dislikes/skip.rs` (`FEATURE_DISLIKES.md`).
