@@ -41,6 +41,13 @@ The spec's brief guessed at Google; checked before building:
 - Per task: blank title → left on the list (`blank`). Otherwise
   `services/google_tasks/title.rs` reads `2 oat milk`, `2x milk`,
   `milk x2`, `milk × 3`; the raw title is kept as `raw_text`.
+- Notes and subtasks (issue #86, `services/google_tasks/outline.rs`): a
+  task's notes are kept as the request's `source_note` (trimmed, ≤ 2000
+  chars), shown on the Pending and Triage cards, never parsed and never sent
+  to the classifier. A task that is another open task's `parent` is a
+  heading: never recorded (`headings` in the report), and deleted only after
+  every subtask under it was stored and deleted, because deleting a parent
+  takes its subtasks with it. Every other task, subtask or not, is an item.
 - Record, **then** delete. The task id is the request's `external_id`; the
   unique index `(source, external_id)` makes a re-poll a no-op
   (`already_seen`), whose delete is retried.
@@ -88,7 +95,7 @@ typed marker can never skip triage.
 | `DELETE` | `/api/intake/google-tasks/sign-in` | 200 `{revoked_at_google}` |
 | `GET` | `/api/intake/google-tasks/lists` | lists on the account; 409 not connected |
 | `PUT` | `/api/intake/google-tasks` | `{task_list_id, enabled, poll_seconds}`; 404 list not on the account, 409 on without a list, 422 interval |
-| `POST` | `/api/intake/google-tasks/poll` | "Check now" → `{recorded, already_seen, blank, not_deleted}`; 409 not set up; 503 Google unavailable |
+| `POST` | `/api/intake/google-tasks/poll` | "Check now" → `{recorded, already_seen, blank, headings, not_deleted}`; 409 not set up; 503 Google unavailable |
 | `POST` | `/api/dev/google-tasks/tasks` | fake only: add a task to "Groceries"; 404 against real Google |
 
 ## Settings
@@ -110,7 +117,7 @@ travel to them; the backend refuses to start otherwise.
 | SQL | `services/google_tasks/{link_repository,oauth_states}.rs`, `services/voice/restore_repository.rs` |
 | Recording a polled item | `services/voice/polled.rs` |
 | Routes | `backend/src/routes/{google_tasks,intake_settings,triage}.rs` |
-| Migration | `backend/migrations/20261002130000_google_tasks_intake.sql` |
+| Migration | `backend/migrations/20261002130000_google_tasks_intake.sql`, `20261116100000_voice_request_source_note.sql` |
 | Page | `frontend/src/routes/settings/help.tsx`, `components/intake/`, `hooks/useGoogleTasks.ts`, `hooks/useGoogleSignInReturn.ts` |
 | Restore button | `components/triage/triage-request-card.tsx`, `hooks/useTriageDecisions.ts` |
 
@@ -128,4 +135,3 @@ travel to them; the backend refuses to start otherwise.
 
 ## Known gaps
 - Never run against a real Google account (no account in CI, by rule).
-- Subtasks are treated like tasks. Task notes are ignored.

@@ -76,7 +76,10 @@ Needs [`human-setup.md` → Optional: Google Tasks](human-setup.md#optional-goog
 Add a task such as `2 oat milk` to the watched list (quantity first; `2 x`,
 `x2` also parse). The backend polls every `poll_seconds` (default 60), records
 each open task as a **pending** request and deletes it from Google. **Intake
-→ Check now** polls immediately.
+→ Check now** polls immediately. A task's notes show on its Pending card. A
+task with subtasks is a group name: each subtask becomes an item, and the
+group task is deleted after them. **Disconnect** also removes the app's
+access in your Google account.
 
 1. Open **Pending Requests** and **Accept** as for voice.
 
