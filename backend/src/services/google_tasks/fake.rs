@@ -156,6 +156,10 @@ impl TasksApi for FakeTasksApi {
         })
     }
 
+    fn revoke<'a>(&'a self, refresh_token: &'a str) -> BoxFuture<'a, Result<(), GoogleError>> {
+        Box::pin(async move { Self::check(refresh_token) })
+    }
+
     fn insert_task<'a>(
         &'a self,
         refresh_token: &'a str,

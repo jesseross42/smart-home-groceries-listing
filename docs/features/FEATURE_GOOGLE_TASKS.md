@@ -59,8 +59,12 @@ The refresh token is AES-256-GCM encrypted (`CREDENTIAL_ENCRYPTION_KEY`) in
 `google_tasks_link`, decrypted only for a call, never logged or returned.
 Access tokens are cached in memory until a minute before expiry. A 401 from
 the API or `invalid_grant` from the token endpoint → "connect Google Tasks
-again" (409). Disconnect forgets the token and stops polling; it does not
-revoke it at Google (the person can remove access in their Google account).
+again" (409). Disconnect first revokes the refresh token at Google
+(`POST` to `GOOGLE_OAUTH_REVOKE_URL`, `token=`; a 400 means Google already
+dropped it and counts as revoked), then forgets it here and stops polling.
+When Google cannot be reached it still forgets the token, answers
+`revoked_at_google: false`, and the page tells the person to remove access in
+their Google account (issue #86).
 
 Google only accepts `http` redirect URIs on `localhost`, so with the default
 `GOOGLE_REDIRECT_URI` the household connects from a browser on the home
@@ -81,7 +85,7 @@ typed marker can never skip triage.
 | `GET` | `/api/intake/settings` | every channel's status, the triage provider; never a secret |
 | `POST` | `/api/intake/google-tasks/sign-in` | `{authorize_url}`; 500 when the client or encryption key is missing |
 | `POST` | `/api/intake/google-tasks/sign-in/finish` | `{code, state}` → status; 409 bad/expired/reused state or code |
-| `DELETE` | `/api/intake/google-tasks/sign-in` | 204 |
+| `DELETE` | `/api/intake/google-tasks/sign-in` | 200 `{revoked_at_google}` |
 | `GET` | `/api/intake/google-tasks/lists` | lists on the account; 409 not connected |
 | `PUT` | `/api/intake/google-tasks` | `{task_list_id, enabled, poll_seconds}`; 404 list not on the account, 409 on without a list, 422 interval |
 | `POST` | `/api/intake/google-tasks/poll` | "Check now" → `{recorded, already_seen, blank, not_deleted}`; 409 not set up; 503 Google unavailable |
@@ -91,7 +95,8 @@ typed marker can never skip triage.
 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
 (default `http://localhost:3000/settings/help`), `GOOGLE_TASKS_CLIENT`
 (`live` | `fake`), `GOOGLE_TIMEOUT_SECONDS` (15). Test-only overrides:
-`GOOGLE_OAUTH_AUTH_URL`, `GOOGLE_OAUTH_TOKEN_URL`, `GOOGLE_TASKS_API_BASE`,
+`GOOGLE_OAUTH_AUTH_URL`, `GOOGLE_OAUTH_TOKEN_URL`, `GOOGLE_OAUTH_REVOKE_URL`,
+`GOOGLE_TASKS_API_BASE`,
 `GOOGLE_TASKS_NO_BACKGROUND_POLL`. The three addresses must be `https`
 (plain `http` only to this machine), because the client secret and tokens
 travel to them; the backend refuses to start otherwise.
@@ -113,7 +118,8 @@ travel to them; the backend refuses to start otherwise.
 - Backend unit: title parsing, sign-in URL, state hashing, fake, settings.
 - Backend integration: `tests/google_tasks.rs` (settings, lists, choices,
   polling, auth), `google_tasks_sign_in.rs` (state once, bad code, no key,
-  disconnect), `google_tasks_restore.rs`, and `google_tasks_live.rs`
+  disconnect), `google_tasks_revoke.rs` (revoke on Disconnect),
+  `google_tasks_restore.rs`, and `google_tasks_live.rs`
   (`wiremock` as Google: token form, delete after record, failed delete
   retried, Google down, revoked sign-in).
 - Frontend unit: the settings card, other channels, Restore button, poll
@@ -123,4 +129,3 @@ travel to them; the backend refuses to start otherwise.
 ## Known gaps
 - Never run against a real Google account (no account in CI, by rule).
 - Subtasks are treated like tasks. Task notes are ignored.
-- Disconnect does not revoke the token at Google.

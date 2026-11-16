@@ -72,6 +72,10 @@ pub trait TasksApi: Send + Sync {
         task_id: &'a str,
     ) -> BoxFuture<'a, Result<(), GoogleError>>;
 
+    /// Takes the sign-in back at Google, as "Remove access" in the Google
+    /// account does. A sign-in that is already gone counts as taken back.
+    fn revoke<'a>(&'a self, refresh_token: &'a str) -> BoxFuture<'a, Result<(), GoogleError>>;
+
     /// Adds a task to a list and returns it, with its new id.
     fn insert_task<'a>(
         &'a self,

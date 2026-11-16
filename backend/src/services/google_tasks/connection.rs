@@ -16,6 +16,13 @@ use crate::models::db::GoogleTasksLink;
 use crate::models::schemas::GoogleTasksChoices;
 use crate::services::encryption::Encryptor;
 
+/// What Disconnect did.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub struct Disconnected {
+    /// Google took the sign-in back (or there was none to take back).
+    pub revoked_at_google: bool,
+}
+
 /// The household's link to Google Tasks.
 pub struct TasksConnection<'a> {
     pool: &'a PgPool,
@@ -80,11 +87,34 @@ impl<'a> TasksConnection<'a> {
         Ok(link)
     }
 
-    /// Forgets the sign-in and stops polling.
-    pub async fn disconnect(&self, user_id: &str) -> Result<(), ApiError> {
+    /// Takes the sign-in back at Google, then forgets it here and stops
+    /// polling. Forgetting happens even when Google cannot be reached, so
+    /// Disconnect always works; the answer says whether Google took it back
+    /// (when not, the person removes access in their Google account).
+    pub async fn disconnect(&self, user_id: &str) -> Result<Disconnected, ApiError> {
+        let revoked_at_google = match self.stored_token().await? {
+            None => true,
+            Some(token) => match self.google.api.revoke(&token).await {
+                Ok(()) => true,
+                Err(err) => {
+                    log::revoke_failed(&err, user_id);
+                    false
+                }
+            },
+        };
         link_repository::clear_sign_in(self.pool).await?;
-        log::disconnected(user_id);
-        Ok(())
+        log::disconnected(revoked_at_google, user_id);
+        Ok(Disconnected { revoked_at_google })
+    }
+
+    /// The decrypted refresh token, when one is stored.
+    async fn stored_token(&self) -> Result<Option<String>, ApiError> {
+        match self.link().await? {
+            Some(link) if link.refresh_token_encrypted.is_some() => {
+                Ok(Some(sign_in::open(self.encryptor, &link)?))
+            }
+            _ => Ok(None),
+        }
     }
 
     /// Every list on the connected account.

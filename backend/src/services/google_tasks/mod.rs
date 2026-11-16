@@ -33,7 +33,7 @@ mod sign_in;
 pub mod title;
 
 pub use api::{GoogleError, RemoteTask, TaskList, TasksApi};
-pub use connection::TasksConnection;
+pub use connection::{Disconnected, TasksConnection};
 pub use fake::FakeTasksApi;
 pub use poller::TasksPoller;
 pub use registry::GoogleTasks;

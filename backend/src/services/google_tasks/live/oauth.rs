@@ -43,6 +43,7 @@ pub struct OAuth {
     redirect_uri: String,
     auth_url: String,
     token_url: String,
+    revoke_url: String,
     cache: Mutex<Option<CachedToken>>,
 }
 
@@ -56,6 +57,7 @@ impl OAuth {
             redirect_uri: settings.redirect_uri.clone(),
             auth_url: settings.auth_url.clone(),
             token_url: settings.token_url.clone(),
+            revoke_url: settings.revoke_url.clone(),
             cache: Mutex::new(None),
         }
     }
@@ -99,6 +101,24 @@ impl OAuth {
             expires_at: Instant::now() + lifetime.saturating_sub(EXPIRY_MARGIN),
         });
         Ok(reply.access_token)
+    }
+
+    /// Takes the sign-in back at Google, so the refresh token and every
+    /// access token from it stop working. A token Google no longer knows
+    /// (400) is already taken back, so that counts as done.
+    pub async fn revoke(&self, refresh_token: &str) -> Result<(), GoogleError> {
+        self.forget().await;
+        let response = self
+            .http
+            .post(&self.revoke_url)
+            .form(&[("token", refresh_token)])
+            .send()
+            .await
+            .map_err(super::unreachable)?;
+        match response.status() {
+            status if status.is_success() || status.as_u16() == 400 => Ok(()),
+            status => Err(status_error(status)),
+        }
     }
 
     /// Forgets the cached access token, after Google refused it.

@@ -189,6 +189,10 @@ impl TasksApi for LiveTasksApi {
         })
     }
 
+    fn revoke<'a>(&'a self, refresh_token: &'a str) -> BoxFuture<'a, Result<(), GoogleError>> {
+        Box::pin(self.google_sign_in.revoke(refresh_token))
+    }
+
     fn insert_task<'a>(
         &'a self,
         refresh_token: &'a str,

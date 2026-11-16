@@ -166,7 +166,7 @@ describe("GoogleTasksSection", () => {
 	});
 
 	it("disconnects, after which only Connect is offered", async () => {
-		intake.disconnect.mockResolvedValue(undefined);
+		intake.disconnect.mockResolvedValue({ revoked_at_google: true });
 
 		render(<GoogleTasksSection initial={watching} />);
 		await userEvent.click(screen.getByRole("button", { name: "Disconnect" }));
@@ -175,5 +175,18 @@ describe("GoogleTasksSection", () => {
 			await screen.findByRole("button", { name: "Connect Google Tasks" }),
 		).toBeInTheDocument();
 		expect(screen.getByText("Off")).toBeInTheDocument();
+		expect(toast).toHaveBeenCalledWith("Google Tasks disconnected");
+	});
+
+	it("says when Google could not take the access back", async () => {
+		intake.disconnect.mockResolvedValue({ revoked_at_google: false });
+
+		render(<GoogleTasksSection initial={watching} />);
+		await userEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+
+		await screen.findByRole("button", { name: "Connect Google Tasks" });
+		expect(toast.error).toHaveBeenCalledWith(
+			expect.stringContaining("Remove the app's access in your Google account"),
+		);
 	});
 });

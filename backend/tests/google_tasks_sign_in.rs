@@ -90,11 +90,12 @@ async fn disconnecting_stops_polling(pool: PgPool) {
     app.connect_google_tasks("fake-code").await;
     app.watch_list("fake-groceries").await;
 
-    let (status, _) = app.delete("/api/intake/google-tasks/sign-in").await;
+    let (status, body) = app.delete("/api/intake/google-tasks/sign-in").await;
     let (_, settings) = app.get("/api/intake/settings").await;
     let (poll, _) = app.poll_google_tasks().await;
 
-    assert_eq!(status, StatusCode::NO_CONTENT);
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["revoked_at_google"], true);
     assert_eq!(settings["google_tasks"]["connected"], false);
     assert_eq!(settings["google_tasks"]["polling"], false);
     assert_eq!(
