@@ -37,6 +37,8 @@ struct ApiTask {
     title: String,
     #[serde(default)]
     status: String,
+    notes: Option<String>,
+    parent: Option<String>,
 }
 
 /// A list as the API describes it.
@@ -166,6 +168,8 @@ impl TasksApi for LiveTasksApi {
                 .map(|task| RemoteTask {
                     id: task.id,
                     title: task.title,
+                    notes: task.notes,
+                    parent: task.parent,
                 })
                 .collect())
         })
@@ -209,6 +213,8 @@ impl TasksApi for LiveTasksApi {
             Ok(RemoteTask {
                 id: task.id,
                 title: task.title,
+                notes: task.notes,
+                parent: task.parent,
             })
         })
     }

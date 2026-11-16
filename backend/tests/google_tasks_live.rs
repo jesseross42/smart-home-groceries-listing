@@ -197,3 +197,77 @@ async fn a_revoked_sign_in_says_to_connect_again(pool: PgPool) {
         .unwrap()
         .contains("connect Google Tasks again"));
 }
+
+/// Google answers every delete of `id` with `status`, `times` times.
+async fn deletes(server: &MockServer, id: &str, status: u16, times: u64) {
+    Mock::given(method("DELETE"))
+        .and(path(format!("{LIST}/{id}")))
+        .respond_with(ResponseTemplate::new(status))
+        .expect(times)
+        .mount(server)
+        .await;
+}
+
+#[sqlx::test]
+async fn subtasks_are_items_and_their_heading_is_deleted_after_them(pool: PgPool) {
+    let server = MockServer::start().await;
+    let app = watching(pool, &server).await;
+    tasks_on_list(
+        &server,
+        json!([
+            { "id": "bbq", "title": "BBQ", "status": "needsAction" },
+            { "id": "s1", "title": "sausages", "parent": "bbq", "notes": " thin ones ",
+              "status": "needsAction" },
+            { "id": "s2", "title": "2 buns", "parent": "bbq", "status": "needsAction" }
+        ]),
+    )
+    .await;
+    for id in ["s1", "s2", "bbq"] {
+        deletes(&server, id, 204, 1).await;
+    }
+
+    let (status, report) = app.poll_google_tasks().await;
+
+    assert_eq!(status, StatusCode::OK, "{report}");
+    assert_eq!(
+        (report["recorded"].as_u64(), report["headings"].as_u64()),
+        (Some(2), Some(1))
+    );
+    let (_, pending) = app.get("/api/voice-requests").await;
+    let names: Vec<_> = pending
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["parsed_name"].clone())
+        .collect();
+    assert!(!names.contains(&json!("BBQ")), "{pending}");
+    let sausages = pending
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["parsed_name"] == "sausages")
+        .unwrap();
+    assert_eq!(sausages["source_note"], "thin ones");
+}
+
+#[sqlx::test]
+async fn a_heading_stays_while_a_subtask_could_not_be_deleted(pool: PgPool) {
+    let server = MockServer::start().await;
+    let app = watching(pool, &server).await;
+    tasks_on_list(
+        &server,
+        json!([
+            { "id": "bbq", "title": "BBQ", "status": "needsAction" },
+            { "id": "s1", "title": "sausages", "parent": "bbq", "status": "needsAction" }
+        ]),
+    )
+    .await;
+    deletes(&server, "s1", 503, 1).await;
+    // Deleting the heading would take the unstored-in-Google subtask with it.
+    deletes(&server, "bbq", 204, 0).await;
+
+    let (_, report) = app.poll_google_tasks().await;
+
+    assert_eq!(report["recorded"], 1);
+    assert_eq!(report["not_deleted"], 1);
+}

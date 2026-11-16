@@ -99,6 +99,9 @@ pub struct VoiceRequest {
     pub triage_reason: Option<String>,
     /// The classifier's confidence, 0 to 1, when it answered.
     pub triage_confidence: Option<f32>,
+    /// The notes written on the item at its source (a Google Tasks task's
+    /// notes), for a person to read. Never parsed.
+    pub source_note: Option<String>,
 }
 
 /// An item on the shared household grocery list.

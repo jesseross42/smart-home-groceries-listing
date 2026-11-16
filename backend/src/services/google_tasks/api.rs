@@ -20,6 +20,10 @@ pub struct RemoteTask {
     pub id: String,
     /// What the person typed or said, e.g. "2 oat milk".
     pub title: String,
+    /// The task's notes, if any ("the lactose-free one").
+    pub notes: Option<String>,
+    /// The task this one is a subtask of, if any.
+    pub parent: Option<String>,
 }
 
 /// Why a call to Google did not work. Shown to the household, so the message

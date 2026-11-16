@@ -62,6 +62,8 @@ pub struct VoiceRequestResponse {
     pub triage_reason: Option<String>,
     /// The classifier's confidence, 0 to 1, when it answered.
     pub triage_confidence: Option<f32>,
+    /// Notes written on the item at its source (Google Tasks), to read.
+    pub source_note: Option<String>,
 }
 
 impl From<VoiceRequest> for VoiceRequestResponse {
@@ -77,6 +79,7 @@ impl From<VoiceRequest> for VoiceRequestResponse {
             triage_status: row.triage_status,
             triage_reason: row.triage_reason,
             triage_confidence: row.triage_confidence,
+            source_note: row.source_note,
         }
     }
 }

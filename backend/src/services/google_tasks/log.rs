@@ -49,6 +49,7 @@ pub fn polled(report: &PollReport) {
             recorded = report.recorded,
             already_seen = report.already_seen,
             blank = report.blank,
+            headings = report.headings,
             not_deleted = report.not_deleted,
             "google tasks polled"
         );

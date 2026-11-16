@@ -106,6 +106,9 @@ pub struct PollReport {
     pub already_seen: u32,
     /// Blank tasks, left on the list.
     pub blank: u32,
+    /// Tasks with subtasks: group names, never recorded; deleted once
+    /// their subtasks are.
+    pub headings: u32,
     /// Tasks that could not be deleted from Google; tried again next poll.
     pub not_deleted: u32,
 }

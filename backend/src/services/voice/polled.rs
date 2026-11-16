@@ -18,6 +18,8 @@ pub struct PolledItem {
     /// The item name read from it, e.g. "oat milk".
     pub name: String,
     pub quantity: i32,
+    /// Notes written on the item at its source, shown to a person.
+    pub note: Option<String>,
 }
 
 impl VoiceService<'_> {
@@ -58,6 +60,7 @@ impl VoiceService<'_> {
             &item.name,
             item.quantity,
             triage_status,
+            item.note.as_deref(),
         )
         .await?;
         tx.commit().await?;

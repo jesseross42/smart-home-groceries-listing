@@ -30,7 +30,7 @@ where
          WHERE id = $1 AND triage_status = 'unchecked'
          RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
                    grocery_item_id, created_at, triage_status, triage_reason,
-                   triage_confidence",
+                   triage_confidence, source_note",
     )
     .bind(request_id)
     .bind(status)
@@ -51,7 +51,7 @@ where
 {
     Ok(sqlx::query_as::<_, VoiceRequest>(
         "SELECT id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence
+                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence, source_note
          FROM voice_requests
          WHERE status = 'pending' AND triage_status = 'unchecked' AND created_at < $1
          ORDER BY created_at",
@@ -72,7 +72,7 @@ where
 {
     Ok(sqlx::query_as::<_, VoiceRequest>(
         "SELECT id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
-                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence
+                grocery_item_id, created_at, triage_status, triage_reason, triage_confidence, source_note
          FROM voice_requests
          WHERE status = 'pending' AND triage_status = $1
          ORDER BY created_at DESC",
@@ -111,7 +111,7 @@ where
          WHERE id = $1 AND status = 'pending' AND triage_status IN ('held', 'rejected')
          RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
                    grocery_item_id, created_at, triage_status, triage_reason,
-                   triage_confidence",
+                   triage_confidence, source_note",
     )
     .bind(request_id)
     .fetch_optional(executor)
@@ -129,7 +129,7 @@ where
          WHERE id = $1
          RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
                    grocery_item_id, created_at, triage_status, triage_reason,
-                   triage_confidence",
+                   triage_confidence, source_note",
     )
     .bind(request_id)
     .fetch_one(executor)

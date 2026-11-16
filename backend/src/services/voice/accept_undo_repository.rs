@@ -47,7 +47,7 @@ pub async fn mark_pending(
          WHERE id = $1
          RETURNING id, source, external_id, raw_text, parsed_name, parsed_quantity, status,
                    grocery_item_id, created_at, triage_status, triage_reason,
-                   triage_confidence",
+                   triage_confidence, source_note",
     )
     .bind(request_id)
     .fetch_one(&mut **tx)

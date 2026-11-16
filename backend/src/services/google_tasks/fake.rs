@@ -56,6 +56,8 @@ impl FakeTasksApi {
         let task = RemoteTask {
             id: self.new_id(),
             title: title.to_string(),
+            notes: None,
+            parent: None,
         };
         let mut lists = self.lists.lock().expect("fake lists lock");
         let list = lists
