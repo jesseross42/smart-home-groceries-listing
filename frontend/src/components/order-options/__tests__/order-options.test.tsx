@@ -47,6 +47,8 @@ function plan(options: OrderOption[]): Plan {
 		delivery_day: null,
 		within_days: null,
 		store_fees: [],
+		allowed_delivery_days: [],
+		delivery_problem: null,
 	};
 }
 
@@ -131,6 +133,23 @@ describe("OrderOptions", () => {
 		).toBeInTheDocument();
 		expect(screen.getByText("Leaves out 1 item.")).toBeInTheDocument();
 		expect(screen.getByText("Set delivery fees")).toBeInTheDocument();
+	});
+
+	it("says when the delivery cannot come on an allowed day", () => {
+		render(
+			<OrderOptions
+				plan={{
+					...plan([option({ recommended: false })]),
+					allowed_delivery_days: ["tuesday", "saturday"],
+					delivery_problem: "no_allowed_day_in_range",
+				}}
+				onUse={vi.fn()}
+			/>,
+		);
+
+		expect(screen.getByRole("alert")).toHaveTextContent(
+			"No allowed delivery day comes that soon. Allowed: Tuesday, Saturday.",
+		);
 	});
 
 	it("renders nothing with nothing to buy", () => {

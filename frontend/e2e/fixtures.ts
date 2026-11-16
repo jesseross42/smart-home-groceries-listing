@@ -87,6 +87,7 @@ export const test = base.extend<GroceryFixtures>({
 				mode: "minimise_total",
 				max_delivery_spend: null,
 				default_delivery_day: null,
+				allowed_delivery_days: [],
 			},
 		});
 

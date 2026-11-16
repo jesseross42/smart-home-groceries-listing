@@ -30,6 +30,13 @@ export interface DeliveryForm {
 	maxDeliverySpend: string;
 	/** `null` = no usual day. */
 	usualDay: DeliveryDay | null;
+	/** Empty = any day. */
+	allowedDays: DeliveryDay[];
+}
+
+/** `days` with `day` added, or taken out when it was there. */
+export function toggleDay(days: DeliveryDay[], day: DeliveryDay): DeliveryDay[] {
+	return days.includes(day) ? days.filter((d) => d !== day) : [...days, day];
 }
 
 /** The settings as form values. */
@@ -46,6 +53,7 @@ export function toForm(settings: DeliverySettings): DeliveryForm {
 		mode: settings.mode,
 		maxDeliverySpend: settings.max_delivery_spend ?? "",
 		usualDay: settings.default_delivery_day,
+		allowedDays: settings.allowed_delivery_days ?? [],
 	};
 }
 
@@ -85,12 +93,20 @@ export function fromForm(
 	}
 	const cap = parseAmount(form.maxDeliverySpend);
 	if (!cap.ok) return { error: amountError("The delivery spending limit") };
+	if (
+		form.usualDay !== null &&
+		form.allowedDays.length > 0 &&
+		!form.allowedDays.includes(form.usualDay)
+	) {
+		return { error: "The usual delivery day must be one of the allowed days." };
+	}
 	return {
 		settings: {
 			stores,
 			mode: form.mode,
 			max_delivery_spend: cap.value,
 			default_delivery_day: form.usualDay,
+			allowed_delivery_days: form.allowedDays,
 		},
 	};
 }
