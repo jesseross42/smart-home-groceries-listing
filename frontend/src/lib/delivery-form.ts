@@ -35,7 +35,10 @@ export interface DeliveryForm {
 }
 
 /** `days` with `day` added, or taken out when it was there. */
-export function toggleDay(days: DeliveryDay[], day: DeliveryDay): DeliveryDay[] {
+export function toggleDay(
+	days: DeliveryDay[],
+	day: DeliveryDay,
+): DeliveryDay[] {
 	return days.includes(day) ? days.filter((d) => d !== day) : [...days, day];
 }
 
