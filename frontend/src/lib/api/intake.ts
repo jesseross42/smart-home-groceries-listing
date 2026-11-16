@@ -48,6 +48,8 @@ export interface PollReport {
 	recorded: number;
 	already_seen: number;
 	blank: number;
+	/** Tasks with subtasks: group names, not items. */
+	headings: number;
 	not_deleted: number;
 }
 

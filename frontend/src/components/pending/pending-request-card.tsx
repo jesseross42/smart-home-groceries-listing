@@ -87,6 +87,13 @@ export function PendingRequestCard({
 					{new Date(request.created_at).toLocaleString()}
 				</span>
 			</CardContent>
+			{request.source_note && (
+				<CardContent>
+					<p className="text-sm text-muted-foreground">
+						Note: {request.source_note}
+					</p>
+				</CardContent>
+			)}
 			<CardFooter>
 				<Button
 					size="sm"

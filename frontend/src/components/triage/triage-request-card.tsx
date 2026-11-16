@@ -55,6 +55,9 @@ export function TriageRequestCard({
 				{request.raw_text !== name && (
 					<p className="text-muted-foreground">Heard: “{request.raw_text}”</p>
 				)}
+				{request.source_note && (
+					<p className="text-muted-foreground">Note: {request.source_note}</p>
+				)}
 				<p>
 					{request.triage_reason ?? "No reason given."}
 					{sure && <span className="text-muted-foreground"> ({sure})</span>}

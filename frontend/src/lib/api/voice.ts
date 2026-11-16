@@ -31,6 +31,8 @@ export interface VoiceRequest {
 	triage_reason: string | null;
 	/** 0 to 1, when the classifier answered. */
 	triage_confidence: number | null;
+	/** Notes written on the item at its source (Google Tasks), to read. */
+	source_note: string | null;
 }
 
 /** What an accept did: the list item, and whether it added to one already there. */

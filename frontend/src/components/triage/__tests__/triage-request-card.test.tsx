@@ -33,6 +33,7 @@ describe("TriageRequestCard", () => {
 				request={heldRequest({
 					raw_text: "flibber",
 					triage_confidence: null,
+					source_note: null,
 					triage_reason: "The checker could not be reached (timed out)",
 				})}
 				busy={false}

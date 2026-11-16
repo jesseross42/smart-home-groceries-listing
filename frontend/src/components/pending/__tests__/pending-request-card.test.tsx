@@ -16,6 +16,7 @@ const request: VoiceRequest = {
 	triage_status: "approved",
 	triage_reason: "Milk is sold at supermarkets.",
 	triage_confidence: 0.95,
+	source_note: null,
 };
 
 describe("PendingRequestCard", () => {
@@ -93,5 +94,19 @@ describe("PendingRequestCard", () => {
 
 		rerender(<PendingRequestCard {...props} />);
 		expect(screen.getByLabelText("Item name")).toHaveValue("oat milk");
+	});
+
+	it("shows the note written on the item at its source, and none without one", () => {
+		const props = { dulled: false, onAccept: vi.fn(), onReject: vi.fn() };
+		const { rerender } = render(
+			<PendingRequestCard
+				{...props}
+				request={{ ...request, source: "tasks", source_note: "lactose free" }}
+			/>,
+		);
+		expect(screen.getByText("Note: lactose free")).toBeInTheDocument();
+
+		rerender(<PendingRequestCard {...props} request={request} />);
+		expect(screen.queryByText(/^Note:/)).not.toBeInTheDocument();
 	});
 });
