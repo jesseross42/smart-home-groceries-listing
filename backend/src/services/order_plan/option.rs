@@ -7,7 +7,8 @@
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use super::fees::{charge, DeliveryCharge};
+use super::fees::DeliveryCharge;
+use super::timing::{StoreTiming, Timing};
 use crate::models::db::GroceryItem;
 use crate::services::delivery_settings::DeliverySettings;
 use crate::services::order_review::OrderLine;
@@ -55,7 +56,7 @@ impl Candidate {
     /// The stores an automated choice may buy the item at, with today's
     /// price: the ones nobody dislikes, or every priced store when all of
     /// them are disliked.
-    pub fn allowed_prices(&self) -> Vec<(Store, Decimal)> {
+    pub fn allowed_prices(&self, timing: &Timing) -> Vec<(Store, Decimal)> {
         let priced: Vec<(Store, Decimal)> = Store::ALL
             .into_iter()
             .filter_map(|store| self.price_at(store).map(|price| (store, price)))
@@ -63,7 +64,10 @@ impl Candidate {
         let liked: Vec<(Store, Decimal)> = priced
             .iter()
             .copied()
-            .filter(|(store, _)| self.disliked_by(*store).is_empty())
+            .filter(|(store, _)| {
+                self.disliked_by(*store).is_empty()
+                    && timing.at(*store, self.item.perishable).fits()
+            })
             .collect();
         if liked.is_empty() {
             priced
@@ -74,12 +78,12 @@ impl Candidate {
 
     /// Buying at `store` buys a disliked product although another store has
     /// one nobody dislikes.
-    pub fn avoidable_dislike(&self, store: Store) -> bool {
+    pub fn avoidable_dislike(&self, store: Store, timing: &Timing) -> bool {
         !self.disliked_by(store).is_empty()
-            && self
-                .allowed_prices()
-                .iter()
-                .any(|(allowed, _)| self.disliked_by(*allowed).is_empty())
+            && self.allowed_prices(timing).iter().any(|(allowed, _)| {
+                self.disliked_by(*allowed).is_empty()
+                    && timing.at(*allowed, self.item.perishable).fits()
+            })
     }
 }
 
@@ -101,6 +105,8 @@ pub struct StorePart {
     pub lines: Vec<OrderLine>,
     pub subtotal: Decimal,
     pub charge: DeliveryCharge,
+    /// Whether and when this store can deliver its items.
+    pub timing: StoreTiming,
     pub minimum_order: Option<Decimal>,
 }
 
@@ -155,7 +161,12 @@ impl PlanOption {
 
     /// The option can be placed and respects the household's cap.
     pub fn acceptable(&self) -> bool {
-        self.meets_minimums() && self.within_cap
+        self.meets_minimums() && self.within_cap && self.meets_timing()
+    }
+
+    /// Every store part satisfies the delivery timing constraints.
+    pub fn meets_timing(&self) -> bool {
+        self.parts.iter().all(|part| part.timing.fits())
     }
 
     /// How many disliked products it buys that another store would avoid.
@@ -179,6 +190,7 @@ pub fn evaluate(
     candidates: &[Candidate],
     assignment: &[Option<Store>],
     settings: &DeliverySettings,
+    timing: &Timing,
 ) -> PlanOption {
     let mut missing = Vec::new();
     let mut parts: Vec<StorePart> = Vec::new();
@@ -194,12 +206,15 @@ pub fn evaluate(
         }
         let subtotal = lines.iter().filter_map(OrderLine::counted_total).sum();
         let rules = settings.rules_for(store);
+        let store_timing = timing.at(store, lines.iter().any(|line| line.item.perishable));
+        let minimum_order = rules.minimum_order;
         parts.push(StorePart {
             store,
             lines,
             subtotal,
-            charge: charge(&rules, subtotal),
-            minimum_order: rules.minimum_order,
+            charge: store_timing.charge(rules, subtotal),
+            timing: store_timing,
+            minimum_order,
         });
     }
     let mut disliked = Vec::new();
@@ -214,7 +229,7 @@ pub fn evaluate(
                     item: candidate.item.clone(),
                     store: *store,
                     disliked_by: candidate.disliked_by(*store).to_vec(),
-                    avoidable: candidate.avoidable_dislike(*store),
+                    avoidable: candidate.avoidable_dislike(*store, timing),
                 });
             }
             Some(_) => {}

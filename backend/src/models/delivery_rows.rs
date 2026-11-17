@@ -1,7 +1,7 @@
 //! Row types for Settings › Delivery: each store's delivery fee rules and the
 //! order planner's preferences.
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -66,6 +66,9 @@ pub struct OrderPreferences {
     pub default_delivery_day: Option<DeliveryDay>,
     /// The weekdays a delivery may come on; empty = any day.
     pub allowed_delivery_days: Vec<DeliveryDay>,
+    /// The local deadline and maximum early arrival for perishables.
+    pub need_by: Option<NaiveDateTime>,
+    pub perishable_hours: Option<i16>,
     pub updated_by: String,
     pub updated_at: DateTime<Utc>,
 }

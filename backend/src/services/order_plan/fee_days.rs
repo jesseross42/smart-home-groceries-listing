@@ -47,6 +47,8 @@ mod tests {
             max_delivery_spend: None,
             default_delivery_day: None,
             allowed_delivery_days: Vec::new(),
+            need_by: None,
+            perishable_hours: None,
         }
     }
 

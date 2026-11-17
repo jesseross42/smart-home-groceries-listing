@@ -37,6 +37,8 @@ pub struct VoiceListChange {
     pub item_note: Option<String>,
     pub item_filter_terms: Vec<String>,
     pub item_added_by_user_id: Option<String>,
+    /// Whether the removed item was marked perishable.
+    pub item_perishable: bool,
     pub item_created_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
     /// When Undo reversed the change; `None` while it stands.

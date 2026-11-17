@@ -2,9 +2,8 @@
 
 use rust_decimal_macros::dec;
 
-use super::build::plan;
 use super::option::OptionKind;
-use super::test_fixtures::{candidate, disliked, settings};
+use super::test_fixtures::{candidate, disliked, plan, settings};
 use crate::models::delivery_rows::OrderMode;
 use crate::services::stores::Store::{Coles, Woolworths};
 

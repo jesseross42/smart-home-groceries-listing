@@ -17,7 +17,8 @@
 //! Each store's fee is the cheapest it showed on the delivery day when the
 //! bookmark reported one ([`fee_days`], issue #70), else the typed fee. Only
 //! the household's allowed delivery days count, and nothing is recommended
-//! when the delivery asked for cannot come on one ([`allowed_days`], #74).
+//! when the delivery asked for cannot come on one ([`allowed_days`], #74). A
+//! deadline uses fresh store windows and accounts for perishable items ([`timing`]).
 //!
 //! Delivery charge in [`fees`]; one option in [`option`]; the best mix in
 //! [`search`]; ranking in [`rank`]; putting it together in [`build`].
@@ -32,13 +33,16 @@ mod log;
 mod option;
 mod rank;
 mod search;
+mod timing;
 
 pub use allowed_days::DayProblem;
 pub use fees::DeliveryCharge;
 pub use option::{DislikedPick, Missing, OptionKind, PlanOption, StorePart};
+pub use timing::{StoreTiming, TimingProblem};
 
 use std::collections::HashMap;
 
+use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -140,14 +144,18 @@ impl<'a> OrderPlanService<'a> {
         };
         let allowed = &settings.allowed_delivery_days;
         let day_problem = allowed_days::problem(allowed, delivery_day, store_today(), within_days);
-        let mut reported = allowed_days::only_allowed(
-            &DeliveryDayFeeService::new(self.pool).upcoming().await?,
-            allowed,
-        );
-        if let Some(days_ahead) = within_days {
-            reported = within(&reported, store_today(), days_ahead);
-        }
-        let store_fees = fee_days::use_store_fees(&mut settings, &reported, delivery_day);
+        let store_fees = if settings.need_by.is_some() {
+            Vec::new()
+        } else {
+            let mut reported = allowed_days::only_allowed(
+                &DeliveryDayFeeService::new(self.pool).upcoming().await?,
+                allowed,
+            );
+            if let Some(days_ahead) = within_days {
+                reported = within(&reported, store_today(), days_ahead);
+            }
+            fee_days::use_store_fees(&mut settings, &reported, delivery_day)
+        };
         let committed = items::list_items(self.pool)
             .await?
             .into_iter()
@@ -208,7 +216,10 @@ impl<'a> OrderPlanService<'a> {
             });
         }
 
-        let mut plan = build::plan(mode, &candidates, unchosen, &settings);
+        let timing =
+            timing::Timing::load(self.pool, &settings, delivery_day, within_days, Utc::now())
+                .await?;
+        let mut plan = build::plan(mode, &candidates, unchosen, &settings, &timing);
         if day_problem.is_some() {
             // No option can be delivered as asked, so none is recommended.
             plan.recommended = None;

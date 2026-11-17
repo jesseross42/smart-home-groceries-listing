@@ -14,6 +14,10 @@ import { fillColesTrolley } from "#/lib/store-tab/fill-coles-trolley";
 import { fillWoolworthsTrolley } from "#/lib/store-tab/fill-woolworths-trolley";
 import { pickColesDeliverySlot } from "#/lib/store-tab/pick-coles-delivery-slot";
 import { pickWoolworthsAddress } from "#/lib/store-tab/pick-woolworths-address";
+import {
+	refreshColesWindows,
+	refreshWoolworthsWindows,
+} from "#/lib/store-tab/refresh-delivery-windows";
 import { reserveWoolworthsDeliveryWindow } from "#/lib/store-tab/reserve-woolworths-delivery-window";
 import type { StoreTab } from "#/lib/store-tab/store-tab";
 
@@ -25,6 +29,7 @@ export const WOOLWORTHS_TAB: StoreTab = {
 	bookmarkName: "Fill Woolworths trolley",
 	reservesDelivery: true,
 	fill: fillWoolworthsTrolley,
+	refresh: refreshWoolworthsWindows,
 	helpers: {
 		chooseWindow: chooseWoolworthsWindow,
 		pickAddress: pickWoolworthsAddress,
@@ -40,6 +45,7 @@ export const COLES_TAB: StoreTab = {
 	bookmarkName: "Fill Coles trolley",
 	reservesDelivery: true,
 	fill: fillColesTrolley,
+	refresh: refreshColesWindows,
 	helpers: {
 		readSlots: readColesSlots,
 		chooseSlot: chooseColesSlot,

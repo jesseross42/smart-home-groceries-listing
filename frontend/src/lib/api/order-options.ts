@@ -28,7 +28,22 @@ export interface OptionStore {
 	/** The store will not deliver an order this small. */
 	below_minimum: boolean;
 	minimum_order: string | null;
+	/** The live window used for timing and delivery cost. */
+	delivery_window?: DeliveryWindow | null;
+	delivery_problem?: StoreTimingProblem | null;
 }
+
+/** A live delivery window, in Sydney local time. */
+export interface DeliveryWindow {
+	start: string;
+	end: string;
+	fee: string;
+}
+
+export type StoreTimingProblem =
+	| "windows_unavailable"
+	| "no_matching_window"
+	| "need_by_passed";
 
 /** An item an option cannot buy, and why. */
 export interface MissingItem {
@@ -85,6 +100,7 @@ export interface OrderOptions {
 	store_fees: StoreDayFee[];
 	/** The weekdays a delivery may come on; empty = any day. */
 	allowed_delivery_days: DeliveryDay[];
+	need_by?: string | null;
 	/** Set when the delivery asked for cannot come on an allowed day. */
 	delivery_problem: DeliveryProblem | null;
 }

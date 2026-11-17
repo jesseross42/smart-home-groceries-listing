@@ -89,6 +89,29 @@ describe("pickColesDeliverySlot", () => {
 		});
 	});
 
+	it("reads both days without reserving, including a window that crosses midnight", async () => {
+		const confirmed = vi.fn();
+		openColesDrawer(days, confirmed);
+		const report = await pickColesDeliverySlot(
+			{ date: null, time_of_day: "any" },
+			helpers,
+			now,
+			true,
+		);
+
+		expect(confirmed).not.toHaveBeenCalled();
+		expect(report.outcome).toBe("read");
+		expect(report.days?.map((day) => day.date)).toEqual([
+			"2026-11-15",
+			"2026-11-16",
+		]);
+		expect(report.days?.[1].windows).toContainEqual({
+			start: "2026-11-16T23:30:00",
+			end: "2026-11-17T00:30:00",
+			fee: "8",
+		});
+	});
+
 	it("opens the day asked for, and a window past midnight ends the next day", async () => {
 		const confirmed = vi.fn();
 		openColesDrawer(days, confirmed);

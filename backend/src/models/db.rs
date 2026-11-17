@@ -107,6 +107,8 @@ pub struct VoiceRequest {
 /// An item on the shared household grocery list.
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct GroceryItem {
+    /// Whether this item needs a delivery close to the deadline.
+    pub perishable: bool,
     pub id: Uuid,
     pub name: String,
     pub quantity: i32,

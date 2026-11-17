@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
 
 import { useFillTrolleyConfig } from "#/hooks/useFillTrolleyConfig";
-import { bookmarklet } from "#/lib/store-tab/bookmarklet";
+import {
+	bookmarklet,
+	deliveryWindowsBookmarklet,
+} from "#/lib/store-tab/bookmarklet";
 import type { StoreTab } from "#/lib/store-tab/store-tab";
 
 /**
@@ -11,10 +14,20 @@ import type { StoreTab } from "#/lib/store-tab/store-tab";
  * `javascript:` URLs in `href`, so the link's address is set on the element
  * directly after it renders.
  */
-export function FillTrolleyBookmark({ tab }: { tab: StoreTab }) {
+export function FillTrolleyBookmark({
+	tab,
+	refreshWindows = false,
+}: {
+	tab: StoreTab;
+	refreshWindows?: boolean;
+}) {
 	const link = useRef<HTMLAnchorElement>(null);
 	const { config, failed } = useFillTrolleyConfig();
-	const href = config ? bookmarklet(tab, config) : null;
+	const build = refreshWindows ? deliveryWindowsBookmarklet : bookmarklet;
+	const href = config ? build(tab, config) : null;
+	const label = refreshWindows
+		? `Refresh ${tab.storeName} windows`
+		: tab.bookmarkName;
 
 	useEffect(() => {
 		if (href) link.current?.setAttribute("href", href);
@@ -34,7 +47,7 @@ export function FillTrolleyBookmark({ tab }: { tab: StoreTab }) {
 			aria-disabled={!href}
 			className="inline-flex w-fit cursor-grab rounded-md border px-3 py-2 text-sm font-medium"
 		>
-			{href ? tab.bookmarkName : "Making the bookmark…"}
+			{href ? label : "Making the bookmark…"}
 		</a>
 	);
 }

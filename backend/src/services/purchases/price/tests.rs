@@ -9,6 +9,7 @@ use crate::services::stores::{Deal, StoreError};
 
 fn item(quantity: i32) -> GroceryItem {
     GroceryItem {
+        perishable: false,
         id: Uuid::new_v4(),
         name: "milk".into(),
         quantity,

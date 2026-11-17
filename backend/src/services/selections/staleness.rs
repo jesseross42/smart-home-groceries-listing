@@ -24,6 +24,7 @@ mod tests {
 
     fn item(name: &str, terms: &[&str], quantity: i32) -> GroceryItem {
         GroceryItem {
+            perishable: false,
             id: uuid::Uuid::nil(),
             name: name.into(),
             quantity,

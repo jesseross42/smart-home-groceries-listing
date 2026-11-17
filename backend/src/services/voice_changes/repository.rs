@@ -35,7 +35,7 @@ where
     Ok(sqlx::query_as::<_, VoiceListChange>(
         "SELECT id, source, external_id, kind, grocery_item_id, item_name, quantity_before,
                 quantity_after, item_source, item_note, item_filter_terms, item_added_by_user_id,
-                item_created_at, created_at, undone_at, undo_external_id
+                item_created_at, item_perishable, created_at, undone_at, undo_external_id
          FROM voice_list_changes
          WHERE source = $1 AND external_id = $2",
     )
@@ -57,7 +57,7 @@ where
     Ok(sqlx::query_as::<_, VoiceListChange>(
         "SELECT id, source, external_id, kind, grocery_item_id, item_name, quantity_before,
                 quantity_after, item_source, item_note, item_filter_terms, item_added_by_user_id,
-                item_created_at, created_at, undone_at, undo_external_id
+                item_created_at, item_perishable, created_at, undone_at, undo_external_id
          FROM voice_list_changes
          WHERE source = $1 AND undo_external_id = $2",
     )
@@ -83,7 +83,7 @@ pub async fn lock_item_named(
     };
     Ok(sqlx::query_as::<_, GroceryItem>(
         r"SELECT id, name, quantity, status, source, note, filter_terms,
-                 added_by_user_id, created_at
+                 added_by_user_id, created_at, perishable
           FROM grocery_items
           WHERE status IN ('active', 'committed')
             AND lower(btrim(regexp_replace(name, '\s+', ' ', 'g'))) = ANY($1)
@@ -118,11 +118,11 @@ pub async fn insert_change(
         "INSERT INTO voice_list_changes
              (id, source, external_id, kind, grocery_item_id, item_name, quantity_before,
               quantity_after, item_source, item_note, item_filter_terms,
-              item_added_by_user_id, item_created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+              item_added_by_user_id, item_created_at, item_perishable)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          RETURNING id, source, external_id, kind, grocery_item_id, item_name,
                    quantity_before, quantity_after, item_source, item_note,
-                   item_filter_terms, item_added_by_user_id, item_created_at, created_at,
+                   item_filter_terms, item_added_by_user_id, item_created_at, item_perishable, created_at,
                    undone_at, undo_external_id",
     )
     .bind(Uuid::new_v4())
@@ -138,6 +138,7 @@ pub async fn insert_change(
     .bind(&item.filter_terms)
     .bind(&item.added_by_user_id)
     .bind(item.created_at)
+    .bind(item.perishable)
     .fetch_one(&mut **tx)
     .await?)
 }
@@ -151,7 +152,7 @@ pub async fn lock_newest_standing(
     Ok(sqlx::query_as::<_, VoiceListChange>(
         "SELECT id, source, external_id, kind, grocery_item_id, item_name, quantity_before,
                 quantity_after, item_source, item_note, item_filter_terms, item_added_by_user_id,
-                item_created_at, created_at, undone_at, undo_external_id
+                item_created_at, item_perishable, created_at, undone_at, undo_external_id
          FROM voice_list_changes
          WHERE source = $1 AND undone_at IS NULL AND created_at >= $2
          ORDER BY created_at DESC
@@ -172,7 +173,7 @@ pub async fn lock_by_id(
     Ok(sqlx::query_as::<_, VoiceListChange>(
         "SELECT id, source, external_id, kind, grocery_item_id, item_name, quantity_before,
                 quantity_after, item_source, item_note, item_filter_terms, item_added_by_user_id,
-                item_created_at, created_at, undone_at, undo_external_id
+                item_created_at, item_perishable, created_at, undone_at, undo_external_id
          FROM voice_list_changes
          WHERE id = $1
          FOR UPDATE",
@@ -190,7 +191,7 @@ where
     Ok(sqlx::query_as::<_, VoiceListChange>(
         "SELECT id, source, external_id, kind, grocery_item_id, item_name, quantity_before,
                 quantity_after, item_source, item_note, item_filter_terms, item_added_by_user_id,
-                item_created_at, created_at, undone_at, undo_external_id
+                item_created_at, item_perishable, created_at, undone_at, undo_external_id
          FROM voice_list_changes
          ORDER BY created_at DESC, id
          LIMIT $1",
@@ -211,7 +212,7 @@ pub async fn mark_undone(
          WHERE id = $1
          RETURNING id, source, external_id, kind, grocery_item_id, item_name,
                    quantity_before, quantity_after, item_source, item_note,
-                   item_filter_terms, item_added_by_user_id, item_created_at, created_at,
+                   item_filter_terms, item_added_by_user_id, item_created_at, item_perishable, created_at,
                    undone_at, undo_external_id",
     )
     .bind(change_id)
@@ -229,10 +230,10 @@ pub async fn restore_item(
     Ok(sqlx::query_as::<_, GroceryItem>(
         "INSERT INTO grocery_items
              (id, name, quantity, status, source, note, filter_terms, added_by_user_id,
-              created_at)
-         VALUES ($1, $2, $3, 'active', $4, $5, $6, $7, $8)
+              created_at, perishable)
+         VALUES ($1, $2, $3, 'active', $4, $5, $6, $7, $8, $9)
          RETURNING id, name, quantity, status, source, note, filter_terms,
-                   added_by_user_id, created_at",
+                   added_by_user_id, created_at, perishable",
     )
     .bind(change.grocery_item_id)
     .bind(&change.item_name)
@@ -242,6 +243,7 @@ pub async fn restore_item(
     .bind(&change.item_filter_terms)
     .bind(&change.item_added_by_user_id)
     .bind(change.item_created_at)
+    .bind(change.item_perishable)
     .fetch_one(&mut **tx)
     .await?)
 }

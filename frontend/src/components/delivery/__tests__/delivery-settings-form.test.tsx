@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DeliverySettingsForm } from "#/components/delivery/delivery-settings-form";
@@ -80,7 +80,27 @@ describe("DeliverySettingsForm", () => {
 			max_delivery_spend: "15",
 			default_delivery_day: null,
 			allowed_delivery_days: [],
+			need_by: null,
+			perishable_hours: null,
 		});
+	});
+
+	it("saves the deadline and the maximum early arrival for perishables", async () => {
+		const onSave = renderForm();
+		fireEvent.change(screen.getByLabelText("Need by (Sydney time)"), {
+			target: { value: "2026-11-20T18:00" },
+		});
+		await userEvent.type(
+			screen.getByLabelText("Perishables can arrive up to"),
+			"4",
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+		expect(onSave).toHaveBeenCalledWith(
+			expect.objectContaining({
+				need_by: "2026-11-20T18:00:00",
+				perishable_hours: 4,
+			}),
+		);
 	});
 
 	it("saves the usual delivery day that was picked", async () => {

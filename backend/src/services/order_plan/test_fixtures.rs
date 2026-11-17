@@ -60,5 +60,23 @@ pub fn settings(
         max_delivery_spend: None,
         default_delivery_day: None,
         allowed_delivery_days: Vec::new(),
+        need_by: None,
+        perishable_hours: None,
     }
+}
+
+/// Runs the planner with no store timing requirements.
+pub fn plan(
+    mode: OrderMode,
+    candidates: &[Candidate],
+    unchosen: Vec<crate::models::db::GroceryItem>,
+    settings: &DeliverySettings,
+) -> super::OrderPlan {
+    super::build::plan(
+        mode,
+        candidates,
+        unchosen,
+        settings,
+        &super::timing::Timing::default(),
+    )
 }

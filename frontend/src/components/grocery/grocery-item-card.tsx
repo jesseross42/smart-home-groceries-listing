@@ -102,6 +102,7 @@ export function GroceryItemCard({
 			</CardHeader>
 
 			<CardContent className="flex flex-col gap-2 px-4">
+				{item.perishable && <Badge variant="outline">Perishable</Badge>}
 				{item.note && <p className="text-sm">{item.note}</p>}
 
 				<TermChips

@@ -2,8 +2,8 @@
 
 Status: **built — the order review, delivery fees, the modes and the
 split-store planner (`/order`, `/settings/delivery`).** Fees per day come from the
-bookmark (issue #70). Allowed delivery days are built (issue #74). Need-by
-time of day and perishable timing are **not built** (see "Not built").
+bookmark (issue #70). Delivery constraints include allowed weekdays, a
+need-by date and time, and a freshness interval for marked perishables (issue #74).
 
 ## Ways to buy (the planner)
 An item may have a chosen product at **each** store
@@ -26,7 +26,7 @@ does not sell is never planned at that store.
    a disliked product when another store has one nobody dislikes
    (`FEATURE_DISLIKES.md`).
 3. **Recommended** marks the first option only when it buys every item,
-   meets every store's minimum and is within the cap.
+   meets every store's minimum, stays within the cap and fits the saved delivery constraints.
 4. When the recommended option is not the current one, `/order` applies it by
    itself once per plan (`useApplyBestOption`), with a toast and **Undo**.
    An undone or replaced plan is not re-applied until the plan changes.
@@ -93,6 +93,37 @@ nothing is applied by itself. The usual day must be an allowed day (422).
 An unset fee counts as $0 and every option using it says so. Saving shows
 **Undo**. Amounts are $0–$1000 in whole cents.
 
+### Delivery timing (issue #74)
+
+Settings › Delivery saves an optional **Need by** date and time in
+`Australia/Sydney` and an optional freshness interval of 1–168 whole hours.
+Set **Perishable** in the grocery item editor for items that need that
+interval. Clearing the deadline clears the freshness interval.
+
+With a deadline, the planner uses the cheapest available window for each
+store part. The entire window must fit the chosen date range and allowed
+weekdays and end by the deadline. If the part contains any marked items,
+the window must also start no earlier than the deadline minus the freshness
+interval. Both bounds are inclusive. The split planner can schedule other
+items earlier at another store. Each option shows its matching windows or
+why it could not be scheduled. Options with missing, stale or incompatible
+windows cannot be recommended.
+
+The separate **Refresh delivery windows** bookmarks read the logged-in
+store's current delivery calendar and replace that store's snapshot via
+`POST /api/store-tab/delivery-windows`. The route checks the store-tab shared
+secret and matching store origin. A snapshot expires after 15 minutes.
+Woolworths reports available regular windows. Coles reports the windows in
+its visible week. Refreshes do not reserve slots or fill trolleys. Confirm
+the matching window at the store before paying.
+
+The settings API exposes `need_by` (local ISO datetime or null) and
+`perishable_hours` (integer or null). Grocery item create, edit and restore
+accept `perishable`. A store part on an order option adds `delivery_window`
+(`{start, end, fee}` or null) and `delivery_problem` (`windows_unavailable`,
+`no_matching_window`, `need_by_passed` or null).
+
+
 | Method | Path | Auth | Answer |
 |---|---|---|---|
 | `GET` | `/api/delivery-settings` | Clerk | 200 `{stores: [{store, store_name, delivery_fee, free_delivery_over, minimum_order}], mode, max_delivery_spend, default_delivery_day, allowed_delivery_days}` |
@@ -104,7 +135,9 @@ Data: migration `20261003080000_delivery_settings.sql` — `store_delivery_fees`
 (one row per store) and `order_preferences` (one row, `id = 1`);
 `20261114090000_default_delivery_day.sql` adds `default_delivery_day`;
 `20261115100000_store_delivery_day_fees.sql` keeps the stores' fees per day;
-`20261116040000_allowed_delivery_days.sql` adds `allowed_delivery_days`.
+`20261116040000_allowed_delivery_days.sql` adds `allowed_delivery_days`;
+`20261116100001_delivery_constraints.sql` adds timing preferences, item
+perishability, and the window snapshot table.
 Code: `services/order_plan/allowed_days.rs`.
 Log: `order options planned` (mode, each option's total, recommended, exact),
 `delivery settings saved`, `order stores set for items`.
@@ -208,8 +241,6 @@ review; `order line needs attention` (warn) for a line with a problem;
 - Fees for a day nobody has filled a trolley since: the stores' times are
   read only by the bookmark, in the household's logged-in tab, and the
   15-minute hold is the store's.
-- Delivery constraints that need windows: need-by time of day, perishable
-  timing (issue #74 stays open for these).
 - "Prefer specials" mode.
 - Skipping disliked products, and the warning before confirming. The rule
   is ready to call: `services/dislikes/skip.rs` (`FEATURE_DISLIKES.md`).
@@ -226,7 +257,7 @@ review; `order line needs attention` (warn) for a line with a problem;
 - Planner: `services/order_plan/fees.rs`, `rank.rs`, `tests.rs`,
   `tests_modes.rs` (free delivery reached by moving an item, minimums, the
   cap, every mode, 20 items by local search); `backend/tests/order_options.rs`,
-  `delivery_settings.rs`, `item_selections_per_store.rs`.
+  `delivery_settings.rs`, `delivery_constraints.rs`, `item_selections_per_store.rs`.
 - Web: `components/order-options/__tests__`, `components/delivery/__tests__`,
   `lib/__tests__/delivery-form.test.ts`, `option-notes.test.ts`;
   `frontend/e2e/order-options.spec.ts`.

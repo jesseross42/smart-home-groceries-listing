@@ -38,8 +38,8 @@ pub struct Settings {
     /// Shared secret authenticating the Alexa bridge sidecar on loopback.
     pub alexa_bridge_secret: String,
     /// Shared secret the "Fill trolley" bookmarklet sends from the store's
-    /// website (`STORE_TAB_SECRET`). It can only claim and report trolley
-    /// handoffs. The web app reads it to build the bookmarklet.
+    /// website (`STORE_TAB_SECRET`). It can claim and report trolley
+    /// handoffs and refresh delivery windows. The web app reads it to build the bookmarks.
     pub store_tab_secret: String,
 
     /// Base64-encoded 32-byte key for AES-256-GCM credential encryption.

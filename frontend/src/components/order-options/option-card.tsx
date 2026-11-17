@@ -1,4 +1,5 @@
 import { SwitchButton } from "#/components/order-options/switch-button";
+import { WindowStatus } from "#/components/order-options/window-status";
 import { Badge } from "#/components/ui/badge";
 import {
 	Card,
@@ -44,14 +45,18 @@ export function OptionCard({
 			<CardContent className="flex flex-col gap-2 text-sm">
 				<ul className="flex list-none flex-col gap-1 p-0">
 					{option.stores.map((store) => (
-						<li key={store.store} className="flex justify-between gap-2">
-							<span>
-								{store.store_name}: {store.lines.length}{" "}
-								{store.lines.length === 1 ? "item" : "items"}
-							</span>
-							<span className="text-muted-foreground">
-								{formatMoney(store.subtotal)} + {deliveryPhrase(store)}
-							</span>
+						<li key={store.store}>
+							<div className="flex justify-between gap-2">
+								<span>
+									{store.store_name}: {store.lines.length}{" "}
+									{store.lines.length === 1 ? "item" : "items"}
+								</span>
+								<span className="text-muted-foreground">
+									{formatMoney(store.subtotal)} + {deliveryPhrase(store)}
+									{store.delivery_problem && store.fee_known && " (estimate)"}
+								</span>
+							</div>
+							<WindowStatus store={store} />
 						</li>
 					))}
 				</ul>

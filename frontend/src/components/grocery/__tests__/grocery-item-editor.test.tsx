@@ -29,7 +29,17 @@ describe("GroceryItemEditor", () => {
 			quantity: 4,
 			note: "the 2 litre bottle",
 			filter_terms: [],
+			perishable: false,
 		});
+	});
+
+	it("marks an item as perishable", async () => {
+		const { onSave } = renderEditor();
+		await userEvent.click(screen.getByRole("checkbox", { name: "Perishable" }));
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+		expect(onSave).toHaveBeenCalledWith(
+			expect.objectContaining({ perishable: true }),
+		);
 	});
 
 	it("sends an empty note to clear an annotation", async () => {

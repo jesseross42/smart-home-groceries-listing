@@ -13,8 +13,10 @@ Spec: `docs/features/FEATURE_ORDER_OPTIMISATION.md`.
 - Switching stores is `SelectionService::buy_at` (all or nothing, 422).
   Clear `for_order` on the other row **before** setting it, or the partial
   index refuses the update.
-- Fees come only from Settings › Delivery (`services/delivery_settings`).
-  An unset fee is $0 with `fee_known: false`, never a guessed number.
+- Delivery fees use reported store data where available and fall back to
+  Settings › Delivery. An unset fee is $0 with `fee_known: false`.
+- A saved deadline requires a fresh matching window for each store part.
+  Perishable items constrain the start of the window at their assigned store.
 
 ## Where things are
 | Piece | File |

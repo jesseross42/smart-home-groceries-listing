@@ -47,10 +47,13 @@ pub async fn apply_to_list(pool: &PgPool, rule_id: Uuid) -> Result<Vec<Reapplied
         let after = items::update_item(
             &mut tx,
             before.id,
-            &before.name,
-            before.quantity,
-            before.note.as_deref(),
-            &terms,
+            items::ItemFields {
+                name: &before.name,
+                quantity: before.quantity,
+                note: before.note.as_deref(),
+                filter_terms: &terms,
+                perishable: before.perishable,
+            },
         )
         .await?;
         // New chips change the product search, so a product chosen under the

@@ -57,6 +57,8 @@ export interface StoreTab {
 	reservesDelivery: boolean;
 	/** The self-contained fill script, called as `fill(settings, helpers)`. */
 	fill: SelfContained;
+	/** A read-only program that refreshes the planner’s windows. */
+	refresh: SelfContained;
 	/** Self-contained helpers handed to `fill`, by name. */
 	helpers: Record<string, SelfContained>;
 }

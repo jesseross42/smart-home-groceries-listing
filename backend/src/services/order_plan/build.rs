@@ -10,6 +10,7 @@ use uuid::Uuid;
 use super::option::{evaluate, Candidate, OptionKind, PlanOption};
 use super::rank;
 use super::search::best_mix;
+use super::timing::Timing;
 use super::OrderPlan;
 use crate::models::db::GroceryItem;
 use crate::models::delivery_rows::OrderMode;
@@ -23,6 +24,7 @@ pub fn plan(
     candidates: &[Candidate],
     unchosen: Vec<GroceryItem>,
     settings: &DeliverySettings,
+    timing: &Timing,
 ) -> OrderPlan {
     if candidates.is_empty() {
         return OrderPlan {
@@ -34,7 +36,7 @@ pub fn plan(
             exact: true,
         };
     }
-    let found = best_mix(mode, candidates, settings);
+    let found = best_mix(mode, candidates, settings, timing);
     let only = |store: Store| -> Vec<Option<Store>> {
         candidates
             .iter()
@@ -50,7 +52,7 @@ pub fn plan(
         (OptionKind::Split, found.assignment),
         (OptionKind::Current, now),
     ] {
-        let option = evaluate(kind, candidates, &assignment, settings);
+        let option = evaluate(kind, candidates, &assignment, settings, timing);
         let empty = option.parts.is_empty();
         let repeated = options.iter().any(|o| same_picks(o, &option));
         if !empty && !repeated {
@@ -64,11 +66,12 @@ pub fn plan(
         candidates,
         &now_assignment(candidates),
         settings,
+        timing,
     );
     let current = options.iter().position(|o| same_picks(o, &bought_now));
     let recommended = options
         .first()
-        .filter(|best| best.acceptable() && best.complete())
+        .filter(|best| best.acceptable() && best.complete() && unchosen.is_empty())
         .map(|_| 0);
     OrderPlan {
         mode,

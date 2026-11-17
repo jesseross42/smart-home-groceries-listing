@@ -132,6 +132,21 @@ Behaviour: [`FEATURE_ORDER_OPTIMISATION.md`](features/FEATURE_ORDER_OPTIMISATION
 
 ---
 
+## Plan around a delivery deadline
+
+1. In **Settings › Delivery**, set **Need by (Sydney time)** and any allowed
+   weekdays. For perishables, enter the maximum hours before need-by that
+   they can arrive, then save.
+2. On the grocery list, edit the applicable items and check **Perishable**
+   before committing the list.
+3. On **Order**, expand **Refresh delivery windows** and drag each store's
+   bookmark to your bookmarks bar. Sign in at each store, select delivery
+   to the intended address and run its bookmark. Return to **Order** and
+   press **Check prices again**. Refresh again if a report has expired.
+4. Check the matching windows on the chosen option and confirm those times
+   on the store websites before paying.
+
+
 ## Woolworths shop
 
 Use Chrome for both the web app and the store tab.

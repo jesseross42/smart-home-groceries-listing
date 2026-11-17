@@ -52,6 +52,8 @@ describe("toForm and fromForm", () => {
 				max_delivery_spend: null,
 				default_delivery_day: null,
 				allowed_delivery_days: [],
+				need_by: null,
+				perishable_hours: null,
 			},
 		});
 	});

@@ -4,6 +4,7 @@
 pub mod access_log;
 pub mod delivery_day_fees;
 pub mod delivery_settings;
+pub mod delivery_windows;
 pub mod dislikes;
 pub mod encryption;
 pub mod filter_terms;

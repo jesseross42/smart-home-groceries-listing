@@ -18,7 +18,7 @@ use crate::models::delivery_rows::DeliveryDay;
 use crate::services::stores::Store;
 
 /// The stores' days are Australian east-coast days.
-const STORE_ZONE: Tz = chrono_tz::Australia::Sydney;
+pub const STORE_ZONE: Tz = chrono_tz::Australia::Sydney;
 
 /// How many days one report may carry; the stores show about a week.
 pub const MAX_REPORTED_DAYS: u64 = 21;

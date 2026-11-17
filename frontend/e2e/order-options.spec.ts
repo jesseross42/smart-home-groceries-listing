@@ -110,3 +110,44 @@ test.describe("delivery fees and ways to buy", () => {
 		await expect(page.getByRole("heading", { name: "Delivery" })).toBeVisible();
 	});
 });
+
+test("a saved deadline gates recommendations on the store's delivery windows", async ({
+	page,
+	request,
+}) => {
+	const date = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+	const milk = await addItem(request, "milk");
+	await choose(request, milk, "woolworths", "w-milk-2l");
+	await request.post(`${API_BASE_URL}/api/grocery-items/commit`);
+
+	await gotoList(page, "/settings/delivery");
+	await page.getByLabel("Need by (Sydney time)").fill(`${date}T18:00`);
+	await page.getByRole("button", { name: "Save" }).click();
+	await expect(page.getByText("Delivery settings saved")).toBeVisible();
+
+	await gotoList(page, "/order");
+	const woolworths = page.getByRole("region", { name: "All at Woolworths" });
+	const secretResponse = await request.get(
+		`${API_BASE_URL}/api/trolley-handoffs/store-tab-secret`,
+	);
+	const { secret } = (await secretResponse.json()) as { secret: string };
+	async function reportWindow(end: string) {
+		const report = await request.post(`${API_BASE_URL}/api/store-tab/delivery-windows`, {
+			headers: { origin: "https://www.woolworths.com.au" },
+			data: { secret, store: "woolworths", windows: [
+				{ start: `${date}T16:00:00`, end: `${date}T${end}:00`, fee: "5" },
+			] },
+		});
+		expect(report.status()).toBe(204);
+		await page.getByRole("button", { name: "Check prices again" }).click();
+	}
+
+	await reportWindow("18:01");
+	await expect(woolworths).toContainText("No reported delivery window meets");
+	await expect(woolworths.getByText("Recommended")).toHaveCount(0);
+
+	await reportWindow("18:00");
+	await expect(woolworths).toContainText("Delivery window");
+	await expect(woolworths).toContainText("$5.00 delivery");
+	await expect(woolworths.getByText("Recommended")).toBeVisible();
+});

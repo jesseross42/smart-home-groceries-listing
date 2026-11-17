@@ -2,7 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { DeliverySettingsForm } from "#/components/delivery/delivery-settings-form";
-import { api, type DeliverySettings } from "#/lib/api";
+import { ApiError, api, type DeliverySettings } from "#/lib/api";
 import { toastWithUndo } from "#/lib/undo-toast";
 
 export const Route = createFileRoute("/settings/delivery")({
@@ -26,7 +26,12 @@ function DeliveryPage() {
 		try {
 			await api.deliverySettings.save(next);
 		} catch (error) {
-			toast.error("Could not save the delivery settings — try again.");
+			toast.error(
+				error instanceof ApiError &&
+					error.message.includes("invalid_deadline_local_time")
+					? "Choose a Sydney time outside the daylight-saving changeover."
+					: "Could not save the delivery settings. Try again.",
+			);
 			throw error;
 		}
 		await router.invalidate();
@@ -42,8 +47,7 @@ function DeliveryPage() {
 			<div className="flex flex-col gap-1">
 				<h1 className="text-lg font-semibold">Delivery</h1>
 				<p className="text-sm text-muted-foreground">
-					The app cannot see the stores' delivery fees, so type them here. The
-					order screen adds them to every option.
+					Enter fallback fees and set when the household can take delivery.
 				</p>
 			</div>
 			<DeliverySettingsForm
