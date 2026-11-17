@@ -122,24 +122,48 @@ export async function pickColesDeliverySlot(
 			}))
 			.filter((day) => day.input && day.date && day.date >= wantedDate);
 
-		const list = () =>
-			drawer.querySelector('[data-testid="slots-radio-list"]') ?? drawer;
-		const shown = () =>
-			[...list().querySelectorAll<HTMLInputElement>('input[type="radio"]')]
-				.map((input) => input.value)
-				.join(" ");
+		const slotPanel = () =>
+			drawer.querySelector('[data-testid="slots-radio-list"]');
+		const list = () => slotPanel() ?? drawer;
+		const selectDay = async (input: HTMLInputElement) => {
+			// Consecutive sold-out dates may render the same empty result.
+			const previous = slotPanel();
+			let rendered = false;
+			const observer = new MutationObserver(() => {
+				rendered = true;
+			});
+			if (previous) {
+				observer.observe(previous, {
+					childList: true,
+					subtree: true,
+					characterData: true,
+					attributes: true,
+					attributeFilter: ["disabled", "value"],
+				});
+			}
+			try {
+				input.click();
+				return await wait(() => {
+					const panel = slotPanel();
+					return (
+						input.checked &&
+						panel !== null &&
+						!panel.closest('[aria-busy="true"]') &&
+						(panel !== previous || rendered)
+					);
+				});
+			} finally {
+				observer.disconnect();
+			}
+		};
 		// Each day looked at, as its cheapest open time, for the planner.
 		const seen: DayFee[] = [];
 		for (const day of days) {
 			const input = day.input as HTMLInputElement;
-			if (!input.checked) {
-				const before = shown();
-				input.click();
-				if (!(await wait(() => shown() !== before))) {
-					if (readOnly)
-						return failed("Coles did not load delivery times for every day.");
-					continue;
-				}
+			if (!input.checked && !(await selectDay(input))) {
+				if (readOnly)
+					return failed("Coles did not load delivery times for every day.");
+				continue;
 			}
 			const slots = helpers.readSlots(list());
 			if (slots.length > 0) {

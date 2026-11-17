@@ -23,6 +23,8 @@ export interface DrawerDay {
 	/** e.g. "15 Nov". */
 	date: string;
 	slots: DrawerSlot[];
+	/** Simulate a date switch that keeps the previous slots visible while loading. */
+	loadDelay?: number;
 }
 
 /** One time's markup, as Coles renders it. */
@@ -63,7 +65,18 @@ export function openColesDrawer(
 		}
 	};
 	days.forEach((day, i) => {
-		drawer.querySelector(`#d${i}`)?.addEventListener("click", () => show(day));
+		drawer.querySelector(`#d${i}`)?.addEventListener("click", () => {
+			if (!day.loadDelay) {
+				show(day);
+				return;
+			}
+			list.setAttribute("aria-busy", "true");
+			list.append(document.createElement("span"));
+			setTimeout(() => {
+				show(day);
+				list.removeAttribute("aria-busy");
+			}, day.loadDelay);
+		});
 	});
 	confirm.addEventListener("click", () => {
 		const picked = list.querySelector<HTMLInputElement>("input:checked");
