@@ -3,7 +3,7 @@
 //!
 //! Money is a decimal string. Lines reuse the order review's shape.
 
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -12,9 +12,10 @@ use validator::Validate;
 use super::order_review::{OrderLineResponse, UnchosenItemResponse};
 use super::selections::OrderStorePick;
 use crate::models::delivery_rows::{DeliveryDay, OrderMode};
+use crate::services::delivery_windows::DeliveryWindow;
 use crate::services::order_plan::{
     DayChoice, DayProblem, DislikedPick, Missing, OptionKind, OrderPlan, PlanOption, PlannedOrder,
-    StorePart,
+    StorePart, StoreTiming, TimingProblem,
 };
 use crate::services::stores::Store;
 
@@ -87,6 +88,8 @@ pub struct OrderOptionsResponse {
     pub store_fees: Vec<StoreDayFeeResponse>,
     /// The weekdays a delivery may come on; empty = any day.
     pub allowed_delivery_days: Vec<DeliveryDay>,
+    /// Store-local deadline for each part of the order.
+    pub need_by: Option<NaiveDateTime>,
     /// Why the delivery asked for cannot come on an allowed day; when set,
     /// no option is recommended.
     pub delivery_problem: Option<DeliveryProblemResponse>,
@@ -158,6 +161,10 @@ pub struct OptionStoreResponse {
     pub free_delivery: bool,
     pub below_minimum: bool,
     pub minimum_order: Option<Decimal>,
+    /// Cheapest matching live window for these items, when timing is configured.
+    pub delivery_window: Option<DeliveryWindow>,
+    /// Why the planner could not find a matching window for this store part.
+    pub delivery_problem: Option<TimingProblem>,
 }
 
 /// An item an option cannot buy.
@@ -213,6 +220,7 @@ impl OrderOptionsResponse {
             exact,
             max_delivery_spend: settings.max_delivery_spend,
             allowed_delivery_days: settings.allowed_delivery_days,
+            need_by: settings.need_by,
             delivery_problem: day_problem.map(Into::into),
             delivery_day,
             within_days,
@@ -263,8 +271,15 @@ fn option_response(option: PlanOption, recommended: bool, is_current: bool) -> O
 }
 
 fn store_response(part: StorePart) -> OptionStoreResponse {
+    let (delivery_window, delivery_problem) = match part.timing {
+        StoreTiming::Unconstrained => (None, None),
+        StoreTiming::Scheduled(window) => (Some(window), None),
+        StoreTiming::Unavailable(problem) => (None, Some(problem)),
+    };
     OptionStoreResponse {
         store: part.store,
+        delivery_window,
+        delivery_problem,
         store_name: part.store.display_name(),
         lines: part.lines.into_iter().map(Into::into).collect(),
         subtotal: part.subtotal,

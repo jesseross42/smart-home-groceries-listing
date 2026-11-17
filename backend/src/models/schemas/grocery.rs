@@ -23,6 +23,8 @@ pub struct GroceryItemResponse {
     /// Filter chips, in the order they will be shown. Never null — an item
     /// with no chips serialises as `[]`, so the web app needs no fallback.
     pub filter_terms: Vec<String>,
+    /// Whether this item needs a delivery close to the deadline.
+    pub perishable: bool,
     pub added_by_user_id: Option<String>,
     pub created_at: DateTime<Utc>,
 }
@@ -37,6 +39,7 @@ impl From<GroceryItem> for GroceryItemResponse {
             source: row.source,
             note: row.note,
             filter_terms: row.filter_terms,
+            perishable: row.perishable,
             added_by_user_id: row.added_by_user_id,
             created_at: row.created_at,
         }
@@ -50,6 +53,9 @@ impl From<GroceryItem> for GroceryItemResponse {
 /// one.
 #[derive(Debug, Deserialize, Validate)]
 pub struct GroceryItemCreate {
+    /// Whether this item needs a delivery close to the deadline.
+    #[serde(default)]
+    pub perishable: bool,
     #[validate(length(min = 1, max = MAX_NAME_LEN))]
     pub name: String,
     #[serde(default = "default_quantity")]
@@ -69,6 +75,8 @@ pub struct GroceryItemCreate {
 /// replaces the chips wholesale, which is how removing one chip is expressed.
 #[derive(Debug, Default, Deserialize, Validate)]
 pub struct GroceryItemUpdate {
+    /// Change the item’s perishable flag when supplied.
+    pub perishable: Option<bool>,
     #[validate(length(min = 1, max = MAX_NAME_LEN))]
     pub name: Option<String>,
     #[validate(range(min = 1, max = MAX_QUANTITY))]

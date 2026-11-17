@@ -30,7 +30,7 @@ import type {
 
 /** What happened to the delivery window, in the backend's report shape. */
 export interface DeliveryReport {
-	outcome: "reserved" | "kept" | "failed";
+	outcome: "reserved" | "kept" | "failed" | "read";
 	window_label?: string;
 	/** Store-local, "YYYY-MM-DDTHH:MM:SS". */
 	window_start?: string;
@@ -51,6 +51,14 @@ export interface DayFee {
 	date: string;
 	/** Decimal string. */
 	cheapest_fee: string;
+	windows?: ReportedWindow[];
+}
+
+/** An available regular delivery window in store-local time. */
+export interface ReportedWindow {
+	start: string;
+	end: string;
+	fee: string;
 }
 
 type ChooseWindow = (
@@ -63,6 +71,7 @@ type ChooseWindow = (
 export async function reserveWoolworthsDeliveryWindow(
 	wanted: DeliveryWanted,
 	chooseWindow: ChooseWindow,
+	readOnly = false,
 ): Promise<DeliveryReport> {
 	const JSON_HEADERS = {
 		accept: "application/json, text/plain, */*",
@@ -104,6 +113,11 @@ export async function reserveWoolworthsDeliveryWindow(
 			headers: JSON_HEADERS,
 			cache: "no-store",
 		}).then((r) => (r.ok ? r.json() : null));
+		if (readOnly && (!Array.isArray(listed?.Days) || method !== "Courier")) {
+			return failed(
+				"Woolworths did not show delivery windows. Check that delivery is selected.",
+			);
+		}
 		const listedDays: WoolworthsDay[] = listed?.Days ?? [];
 		for (const day of listedDays) {
 			const fees = (day.Times ?? [])
@@ -114,8 +128,28 @@ export async function reserveWoolworthsDeliveryWindow(
 			days.push({
 				date: String(day.Date).slice(0, 10),
 				cheapest_fee: String(Math.min(...fees)),
+				...(readOnly && {
+					windows: (day.Times ?? [])
+						.filter(
+							(time) =>
+								time.Available &&
+								!time.IsExpress &&
+								Number.isFinite(time.SalePrice) &&
+								time.SalePrice >= 0 &&
+								typeof time.StartDateTime === "string" &&
+								typeof time.EndDateTime === "string" &&
+								seconds(time.EndDateTime) > seconds(time.StartDateTime),
+						)
+						.map((time) => ({
+							start: seconds(time.StartDateTime),
+							end: seconds(time.EndDateTime),
+							fee: String(time.SalePrice),
+						})),
+				}),
 			});
 		}
+
+		if (readOnly) return { outcome: "read", days };
 
 		const reserved = info.ReservedTime;
 		if (reserved?.Id && reserved.StartDateTime) {

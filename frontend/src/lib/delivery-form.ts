@@ -23,6 +23,9 @@ export interface StoreFeeFields {
 	deliveryAddress: string;
 }
 
+/** Largest allowed freshness interval, in hours. */
+export const MAX_PERISHABLE_HOURS = 168;
+
 /** The whole form. */
 export interface DeliveryForm {
 	stores: StoreFeeFields[];
@@ -32,6 +35,8 @@ export interface DeliveryForm {
 	usualDay: DeliveryDay | null;
 	/** Empty = any day. */
 	allowedDays: DeliveryDay[];
+	needBy: string;
+	perishableHours: string;
 }
 
 /** `days` with `day` added, or taken out when it was there. */
@@ -57,6 +62,8 @@ export function toForm(settings: DeliverySettings): DeliveryForm {
 		maxDeliverySpend: settings.max_delivery_spend ?? "",
 		usualDay: settings.default_delivery_day,
 		allowedDays: settings.allowed_delivery_days ?? [],
+		needBy: settings.need_by ?? "",
+		perishableHours: settings.perishable_hours?.toString() ?? "",
 	};
 }
 
@@ -103,6 +110,17 @@ export function fromForm(
 	) {
 		return { error: "The usual delivery day must be one of the allowed days." };
 	}
+	const hours =
+		form.needBy && form.perishableHours ? Number(form.perishableHours) : null;
+	if (
+		hours !== null &&
+		(!Number.isInteger(hours) || hours < 1 || hours > MAX_PERISHABLE_HOURS)
+	) {
+		return {
+			error: `Enter 1 to ${MAX_PERISHABLE_HOURS} whole hours for perishables.`,
+		};
+	}
+	const needBy = form.needBy.length === 16 ? `${form.needBy}:00` : form.needBy;
 	return {
 		settings: {
 			stores,
@@ -110,6 +128,8 @@ export function fromForm(
 			max_delivery_spend: cap.value,
 			default_delivery_day: form.usualDay,
 			allowed_delivery_days: form.allowedDays,
+			need_by: needBy || null,
+			perishable_hours: hours,
 		},
 	};
 }

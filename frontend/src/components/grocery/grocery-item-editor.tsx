@@ -25,6 +25,7 @@ export function GroceryItemEditor({
 }: GroceryItemEditorProps) {
 	const [name, setName] = useState(item.name);
 	const [quantity, setQuantity] = useState(String(item.quantity));
+	const [perishable, setPerishable] = useState(item.perishable ?? false);
 	const [note, setNote] = useState(item.note ?? "");
 	const [terms, setTerms] = useState(item.filter_terms);
 	const [busy, setBusy] = useState(false);
@@ -40,6 +41,7 @@ export function GroceryItemEditor({
 				// An empty string is how the backend is told to clear the note.
 				note: note.trim(),
 				filter_terms: terms,
+				perishable,
 			});
 		} catch {
 			// The page reports the failure; the draft stays open for a retry.
@@ -98,6 +100,16 @@ export function GroceryItemEditor({
 					onChange={(event) => setNote(event.target.value)}
 				/>
 			</div>
+
+			<label className="flex w-fit items-center gap-2 text-sm">
+				<input
+					type="checkbox"
+					className="size-4 accent-primary"
+					checked={perishable}
+					onChange={(event) => setPerishable(event.target.checked)}
+				/>
+				Perishable
+			</label>
 
 			<TermListField
 				id={`filter-${item.id}`}

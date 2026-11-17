@@ -10,6 +10,7 @@
  * stops there and never places the order. Rebuild it (drag it
  * again) if the backend URL or `STORE_TAB_SECRET` changes.
  */
+import { publishDeliveryWindows } from "#/lib/store-tab/refresh-delivery-windows";
 import type { FillTrolleyConfig, StoreTab } from "#/lib/store-tab/store-tab";
 
 /**
@@ -66,6 +67,23 @@ export function bookmarklet(
 	config: FillTrolleyConfig,
 ): string {
 	return `javascript:${encodeURIComponent(fillCall(tab, config) + SHOW_RESULT)}`;
+}
+
+/** A separate bookmark that refreshes windows without claiming a trolley handoff. */
+export function deliveryWindowsBookmarklet(
+	tab: StoreTab,
+	config: FillTrolleyConfig,
+): string {
+	const program = fillCall(
+		{
+			fill: tab.refresh,
+			helpers: { ...tab.helpers, publishWindows: publishDeliveryWindows },
+		},
+		config,
+	);
+	const show =
+		".then(function(r){alert(r.message)},function(e){alert('Could not refresh delivery windows: '+e.message)});void 0";
+	return `javascript:${encodeURIComponent(program + show)}`;
 }
 
 /** The absolute backend URL a script on another website must call. */

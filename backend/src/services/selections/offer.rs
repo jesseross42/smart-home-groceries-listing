@@ -67,6 +67,7 @@ mod tests {
 
     fn item() -> GroceryItem {
         GroceryItem {
+            perishable: false,
             id: uuid::Uuid::nil(),
             name: "milk".into(),
             quantity: 1,

@@ -76,8 +76,9 @@ pub fn sort(mode: OrderMode, options: &mut [PlanOption]) {
     options.sort_by(|a, b| {
         let a_first = Some(a.kind) == preferred;
         let b_first = Some(b.kind) == preferred;
-        b_first
-            .cmp(&a_first)
+        b.meets_timing()
+            .cmp(&a.meets_timing())
+            .then(b_first.cmp(&a_first))
             .then_with(|| compare(mode, &Measure::from(&*a), &Measure::from(&*b)))
     });
 }

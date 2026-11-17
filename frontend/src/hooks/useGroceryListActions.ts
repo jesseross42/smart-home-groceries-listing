@@ -76,6 +76,7 @@ export function useGroceryListActions(items: GroceryItem[]) {
 						quantity: before.quantity,
 						note: before.note ?? "",
 						filter_terms: before.filter_terms,
+						perishable: before.perishable,
 					});
 					await api.selections.restore(snapshot.id);
 				});
@@ -99,6 +100,7 @@ export function useGroceryListActions(items: GroceryItem[]) {
 						quantity: before.quantity,
 						note: before.note ?? undefined,
 						filter_terms: before.filter_terms,
+						perishable: before.perishable,
 					});
 					await api.selections.restore(snapshot.id, back.id);
 				});

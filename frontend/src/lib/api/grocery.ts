@@ -14,6 +14,8 @@ export interface GroceryItem {
 	note: string | null;
 	/** Filter chips narrowing the later product search. Never `null`. */
 	filter_terms: string[];
+	/** The item needs a delivery close to the deadline. */
+	perishable?: boolean;
 	added_by_user_id: string | null;
 	created_at: string;
 }
@@ -24,6 +26,7 @@ export interface NewGroceryItem {
 	quantity?: number;
 	note?: string;
 	filter_terms?: string[];
+	perishable?: boolean;
 }
 
 /**
@@ -36,6 +39,7 @@ export interface GroceryItemEdit {
 	quantity?: number;
 	note?: string;
 	filter_terms?: string[];
+	perishable?: boolean;
 }
 
 /**

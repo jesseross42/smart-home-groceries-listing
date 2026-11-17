@@ -52,6 +52,10 @@ export interface DeliverySettings {
 	default_delivery_day: DeliveryDay | null;
 	/** The weekdays a delivery may come on; empty = any day. */
 	allowed_delivery_days: DeliveryDay[];
+	/** Store-local date and time that deliveries must finish by. */
+	need_by?: string | null;
+	/** Maximum hours before need-by for a delivery containing perishables. */
+	perishable_hours?: number | null;
 }
 
 export const deliverySettingsApi = {

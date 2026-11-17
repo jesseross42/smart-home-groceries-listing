@@ -12,6 +12,7 @@
 mod access_logs;
 mod common;
 mod delivery_settings;
+mod delivery_windows;
 mod dislikes;
 mod grocery;
 mod intake;
@@ -30,6 +31,7 @@ mod voice_changes;
 pub use access_logs::*;
 pub use common::*;
 pub use delivery_settings::*;
+pub use delivery_windows::DeliveryWindowsReport;
 pub use dislikes::*;
 pub use grocery::*;
 pub use intake::*;

@@ -12,7 +12,7 @@
 //!   answers. The rest of the API stays closed to those origins.
 
 use axum::extract::{Path, Request, State};
-use axum::http::{header, HeaderValue, StatusCode};
+use axum::http::{header, HeaderMap, HeaderValue, StatusCode};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
@@ -22,24 +22,29 @@ use uuid::Uuid;
 use crate::auth::secret::verify_shared_secret;
 use crate::error::ApiError;
 use crate::models::schemas::{
-    StoreTabClaimRequest, StoreTabClaimResponse, StoreTabReportRequest, TrolleyHandoffResponse,
+    DeliveryWindowsReport, StoreTabClaimRequest, StoreTabClaimResponse, StoreTabReportRequest,
+    TrolleyHandoffResponse,
 };
 use crate::routes::extract::AnyContentTypeJson;
 use crate::services::delivery_day_fees::DeliveryDayFeeService;
-use crate::services::purchases;
 use crate::services::stores::Store;
 use crate::services::trolley_handoffs::delivery::ReportedDelivery;
 use crate::services::trolley_handoffs::store_tab::ReportedLine;
 use crate::services::trolley_handoffs::TrolleyHandoffService;
+use crate::services::{delivery_windows, purchases};
 use crate::state::AppState;
 
-/// `/api/store-tab/trolley-handoffs/*`, authenticated by `STORE_TAB_SECRET`.
+/// Store-tab routes authenticated by `STORE_TAB_SECRET`.
 pub fn router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/api/store-tab/trolley-handoffs/claim", post(claim_handoff))
         .route(
             "/api/store-tab/trolley-handoffs/{handoff_id}/report",
             post(report_handoff),
+        )
+        .route(
+            "/api/store-tab/delivery-windows",
+            post(report_delivery_windows),
         )
         .layer(middleware::from_fn_with_state(state, allow_store_origins))
 }
@@ -89,6 +94,30 @@ async fn report_handoff(
         .await?;
     purchases::record_in_background(state.pool.clone(), state.stores.clone(), handoff_id);
     Ok(Json(closed.into()))
+}
+
+/// Takes a delivery snapshot without creating a handoff or touching the trolley.
+async fn report_delivery_windows(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    AnyContentTypeJson(body): AnyContentTypeJson<DeliveryWindowsReport>,
+) -> Result<StatusCode, ApiError> {
+    check_secret(&state, &body.secret)?;
+    let expected = state
+        .settings
+        .stores
+        .base_url(body.store)
+        .trim_end_matches('/');
+    if headers
+        .get(header::ORIGIN)
+        .is_none_or(|origin| origin.as_bytes() != expected.as_bytes())
+    {
+        return Err(ApiError::Unauthorized(
+            "A delivery report must come from its store tab".into(),
+        ));
+    }
+    delivery_windows::replace(&state.pool, body.store, body.windows).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// 401 unless the body carries the configured store-tab secret.

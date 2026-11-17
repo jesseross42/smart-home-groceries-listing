@@ -89,6 +89,74 @@ describe("pickColesDeliverySlot", () => {
 		});
 	});
 
+	it("reads both days without reserving, including a window that crosses midnight", async () => {
+		const confirmed = vi.fn();
+		openColesDrawer(days, confirmed);
+		const report = await pickColesDeliverySlot(
+			{ date: null, time_of_day: "any" },
+			helpers,
+			now,
+			true,
+		);
+
+		expect(confirmed).not.toHaveBeenCalled();
+		expect(report.outcome, report.problem).toBe("read");
+		expect(report.days?.map((day) => day.date)).toEqual([
+			"2026-11-15",
+			"2026-11-16",
+		]);
+		expect(report.days?.[1].windows).toContainEqual({
+			start: "2026-11-16T23:30:00",
+			end: "2026-11-17T00:30:00",
+			fee: "8",
+		});
+	});
+
+	it("refreshes available windows after two consecutive sold-out days", async () => {
+		const confirmed = vi.fn();
+		openColesDrawer(
+			[
+				{ ...days[0], slots: [] },
+				{ ...days[1], slots: [] },
+				{ ...days[1], day: "Tue", date: "17 Nov" },
+			],
+			confirmed,
+		);
+
+		const report = await pickColesDeliverySlot(
+			{ date: null, time_of_day: "any" },
+			helpers,
+			now,
+			true,
+		);
+
+		expect(confirmed).not.toHaveBeenCalled();
+		expect(report.outcome, report.problem).toBe("read");
+		expect(report.days?.map((day) => day.date)).toEqual(["2026-11-17"]);
+		expect(report.days?.[0].windows).toContainEqual({
+			start: "2026-11-17T18:00:00",
+			end: "2026-11-17T19:00:00",
+			fee: "10",
+		});
+	});
+
+	it("waits for the selected date to finish loading before reading its windows", async () => {
+		openColesDrawer([days[0], { ...days[1], loadDelay: 250 }]);
+
+		const report = await pickColesDeliverySlot(
+			{ date: null, time_of_day: "any" },
+			helpers,
+			now,
+			true,
+		);
+
+		expect(report.outcome, report.problem).toBe("read");
+		expect(report.days?.[1]).toMatchObject({
+			date: "2026-11-16",
+			cheapest_fee: "8",
+		});
+	});
+
 	it("opens the day asked for, and a window past midnight ends the next day", async () => {
 		const confirmed = vi.fn();
 		openColesDrawer(days, confirmed);

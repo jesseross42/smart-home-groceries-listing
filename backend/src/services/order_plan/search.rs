@@ -18,9 +18,9 @@ use std::cmp::Ordering;
 
 use rust_decimal::Decimal;
 
-use super::fees::charge;
 use super::option::Candidate;
 use super::rank::{compare, Measure};
+use super::timing::Timing;
 use crate::models::delivery_rows::OrderMode;
 use crate::services::delivery_settings::DeliverySettings;
 use crate::services::stores::Store;
@@ -39,9 +39,16 @@ pub struct Found {
 }
 
 /// The best way to buy every item that can be bought, any mix of stores.
-pub fn best_mix(mode: OrderMode, candidates: &[Candidate], settings: &DeliverySettings) -> Found {
-    let priced: Vec<Vec<(Store, Decimal)>> =
-        candidates.iter().map(Candidate::allowed_prices).collect();
+pub fn best_mix(
+    mode: OrderMode,
+    candidates: &[Candidate],
+    settings: &DeliverySettings,
+    timing: &Timing,
+) -> Found {
+    let priced: Vec<Vec<(Store, Decimal)>> = candidates
+        .iter()
+        .map(|item| item.allowed_prices(timing))
+        .collect();
     let flexible: Vec<usize> = (0..priced.len()).filter(|&i| priced[i].len() > 1).collect();
     let cheapest: Vec<Option<Store>> = priced
         .iter()
@@ -57,6 +64,8 @@ pub fn best_mix(mode: OrderMode, candidates: &[Candidate], settings: &DeliverySe
         mode,
         priced: &priced,
         settings,
+        timing,
+        candidates,
     };
     if flexible.len() <= EXACT_LIMIT {
         return Found {
@@ -99,6 +108,8 @@ struct Scorer<'a> {
     mode: OrderMode,
     priced: &'a [Vec<(Store, Decimal)>],
     settings: &'a DeliverySettings,
+    timing: &'a Timing,
+    candidates: &'a [Candidate],
 }
 
 impl Scorer<'_> {
@@ -110,9 +121,12 @@ impl Scorer<'_> {
         for store in Store::ALL {
             let mut subtotal = Decimal::ZERO;
             let mut used = false;
-            for (offers, at) in self.priced.iter().zip(assignment) {
+            let mut has_perishables = false;
+            for ((offers, at), candidate) in self.priced.iter().zip(assignment).zip(self.candidates)
+            {
                 if *at == Some(store) {
                     used = true;
+                    has_perishables |= candidate.item.perishable;
                     subtotal += offers
                         .iter()
                         .find(|(s, _)| *s == store)
@@ -122,11 +136,12 @@ impl Scorer<'_> {
             if !used {
                 continue;
             }
-            let charged = charge(&self.settings.rules_for(store), subtotal);
+            let timing = self.timing.at(store, has_perishables);
+            let charged = timing.charge(self.settings.rules_for(store), subtotal);
             stores_used += 1;
             total += subtotal + charged.fee;
             delivery += charged.fee;
-            acceptable &= !charged.below_minimum;
+            acceptable &= timing.fits() && !charged.below_minimum;
         }
         acceptable &= self
             .settings

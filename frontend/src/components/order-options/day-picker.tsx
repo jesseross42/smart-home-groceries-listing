@@ -29,6 +29,7 @@ export function DayPicker({
 	withinDays,
 	usualDay,
 	storeFees,
+	usesWindows = false,
 	today = new Date(),
 	onChange,
 }: {
@@ -36,6 +37,7 @@ export function DayPicker({
 	/** The usual day the plan used, when no range was picked. */
 	usualDay: DeliveryDay | null;
 	storeFees: StoreDayFee[];
+	usesWindows?: boolean;
 	today?: Date;
 	onChange: (withinDays: number) => void;
 }) {
@@ -72,16 +74,18 @@ export function DayPicker({
 					))}
 				</SelectContent>
 			</Select>
-			<p className="text-xs text-muted-foreground">
-				{storeFees.length === 0
-					? "Fees from Settings. The store's own fees show after the bookmark has run."
-					: storeFees
-							.map(
-								(fee) =>
-									`${fee.store_name} ${formatMoney(fee.fee)} on ${dayLabel(fee.date)}`,
-							)
-							.join(" · ")}
-			</p>
+			{!usesWindows && (
+				<p className="text-xs text-muted-foreground">
+					{storeFees.length === 0
+						? "Fees from Settings. The store's own fees show after the bookmark has run."
+						: storeFees
+								.map(
+									(fee) =>
+										`${fee.store_name} ${formatMoney(fee.fee)} on ${dayLabel(fee.date)}`,
+								)
+								.join(" · ")}
+				</p>
+			)}
 		</div>
 	);
 }

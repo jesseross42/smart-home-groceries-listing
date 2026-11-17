@@ -38,7 +38,7 @@ where
 {
     Ok(sqlx::query_as::<_, GroceryItem>(
         "SELECT id, name, quantity, status, source, note, filter_terms,
-                added_by_user_id, created_at
+                added_by_user_id, created_at, perishable
          FROM grocery_items
          WHERE status IN ('active', 'committed')
          ORDER BY created_at DESC",
@@ -54,7 +54,7 @@ where
 {
     Ok(sqlx::query_as::<_, GroceryItem>(
         "SELECT id, name, quantity, status, source, note, filter_terms,
-                added_by_user_id, created_at
+                added_by_user_id, created_at, perishable
          FROM grocery_items
          WHERE id = $1",
     )
@@ -70,7 +70,7 @@ pub async fn lock_item(
 ) -> Result<Option<GroceryItem>, ApiError> {
     Ok(sqlx::query_as::<_, GroceryItem>(
         "SELECT id, name, quantity, status, source, note, filter_terms,
-                added_by_user_id, created_at
+                added_by_user_id, created_at, perishable
          FROM grocery_items
          WHERE id = $1
          FOR UPDATE",
@@ -87,7 +87,7 @@ pub async fn lock_active_items(
 ) -> Result<Vec<GroceryItem>, ApiError> {
     Ok(sqlx::query_as::<_, GroceryItem>(
         "SELECT id, name, quantity, status, source, note, filter_terms,
-                added_by_user_id, created_at
+                added_by_user_id, created_at, perishable
          FROM grocery_items
          WHERE status = 'active'
          ORDER BY created_at, id
@@ -110,7 +110,7 @@ pub async fn lock_active_duplicate(
 ) -> Result<Option<GroceryItem>, ApiError> {
     Ok(sqlx::query_as::<_, GroceryItem>(
         r"SELECT id, name, quantity, status, source, note, filter_terms,
-                 added_by_user_id, created_at
+                 added_by_user_id, created_at, perishable
           FROM grocery_items
           WHERE status = 'active'
             AND lower(btrim(regexp_replace(name, '\s+', ' ', 'g'))) = $1
@@ -123,31 +123,38 @@ pub async fn lock_active_duplicate(
     .await?)
 }
 
+/// Editable grocery fields after the service has resolved a partial edit.
+pub struct ItemFields<'a> {
+    pub name: &'a str,
+    pub quantity: i32,
+    pub note: Option<&'a str>,
+    pub filter_terms: &'a [String],
+    pub perishable: bool,
+}
+
 /// Adds an item to the active list.
 pub async fn insert_item(
     tx: &mut Transaction<'_, Postgres>,
-    name: &str,
-    quantity: i32,
+    fields: ItemFields<'_>,
     source: GroceryItemSource,
-    note: Option<&str>,
-    filter_terms: &[String],
     user_id: &str,
 ) -> Result<GroceryItem, ApiError> {
     Ok(sqlx::query_as::<_, GroceryItem>(
         "INSERT INTO grocery_items
-             (id, name, quantity, status, source, note, filter_terms, added_by_user_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             (id, name, quantity, status, source, note, filter_terms, added_by_user_id, perishable)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING id, name, quantity, status, source, note, filter_terms,
-                   added_by_user_id, created_at",
+                   added_by_user_id, created_at, perishable",
     )
     .bind(Uuid::new_v4())
-    .bind(name)
-    .bind(quantity)
+    .bind(fields.name)
+    .bind(fields.quantity)
     .bind(GroceryItemStatus::Active)
     .bind(source)
-    .bind(note)
-    .bind(filter_terms)
+    .bind(fields.note)
+    .bind(fields.filter_terms)
     .bind(user_id)
+    .bind(fields.perishable)
     .fetch_one(&mut **tx)
     .await?)
 }
@@ -162,7 +169,7 @@ pub async fn set_item_quantity(
         "UPDATE grocery_items SET quantity = $2
          WHERE id = $1
          RETURNING id, name, quantity, status, source, note, filter_terms,
-                   added_by_user_id, created_at",
+                   added_by_user_id, created_at, perishable",
     )
     .bind(item_id)
     .bind(quantity)
@@ -178,23 +185,21 @@ pub async fn set_item_quantity(
 pub async fn update_item(
     tx: &mut Transaction<'_, Postgres>,
     item_id: Uuid,
-    name: &str,
-    quantity: i32,
-    note: Option<&str>,
-    filter_terms: &[String],
+    fields: ItemFields<'_>,
 ) -> Result<GroceryItem, ApiError> {
     Ok(sqlx::query_as::<_, GroceryItem>(
         "UPDATE grocery_items
-         SET name = $2, quantity = $3, note = $4, filter_terms = $5
+         SET name = $2, quantity = $3, note = $4, filter_terms = $5, perishable = $6
          WHERE id = $1
          RETURNING id, name, quantity, status, source, note, filter_terms,
-                   added_by_user_id, created_at",
+                   added_by_user_id, created_at, perishable",
     )
     .bind(item_id)
-    .bind(name)
-    .bind(quantity)
-    .bind(note)
-    .bind(filter_terms)
+    .bind(fields.name)
+    .bind(fields.quantity)
+    .bind(fields.note)
+    .bind(fields.filter_terms)
+    .bind(fields.perishable)
     .fetch_one(&mut **tx)
     .await?)
 }
@@ -230,7 +235,7 @@ where
         "UPDATE grocery_items SET status = $2
          WHERE status = $1 AND ($3::uuid[] IS NULL OR id = ANY($3))
          RETURNING id, name, quantity, status, source, note, filter_terms,
-                   added_by_user_id, created_at",
+                   added_by_user_id, created_at, perishable",
     )
     .bind(from)
     .bind(to)

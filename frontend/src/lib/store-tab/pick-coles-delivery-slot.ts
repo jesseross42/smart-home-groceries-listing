@@ -31,7 +31,10 @@ import type {
 	DeliveryWanted,
 	TimeOfDay,
 } from "#/lib/store-tab/choose-woolworths-window";
-import type { DeliveryReport } from "#/lib/store-tab/reserve-woolworths-delivery-window";
+import type {
+	DayFee,
+	DeliveryReport,
+} from "#/lib/store-tab/reserve-woolworths-delivery-window";
 
 /** The self-contained helpers the picker is handed. */
 export interface ColesSlotHelpers {
@@ -44,6 +47,7 @@ export async function pickColesDeliverySlot(
 	wanted: DeliveryWanted,
 	helpers: ColesSlotHelpers,
 	now: Date = new Date(),
+	readOnly = false,
 ): Promise<DeliveryReport> {
 	const failed = (problem: string): DeliveryReport => ({
 		outcome: "failed",
@@ -91,9 +95,19 @@ export async function pickColesDeliverySlot(
 					: "Coles' “When” button was not on this page",
 			);
 		}
+		if (
+			readOnly &&
+			drawer
+				.querySelector('[data-testid="drawer-heading"]')
+				?.textContent?.trim() !== "Choose delivery slot"
+		) {
+			return failed(
+				"Select delivery to your address on Coles, then run the bookmark again.",
+			);
+		}
 		const tomorrow = new Date(now);
 		tomorrow.setDate(tomorrow.getDate() + 1);
-		const wantedDate = wanted.date ?? iso(tomorrow);
+		const wantedDate = readOnly ? iso(now) : (wanted.date ?? iso(tomorrow));
 		const days = [
 			...drawer.querySelectorAll('[data-testid^="date-select-item-"]'),
 		]
@@ -108,28 +122,64 @@ export async function pickColesDeliverySlot(
 			}))
 			.filter((day) => day.input && day.date && day.date >= wantedDate);
 
-		const list = () =>
-			drawer.querySelector('[data-testid="slots-radio-list"]') ?? drawer;
-		const shown = () =>
-			[...list().querySelectorAll<HTMLInputElement>('input[type="radio"]')]
-				.map((input) => input.value)
-				.join(" ");
+		const slotPanel = () =>
+			drawer.querySelector('[data-testid="slots-radio-list"]');
+		const list = () => slotPanel() ?? drawer;
+		const selectDay = async (input: HTMLInputElement) => {
+			// Consecutive sold-out dates may render the same empty result.
+			const previous = slotPanel();
+			let rendered = false;
+			const observer = new MutationObserver(() => {
+				rendered = true;
+			});
+			if (previous) {
+				observer.observe(previous, {
+					childList: true,
+					subtree: true,
+					characterData: true,
+					attributes: true,
+					attributeFilter: ["disabled", "value"],
+				});
+			}
+			try {
+				input.click();
+				return await wait(() => {
+					const panel = slotPanel();
+					return (
+						input.checked &&
+						panel !== null &&
+						!panel.closest('[aria-busy="true"]') &&
+						(panel !== previous || rendered)
+					);
+				});
+			} finally {
+				observer.disconnect();
+			}
+		};
 		// Each day looked at, as its cheapest open time, for the planner.
-		const seen: { date: string; cheapest_fee: string }[] = [];
+		const seen: DayFee[] = [];
 		for (const day of days) {
 			const input = day.input as HTMLInputElement;
-			if (!input.checked) {
-				const before = shown();
-				input.click();
-				await wait(() => shown() !== before);
+			if (!input.checked && !(await selectDay(input))) {
+				if (readOnly)
+					return failed("Coles did not load delivery times for every day.");
+				continue;
 			}
 			const slots = helpers.readSlots(list());
 			if (slots.length > 0) {
 				seen.push({
 					date: day.date as string,
 					cheapest_fee: String(Math.min(...slots.map((s) => s.fee))),
+					...(readOnly && {
+						windows: slots.map((slot) => ({
+							start: at(day.date as string, slot.start),
+							end: at(day.date as string, slot.end),
+							fee: String(slot.fee),
+						})),
+					}),
 				});
 			}
+			if (readOnly) continue;
 			const slot = helpers.chooseSlot(slots, wanted.time_of_day);
 			if (!slot) continue;
 			const radio = [
@@ -158,6 +208,7 @@ export async function pickColesDeliverySlot(
 				days: seen,
 			};
 		}
+		if (readOnly) return { outcome: "read", days: seen };
 		return {
 			...failed(
 				wanted.time_of_day === "any"

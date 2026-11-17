@@ -94,11 +94,14 @@ impl<'a> GroceryService<'a> {
                     item_rules::filter_terms_for(&mut *tx, name, AddedVia::Manual).await?;
                 let item = repository::insert_item(
                     &mut tx,
-                    name,
-                    payload.quantity,
+                    repository::ItemFields {
+                        name,
+                        quantity: payload.quantity,
+                        note: note.as_deref(),
+                        filter_terms: &filter_terms::merge(&filter_terms, &rule_terms),
+                        perishable: payload.perishable,
+                    },
                     GroceryItemSource::Manual,
-                    note.as_deref(),
-                    &filter_terms::merge(&filter_terms, &rule_terms),
                     user_id,
                 )
                 .await?;
@@ -122,11 +125,14 @@ impl<'a> GroceryService<'a> {
         let mut tx = self.pool.begin().await?;
         let item = repository::insert_item(
             &mut tx,
-            payload.name.trim(),
-            payload.quantity,
+            repository::ItemFields {
+                name: payload.name.trim(),
+                quantity: payload.quantity,
+                note: note.as_deref(),
+                filter_terms: &filter_terms,
+                perishable: payload.perishable,
+            },
             GroceryItemSource::Manual,
-            note.as_deref(),
-            &filter_terms,
             user_id,
         )
         .await?;
@@ -170,10 +176,13 @@ impl<'a> GroceryService<'a> {
         let item = repository::update_item(
             &mut tx,
             item_id,
-            &name,
-            quantity,
-            note.as_deref(),
-            &filter_terms,
+            repository::ItemFields {
+                name: &name,
+                quantity,
+                note: note.as_deref(),
+                filter_terms: &filter_terms,
+                perishable: payload.perishable.unwrap_or(existing.perishable),
+            },
         )
         .await?;
         // A renamed or re-chipped item no longer matches the product chosen

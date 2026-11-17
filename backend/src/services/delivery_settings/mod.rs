@@ -12,6 +12,7 @@
 mod log;
 pub mod repository;
 
+use chrono::NaiveDateTime;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 
@@ -60,6 +61,10 @@ pub struct DeliverySettings {
     pub default_delivery_day: Option<DeliveryDay>,
     /// The weekdays a delivery may come on, Monday first; empty = any day.
     pub allowed_delivery_days: Vec<DeliveryDay>,
+    /// Store-local deadline for every item.
+    pub need_by: Option<NaiveDateTime>,
+    /// Maximum hours before the deadline for marked items.
+    pub perishable_hours: Option<i16>,
 }
 
 /// The preferences saved with the stores' rules.
@@ -70,6 +75,10 @@ pub struct Preferences {
     pub default_delivery_day: Option<DeliveryDay>,
     /// The weekdays a delivery may come on; empty = any day.
     pub allowed_delivery_days: Vec<DeliveryDay>,
+    /// Store-local deadline for every item.
+    pub need_by: Option<NaiveDateTime>,
+    /// Maximum hours before the deadline for marked items.
+    pub perishable_hours: Option<i16>,
 }
 
 impl DeliverySettings {
@@ -122,6 +131,8 @@ impl<'a> DeliverySettingsService<'a> {
             mode: preferences.as_ref().map_or(DEFAULT_MODE, |p| p.mode),
             max_delivery_spend: preferences.as_ref().and_then(|p| p.max_delivery_spend),
             default_delivery_day: preferences.as_ref().and_then(|p| p.default_delivery_day),
+            need_by: preferences.as_ref().and_then(|p| p.need_by),
+            perishable_hours: preferences.as_ref().and_then(|p| p.perishable_hours),
             allowed_delivery_days: preferences
                 .map(|p| p.allowed_delivery_days)
                 .unwrap_or_default(),

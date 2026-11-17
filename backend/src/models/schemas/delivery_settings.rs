@@ -3,11 +3,13 @@
 //! Money is a decimal string, as everywhere else. Every amount is between
 //! $0 and $1000 with at most two decimal places, matching the tables' CHECKs.
 
+use chrono::{NaiveDateTime, TimeZone};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use validator::{Validate, ValidationError};
 
 use crate::models::delivery_rows::{DeliveryDay, OrderMode};
+use crate::services::delivery_day_fees::STORE_ZONE;
 use crate::services::delivery_settings::{DeliverySettings, FeeRules, Preferences};
 use crate::services::stores::Store;
 
@@ -37,6 +39,7 @@ pub struct StoreFeeRulesBody {
 /// rules of every store it lists; stores it leaves out keep theirs.
 #[derive(Debug, Serialize, Deserialize, Validate)]
 #[validate(schema(function = "usual_day_is_allowed"))]
+#[validate(schema(function = "perishables_need_a_deadline"))]
 pub struct DeliverySettingsBody {
     #[validate(length(max = 2), nested)]
     pub stores: Vec<StoreFeeRulesBody>,
@@ -50,6 +53,12 @@ pub struct DeliverySettingsBody {
     #[serde(default)]
     #[validate(length(max = 7))]
     pub allowed_delivery_days: Vec<DeliveryDay>,
+    /// Store-local date and time that every delivery must finish by.
+    #[validate(custom(function = "valid_local_time"))]
+    pub need_by: Option<NaiveDateTime>,
+    /// Maximum hours before need-by for an order containing perishables.
+    #[validate(range(min = 1, max = 168))]
+    pub perishable_hours: Option<i16>,
 }
 
 impl DeliverySettingsBody {
@@ -60,6 +69,8 @@ impl DeliverySettingsBody {
             max_delivery_spend: self.max_delivery_spend,
             default_delivery_day: self.default_delivery_day,
             allowed_delivery_days: self.allowed_days(),
+            need_by: self.need_by,
+            perishable_hours: self.perishable_hours,
         }
     }
 
@@ -110,6 +121,8 @@ impl From<DeliverySettings> for DeliverySettingsBody {
             max_delivery_spend: settings.max_delivery_spend,
             default_delivery_day: settings.default_delivery_day,
             allowed_delivery_days: settings.allowed_delivery_days,
+            need_by: settings.need_by,
+            perishable_hours: settings.perishable_hours,
         }
     }
 }
@@ -125,6 +138,23 @@ fn usual_day_is_allowed(body: &DeliverySettingsBody) -> Result<(), ValidationErr
         }
         _ => Ok(()),
     }
+}
+
+/// A deadline must identify one instant, including on daylight-saving changeovers.
+fn valid_local_time(value: &NaiveDateTime) -> Result<(), ValidationError> {
+    STORE_ZONE
+        .from_local_datetime(value)
+        .single()
+        .map(|_| ())
+        .ok_or_else(|| ValidationError::new("invalid_deadline_local_time"))
+}
+
+/// The freshness interval is measured back from the deadline.
+fn perishables_need_a_deadline(body: &DeliverySettingsBody) -> Result<(), ValidationError> {
+    if body.perishable_hours.is_some() && body.need_by.is_none() {
+        return Err(ValidationError::new("perishables_need_a_deadline"));
+    }
+    Ok(())
 }
 
 /// $0 to $1000, in whole cents.

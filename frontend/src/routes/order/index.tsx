@@ -14,6 +14,7 @@ import {
 } from "#/components/order-options/day-picker";
 import { ModePicker } from "#/components/order-options/mode-picker";
 import { OrderOptions } from "#/components/order-options/order-options";
+import { RefreshDeliveryWindows } from "#/components/order-options/refresh-delivery-windows";
 import { SendToStore } from "#/components/trolley/send-to-store";
 import { Button } from "#/components/ui/button";
 import { useApplyBestOption } from "#/hooks/useApplyBestOption";
@@ -146,11 +147,14 @@ function OrderPage() {
 					withinDays={plan.within_days}
 					usualDay={plan.delivery_day}
 					storeFees={plan.store_fees}
+					usesWindows={!!plan.need_by}
 					onChange={(within) =>
 						navigate({ search: (prev) => ({ ...prev, within }) })
 					}
 				/>
 			)}
+
+			{plan.need_by && <RefreshDeliveryWindows needBy={plan.need_by} />}
 
 			<OrderOptions plan={plan} onUse={orderStores.use}>
 				<p className="text-sm">

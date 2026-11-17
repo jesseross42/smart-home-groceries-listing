@@ -7,6 +7,7 @@ use crate::services::stores::Store;
 /// A committed list item.
 pub fn item(name: &str, quantity: i32) -> GroceryItem {
     GroceryItem {
+        perishable: false,
         id: uuid::Uuid::new_v4(),
         name: name.into(),
         quantity,

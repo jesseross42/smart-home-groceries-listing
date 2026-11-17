@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { AllowedDaysChoice } from "#/components/delivery/allowed-days-choice";
 import { AmountField } from "#/components/delivery/amount-field";
+import { DeliveryTimingFields } from "#/components/delivery/delivery-timing-fields";
 import { OrderModeChoice } from "#/components/delivery/order-mode-choice";
 import { StoreFeeFields } from "#/components/delivery/store-fee-fields";
 import { UsualDayChoice } from "#/components/delivery/usual-day-choice";
@@ -92,6 +93,15 @@ export function DeliverySettingsForm({
 				value={form.allowedDays}
 				onToggle={(day) =>
 					setForm({ ...form, allowedDays: toggleDay(form.allowedDays, day) })
+				}
+			/>
+
+			<DeliveryTimingFields
+				needBy={form.needBy}
+				perishableHours={form.perishableHours}
+				onNeedBy={(needBy) => setForm({ ...form, needBy })}
+				onPerishableHours={(perishableHours) =>
+					setForm({ ...form, perishableHours })
 				}
 			/>
 

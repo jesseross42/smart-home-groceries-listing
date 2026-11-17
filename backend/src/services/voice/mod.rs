@@ -180,11 +180,14 @@ impl<'a> VoiceService<'a> {
                     item_rules::filter_terms_for(&mut *tx, &name, AddedVia::Voice).await?;
                 let item = grocery_repository::insert_item(
                     &mut tx,
-                    &name,
-                    quantity,
+                    grocery_repository::ItemFields {
+                        name: &name,
+                        quantity,
+                        note: None,
+                        filter_terms: &rule_terms,
+                        perishable: false,
+                    },
                     GroceryItemSource::Voice,
-                    None,
-                    &rule_terms,
                     user_id,
                 )
                 .await?;

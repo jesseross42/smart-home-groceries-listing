@@ -61,7 +61,7 @@ where
     E: PgExecutor<'e>,
 {
     Ok(sqlx::query_as::<_, OrderPreferences>(
-        "SELECT mode, max_delivery_spend, default_delivery_day, allowed_delivery_days,
+        "SELECT mode, max_delivery_spend, default_delivery_day, allowed_delivery_days, need_by, perishable_hours,
                 updated_by, updated_at
          FROM order_preferences WHERE id = 1",
     )
@@ -80,14 +80,16 @@ where
 {
     sqlx::query(
         "INSERT INTO order_preferences
-             (id, mode, max_delivery_spend, default_delivery_day, allowed_delivery_days,
+             (id, mode, max_delivery_spend, default_delivery_day, allowed_delivery_days, need_by, perishable_hours,
               updated_by)
-         VALUES (1, $1, $2, $3, $4, $5)
+         VALUES (1, $1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT (id) DO UPDATE SET
              mode = EXCLUDED.mode,
              max_delivery_spend = EXCLUDED.max_delivery_spend,
              default_delivery_day = EXCLUDED.default_delivery_day,
              allowed_delivery_days = EXCLUDED.allowed_delivery_days,
+             need_by = EXCLUDED.need_by,
+             perishable_hours = EXCLUDED.perishable_hours,
              updated_by = EXCLUDED.updated_by,
              updated_at = now()",
     )
@@ -95,6 +97,8 @@ where
     .bind(preferences.max_delivery_spend)
     .bind(preferences.default_delivery_day)
     .bind(&preferences.allowed_delivery_days)
+    .bind(preferences.need_by)
+    .bind(preferences.perishable_hours)
     .bind(user_id)
     .execute(executor)
     .await?;

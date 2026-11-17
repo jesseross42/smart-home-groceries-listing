@@ -23,7 +23,7 @@ use crate::services::trolley_handoffs::store_tab::{ReportedLine, StoreTabLine};
 use crate::services::trolley_handoffs::{ClaimedHandoff, HandoffWithLines};
 
 /// Longest store-tab secret accepted in a body.
-const MAX_SECRET_LEN: u64 = 200;
+pub(super) const MAX_SECRET_LEN: u64 = 200;
 
 /// Longest problem text a report may carry, matching the column's CHECK.
 const MAX_PROBLEM_LEN: u64 = 300;

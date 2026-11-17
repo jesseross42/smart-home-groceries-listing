@@ -73,6 +73,30 @@ describe("reserveWoolworthsDeliveryWindow", () => {
 		});
 	});
 
+	it("reports available regular windows with both bounds and the fee", async () => {
+		const calls = fakeWoolworths();
+
+		const report = await reserveWoolworthsDeliveryWindow(
+			{ date: null, time_of_day: "morning" },
+			chooseWoolworthsWindow,
+			true,
+		);
+
+		expect(report.outcome).toBe("read");
+		expect(calls).toHaveLength(2);
+		expect(report.days?.find((day) => day.date === "2026-10-03")).toMatchObject(
+			{
+				windows: expect.arrayContaining([
+					{
+						start: "2026-10-03T04:00:00",
+						end: "2026-10-03T07:00:00",
+						fee: "15",
+					},
+				]),
+			},
+		);
+	});
+
 	it("keeps a window already reserved that fits, without changing it", async () => {
 		const calls = fakeWoolworths({
 			info: deliveryInfo({
