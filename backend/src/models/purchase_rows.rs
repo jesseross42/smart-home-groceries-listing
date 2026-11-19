@@ -81,6 +81,8 @@ pub struct Purchase {
     /// This line's part of the order's delivery fee.
     pub delivery_fee_share: Decimal,
     pub store_category: Option<String>,
+    /// The product's category in `bought_products` when read for the
+    /// analysis or the picker; the copy saved with the purchase otherwise.
     pub category: String,
     pub category_source: CategorySource,
     pub bought_at: DateTime<Utc>,

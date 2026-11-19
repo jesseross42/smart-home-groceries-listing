@@ -28,7 +28,6 @@ macro_rules! purchase_columns {
          total_price, delivery_fee_share, store_category, category, category_source, bought_at"
     };
 }
-pub(super) use purchase_columns;
 
 /// The columns an order from a trolley fill writes.
 #[derive(Debug)]
@@ -208,41 +207,4 @@ where
         .execute(executor)
         .await?;
     Ok(())
-}
-
-/// Every purchase's id and the texts its category is worked out from:
-/// `(id, store_category, product_name)`.
-pub async fn category_inputs<'e, E>(
-    executor: E,
-) -> Result<Vec<(Uuid, Option<String>, String)>, ApiError>
-where
-    E: PgExecutor<'e>,
-{
-    Ok(sqlx::query_as::<_, (Uuid, Option<String>, String)>(
-        "SELECT id, store_category, product_name FROM purchases",
-    )
-    .fetch_all(executor)
-    .await?)
-}
-
-/// Sets one purchase's category; `true` when it changed.
-pub async fn set_category<'e, E>(
-    executor: E,
-    id: Uuid,
-    category: &str,
-    source: CategorySource,
-) -> Result<bool, ApiError>
-where
-    E: PgExecutor<'e>,
-{
-    let result = sqlx::query(
-        "UPDATE purchases SET category = $2, category_source = $3
-         WHERE id = $1 AND (category <> $2 OR category_source <> $3)",
-    )
-    .bind(id)
-    .bind(category)
-    .bind(source)
-    .execute(executor)
-    .await?;
-    Ok(result.rows_affected() > 0)
 }

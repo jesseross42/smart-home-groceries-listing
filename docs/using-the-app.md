@@ -251,9 +251,10 @@ item-name search (**Find**). Views:
 - **By store**: Woolworths vs Coles, delivery fees broken out.
 - **By category**: e.g. Dairy & eggs, Bakery.
 
-Totals include delivery fees. Categories are assigned when a purchase is
-recorded; after a categoriser change, use **Sort categories again** on **By
-category** to recompute them.
+Totals include delivery fees. Each product bought has one category, set
+when it is first recorded and shared by all its purchases; after a
+categoriser change, use **Sort categories again** on **By category** to
+recompute them.
 
 ---
 

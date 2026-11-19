@@ -236,7 +236,7 @@ async fn recategorise_applies_todays_keywords(pool: PgPool) {
     )
     .await;
     orders_once_saved(&app, 1).await;
-    sqlx::query("UPDATE purchases SET category = 'Other', category_source = 'none'")
+    sqlx::query("UPDATE bought_products SET category = 'Other', category_source = 'none'")
         .execute(&pool)
         .await
         .unwrap();

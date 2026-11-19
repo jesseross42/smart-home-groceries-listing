@@ -38,14 +38,30 @@ bookmark report (routes/store_tab.rs) ─▶ 200 to the bookmark at once
 - **Undo** (`DELETE /api/purchase-orders/{id}`) deletes the order and its
   purchases and puts each item back to `item_status_before`, only if it is
   still `ordered`. A deleted item stays deleted. A second Undo is a 404.
-  Undo never touches the store's trolley.
-- **Category** (stored on each purchase; re-sorted only on request):
+  Undo never touches the store's trolley. Each of the shop's products is
+  then refreshed (see **Bought products**).
+- **Category** (worked out when a purchase is saved; re-sorted only on
+  request; the analysis reads the product's, see **Bought products**):
   1. the store's own category, mapped to ours, when it gives one;
   2. else keywords on the item and product name: whole words, plural -s/-es,
      longest keyword wins, ties go to the category listed first;
   3. else **Other**. `category_source` says which: `store`, `name`, `none`.
   Categories: Fruit & veg, Meat & seafood, Dairy & eggs, Bakery, Frozen,
   Drinks, Pantry, Snacks & sweets, Household, Health & beauty, Baby, Pet.
+- **Bought products** (`bought_products`, one row per `(store,
+  product_id)`, issue #91). Owned by the purchase history
+  (`services/purchases/products.rs`); nothing else writes it. Refresh:
+  1. saving a purchase writes its product's name, brand, size, store
+     category and category, unless a newer purchase is saved already
+     (`refreshed_at`);
+  2. Undo refreshes each of the shop's products from its newest purchase
+     left, and deletes the row when none is left;
+  3. **Sort categories again** recomputes every row's category and returns
+     how many products changed.
+  The spending analysis and the picker read `category` from here. Each
+  purchase keeps its own copy of the details and category as a snapshot of
+  that day; totals only ever come from purchases. A foreign key from
+  `purchases (store, product_id)` means every purchase has its row.
 - **No suggestions.** History is shown as facts (times bought, prices paid);
   nothing ranks or recommends a product by it.
 
@@ -56,7 +72,7 @@ bookmark report (routes/store_tab.rs) ─▶ 200 to the bookmark at once
 | `GET` | `/api/purchase-orders` | the 20 newest shops, with product counts |
 | `DELETE` | `/api/purchase-orders/{id}` | `{items_restored}`; 404 if not saved |
 | `POST` | `/api/purchase-history/products` `{products:[{store, product_id}]}` | per product bought before: `times_bought`, `purchases` (newest first) |
-| `POST` | `/api/purchase-history/recategorise` | `{changed}` — re-applies today's rules |
+| `POST` | `/api/purchase-history/recategorise` | `{changed}` — products whose category changed under today's rules |
 
 ## Data
 Migration `20261002120000_purchase_history` (timestamp version so parallel
@@ -66,12 +82,18 @@ delivery_fee, recorded_by, source, trolley_handoff_id, bought_at) and
 item_key, item_status_before, store, product_id, product_name, brand,
 package_size, quantity, unit_price, shelf_price, total_price,
 delivery_fee_share, store_category, category, category_source, bought_at).
+Migration `20261119090000_bought_products`: `bought_products` (store,
+product_id, product_name, brand, package_size, store_category, category,
+category_source, refreshed_at), backfilled from each product's newest
+purchase with that purchase's category, then the foreign key from
+`purchases`.
 
 ## Code
 - Backend: `services/purchases/` (`mod.rs` service + `record`,
   `record.rs`, `price.rs`, `fee.rs`, `category.rs` + `category/keywords.rs`,
-  `history.rs`, `undo.rs`, `repository.rs` writes, `read_repository.rs`
-  reads, `log.rs`), `models/purchase_rows.rs`, `routes/purchases.rs`,
+  `history.rs`, `undo.rs`, `products.rs` bought products,
+  `repository.rs` writes, `read_repository.rs` reads,
+  `product_repository.rs` bought products SQL, `log.rs`), `models/purchase_rows.rs`, `routes/purchases.rs`,
   `models/schemas/purchases.rs`; `grocery/repository.rs` `mark_ordered`,
   `unmark_ordered`.
 - Frontend: `lib/api/purchases.ts`, `hooks/useProductHistory.ts`,
@@ -88,6 +110,9 @@ delivery_fee_share, store_category, category, category_source, bought_at).
   nothing added, Undo (twice, deleted item), picker lookup, recategorise,
   auth. Saving is in the background: tests poll
   (`tests/common/purchases.rs` `orders_once_saved`).
+- `backend/tests/bought_products.rs` — record kept on save, Undo removes
+  or refreshes it, an older purchase never overwrites a newer one.
+  `bought_products_backfill.rs` — the migration on existing purchases.
 - Unit tests in `price/tests.rs`, `fee.rs`, `category.rs`, `history.rs`.
 - `frontend/src/components/products/__tests__/past-purchases.test.tsx`,
   `components/trolley/__tests__/saved-purchase.test.tsx`.
