@@ -15,8 +15,11 @@ Steps for people: `docs/using-the-app.md` ("See your spending").
   - **By item** — spend per item (grouped by item key), biggest first;
     **Prices paid** opens each price, at any store.
   - **By store** — every asked store, even at $0; items and delivery apart.
-  - **By category** — biggest first; **Sort categories again** re-runs the
-    category rules on every purchase.
+  - **By category** — biggest first, by each product's category from
+    `bought_products` (`FEATURE_PURCHASE_HISTORY.md`), so every purchase of
+    one product is in one category. **Sort categories again** re-runs the
+    category rules on every bought product. Totals always come from the
+    purchases themselves.
 - **Saved shops** — the newest shops, each with **Undo**.
 
 ## Rules
@@ -44,6 +47,8 @@ Steps for people: `docs/using-the-app.md` ("See your spending").
 
 ## Tests
 - `backend/tests/spending.rs`; `services/spending/*` unit tests.
+- `backend/tests/bought_products.rs` — category comes from the product
+  record, totals unchanged, the category filter and list use it.
 - `frontend/src/components/analysis/__tests__/`, `lib/__tests__/`
   (date-range, analysis-search, spending-query, period-label).
 - `frontend/e2e/spending.spec.ts` — fill, see it on Spending, Undo.

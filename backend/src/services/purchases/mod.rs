@@ -7,13 +7,17 @@
 //! the product picker ([`history`]) and the spending analysis
 //! (`services/spending/`).
 //!
-//! SQL lives in [`repository`] (writes) and [`read_repository`] (reads).
+//! Each product bought has one record ([`products`]), which gives the
+//! spending analysis its category. SQL lives in [`repository`] (writes),
+//! [`read_repository`] (reads) and [`product_repository`] (product records).
 
 pub mod category;
 mod fee;
 pub mod history;
 mod log;
 mod price;
+pub mod product_repository;
+pub mod products;
 pub mod read_repository;
 mod record;
 pub mod repository;
@@ -89,21 +93,12 @@ impl<'a> PurchaseService<'a> {
         Ok(history::group(purchases))
     }
 
-    /// Works out every purchase's category again with today's keywords.
-    /// Returns how many changed.
+    /// Works out every bought product's category again with today's rules.
+    /// Returns how many products changed.
     pub async fn recategorise(&self) -> Result<usize, ApiError> {
-        let mut tx = self.pool.begin().await?;
-        let inputs = repository::category_inputs(&mut *tx).await?;
-        let mut changed = 0;
-        for (id, store_category, product_name) in &inputs {
-            let found = category::categorise(store_category.as_deref(), product_name);
-            if repository::set_category(&mut *tx, *id, found.category, found.source).await? {
-                changed += 1;
-            }
-        }
-        tx.commit().await?;
-        log::recategorised(inputs.len(), changed);
-        Ok(changed)
+        let result = products::recategorise(self.pool).await?;
+        log::recategorised(result.products, result.changed);
+        Ok(result.changed)
     }
 }
 

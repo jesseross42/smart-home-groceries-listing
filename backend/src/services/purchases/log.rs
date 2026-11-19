@@ -64,7 +64,7 @@ pub fn undone(order: &PurchaseOrder, items_restored: usize, user_id: &str) {
     );
 }
 
-/// Categories were worked out again for every purchase.
-pub fn recategorised(purchases: usize, changed: usize) {
-    tracing::info!(purchases, changed, "purchases re-categorised");
+/// Categories were worked out again for every bought product.
+pub fn recategorised(products: usize, changed: usize) {
+    tracing::info!(products, changed, "bought products re-categorised");
 }

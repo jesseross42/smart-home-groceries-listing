@@ -66,9 +66,23 @@ pub struct Bought<'a> {
     pub at: &'a str,
 }
 
-/// Writes `bought` as a one-product shop.
+/// Writes `bought` as a one-product shop. Its product's row in
+/// `bought_products` takes `bought.category` too, as saving a shop would.
 pub async fn insert_bought(pool: &PgPool, bought: &Bought<'_>) {
     let order_id = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO bought_products (store, product_id, product_name, category,
+                                      category_source, refreshed_at)
+         VALUES ($1, $2, $2, $3, 'name', $4::timestamptz)
+         ON CONFLICT (store, product_id) DO UPDATE SET category = EXCLUDED.category",
+    )
+    .bind(bought.store)
+    .bind(bought.product_id)
+    .bind(bought.category)
+    .bind(bought.at)
+    .execute(pool)
+    .await
+    .unwrap();
     sqlx::query(
         "INSERT INTO purchase_orders (id, store, items_total, delivery_fee, recorded_by, bought_at)
          VALUES ($1, $2, $3::numeric, $4::numeric, 'dev-user', $5::timestamptz)",

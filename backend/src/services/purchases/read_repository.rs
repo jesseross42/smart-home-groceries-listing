@@ -1,16 +1,38 @@
 //! The reads of `purchases` that the product picker and the spending
 //! analysis need. Writes are in [`super::repository`].
 //!
+//! Each purchase is read with its product's category from `bought_products`
+//! (see [`super::products`]), not the copy the purchase was saved with. Every
+//! purchase has its product row (a foreign key), so the join never drops one.
+//!
 //! Optional filters are bound as `NULL` and tested in the statement
 //! (`$1::timestamptz IS NULL OR ...`), so every statement stays a literal.
 
 use chrono::{DateTime, Utc};
 use sqlx::PgExecutor;
 
-use super::repository::purchase_columns;
 use crate::error::ApiError;
 use crate::models::db::Purchase;
 use crate::services::stores::Store;
+
+/// [`Purchase`]'s columns from `purchases p`, with the category of its row
+/// in `bought_products bp`.
+macro_rules! purchase_with_product_category {
+    () => {
+        "p.id, p.order_id, p.grocery_item_id, p.item_name, p.item_key, p.item_status_before,
+         p.store, p.product_id, p.product_name, p.brand, p.package_size, p.quantity,
+         p.unit_price, p.shelf_price, p.total_price, p.delivery_fee_share, p.store_category,
+         bp.category, bp.category_source, p.bought_at"
+    };
+}
+
+/// `purchases p` joined to its product's row.
+macro_rules! purchases_and_products {
+    () => {
+        " FROM purchases p
+         JOIN bought_products bp ON bp.store = p.store AND bp.product_id = p.product_id"
+    };
+}
 
 /// What the spending analysis narrows purchases to. `None` = no limit.
 #[derive(Debug, Default)]
@@ -38,10 +60,10 @@ where
     let ids: Vec<&str> = products.iter().map(|(_, id)| id.as_str()).collect();
     Ok(sqlx::query_as::<_, Purchase>(concat!(
         "SELECT ",
-        purchase_columns!(),
-        " FROM purchases
-         WHERE (store, product_id) IN (SELECT * FROM unnest($1::text[], $2::text[]))
-         ORDER BY bought_at DESC, id"
+        purchase_with_product_category!(),
+        purchases_and_products!(),
+        " WHERE (p.store, p.product_id) IN (SELECT * FROM unnest($1::text[], $2::text[]))
+         ORDER BY p.bought_at DESC, p.id"
     ))
     .bind(&stores)
     .bind(&ids)
@@ -59,14 +81,14 @@ where
 {
     Ok(sqlx::query_as::<_, Purchase>(concat!(
         "SELECT ",
-        purchase_columns!(),
-        " FROM purchases
-         WHERE ($1::timestamptz IS NULL OR bought_at >= $1)
-           AND ($2::timestamptz IS NULL OR bought_at < $2)
-           AND ($3::text IS NULL OR store = $3)
-           AND ($4::text IS NULL OR strpos(item_key, $4) > 0)
-           AND ($5::text IS NULL OR category = $5)
-         ORDER BY bought_at, id"
+        purchase_with_product_category!(),
+        purchases_and_products!(),
+        " WHERE ($1::timestamptz IS NULL OR p.bought_at >= $1)
+           AND ($2::timestamptz IS NULL OR p.bought_at < $2)
+           AND ($3::text IS NULL OR p.store = $3)
+           AND ($4::text IS NULL OR strpos(p.item_key, $4) > 0)
+           AND ($5::text IS NULL OR bp.category = $5)
+         ORDER BY p.bought_at, p.id"
     ))
     .bind(filter.from)
     .bind(filter.until)
@@ -84,24 +106,23 @@ where
 {
     Ok(sqlx::query_as::<_, Purchase>(concat!(
         "SELECT ",
-        purchase_columns!(),
-        " FROM purchases WHERE item_key = $1 ORDER BY bought_at, id"
+        purchase_with_product_category!(),
+        purchases_and_products!(),
+        " WHERE p.item_key = $1 ORDER BY p.bought_at, p.id"
     ))
     .bind(item_key)
     .fetch_all(executor)
     .await?)
 }
 
-/// Every category any purchase is in, A to Z.
+/// Every category any bought product is in, A to Z.
 pub async fn categories<'e, E>(executor: E) -> Result<Vec<String>, ApiError>
 where
     E: PgExecutor<'e>,
 {
-    Ok(
-        sqlx::query_scalar::<_, String>(
-            "SELECT DISTINCT category FROM purchases ORDER BY category",
-        )
-        .fetch_all(executor)
-        .await?,
+    Ok(sqlx::query_scalar::<_, String>(
+        "SELECT DISTINCT category FROM bought_products ORDER BY category",
     )
+    .fetch_all(executor)
+    .await?)
 }

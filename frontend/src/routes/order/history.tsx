@@ -56,7 +56,7 @@ function AnalysisPage() {
 			toast(
 				changed === 0
 					? "Categories are already up to date."
-					: `${changed} ${changed === 1 ? "purchase" : "purchases"} moved to a new category.`,
+					: `${changed} ${changed === 1 ? "product" : "products"} moved to a new category.`,
 			);
 			await router.invalidate();
 		} catch (err) {
