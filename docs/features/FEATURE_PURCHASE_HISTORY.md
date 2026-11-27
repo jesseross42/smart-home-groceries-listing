@@ -20,8 +20,9 @@ bookmark report (routes/store_tab.rs) ─▶ 200 to the bookmark at once
              ▼
   lines "added" whose item is still active/committed
   ─▶ priced (fresh store search, else the saved choice)
-  ─▶ delivery fee split across lines ─▶ category set
-  ─▶ one transaction: order + purchases, items → ordered
+  ─▶ delivery fee split across lines
+  ─▶ one transaction: product rows (category set) + order + purchases,
+     items → ordered
 ```
 
 ## Rules
@@ -40,8 +41,8 @@ bookmark report (routes/store_tab.rs) ─▶ 200 to the bookmark at once
   still `ordered`. A deleted item stays deleted. A second Undo is a 404.
   Undo never touches the store's trolley. Each of the shop's products is
   then refreshed (see **Bought products**).
-- **Category** (worked out when a purchase is saved; re-sorted only on
-  request; the analysis reads the product's, see **Bought products**):
+- **Category** (one per product, kept on its **Bought products** row;
+  worked out from the newest purchase's texts; re-sorted only on request):
   1. the store's own category, mapped to ours, when it gives one;
   2. else keywords on the item and product name: whole words, plural -s/-es,
      longest keyword wins, ties go to the category listed first;
@@ -51,17 +52,17 @@ bookmark report (routes/store_tab.rs) ─▶ 200 to the bookmark at once
 - **Bought products** (`bought_products`, one row per `(store,
   product_id)`, issue #91). Owned by the purchase history
   (`services/purchases/products.rs`); nothing else writes it. Refresh:
-  1. saving a purchase writes its product's name, brand, size, store
-     category and category, unless a newer purchase is saved already
-     (`refreshed_at`);
+  1. saving a purchase writes its product's name, brand, size and store
+     category, and works out its category, unless a newer purchase is saved
+     already (`refreshed_at`);
   2. Undo refreshes each of the shop's products from its newest purchase
      left, and deletes the row when none is left;
   3. **Sort categories again** recomputes every row's category and returns
      how many products changed.
-  The spending analysis and the picker read `category` from here. Each
-  purchase keeps its own copy of the details and category as a snapshot of
-  that day; totals only ever come from purchases. A foreign key from
-  `purchases (store, product_id)` means every purchase has its row.
+  Only this table holds a category; every `Purchase` read joins it. Each
+  purchase keeps its own copy of the name, brand, size and store category
+  as a snapshot of that day; totals only ever come from purchases. A foreign
+  key from `purchases (store, product_id)` means every purchase has its row.
 - **No suggestions.** History is shown as facts (times bought, prices paid);
   nothing ranks or recommends a product by it.
 
@@ -86,7 +87,10 @@ Migration `20261119090000_bought_products`: `bought_products` (store,
 product_id, product_name, brand, package_size, store_category, category,
 category_source, refreshed_at), backfilled from each product's newest
 purchase with that purchase's category, then the foreign key from
-`purchases`.
+`purchases`. Migration `20261127090000_retire_purchase_category` makes
+`purchases.category` and `category_source` nullable: new purchases leave
+them NULL and nothing reads them. Dropping them needs a planned data removal,
+since the production installer refuses destructive migrations.
 
 ## Code
 - Backend: `services/purchases/` (`mod.rs` service + `record`,

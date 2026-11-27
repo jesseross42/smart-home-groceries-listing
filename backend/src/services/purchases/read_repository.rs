@@ -2,8 +2,7 @@
 //! analysis need. Writes are in [`super::repository`].
 //!
 //! Each purchase is read with its product's category from `bought_products`
-//! (see [`super::products`]), not the copy the purchase was saved with. Every
-//! purchase has its product row (a foreign key), so the join never drops one.
+//! (see [`super::products`]), which owns it.
 //!
 //! Optional filters are bound as `NULL` and tested in the statement
 //! (`$1::timestamptz IS NULL OR ...`), so every statement stays a literal.
@@ -11,28 +10,10 @@
 use chrono::{DateTime, Utc};
 use sqlx::PgExecutor;
 
+use super::repository::{purchase_columns, purchases_and_products};
 use crate::error::ApiError;
-use crate::models::db::Purchase;
+use crate::models::db::{ProductKey, Purchase};
 use crate::services::stores::Store;
-
-/// [`Purchase`]'s columns from `purchases p`, with the category of its row
-/// in `bought_products bp`.
-macro_rules! purchase_with_product_category {
-    () => {
-        "p.id, p.order_id, p.grocery_item_id, p.item_name, p.item_key, p.item_status_before,
-         p.store, p.product_id, p.product_name, p.brand, p.package_size, p.quantity,
-         p.unit_price, p.shelf_price, p.total_price, p.delivery_fee_share, p.store_category,
-         bp.category, bp.category_source, p.bought_at"
-    };
-}
-
-/// `purchases p` joined to its product's row.
-macro_rules! purchases_and_products {
-    () => {
-        " FROM purchases p
-         JOIN bought_products bp ON bp.store = p.store AND bp.product_id = p.product_id"
-    };
-}
 
 /// What the spending analysis narrows purchases to. `None` = no limit.
 #[derive(Debug, Default)]
@@ -47,20 +28,19 @@ pub struct PurchaseFilter<'a> {
     pub category: Option<&'a str>,
 }
 
-/// Every purchase of the given products, newest first. `products` pairs a
-/// store with its own product id.
+/// Every purchase of the given products, newest first.
 pub async fn of_products<'e, E>(
     executor: E,
-    products: &[(Store, String)],
+    products: &[ProductKey],
 ) -> Result<Vec<Purchase>, ApiError>
 where
     E: PgExecutor<'e>,
 {
-    let stores: Vec<&str> = products.iter().map(|(store, _)| store.as_str()).collect();
-    let ids: Vec<&str> = products.iter().map(|(_, id)| id.as_str()).collect();
+    let stores: Vec<&str> = products.iter().map(|key| key.store.as_str()).collect();
+    let ids: Vec<&str> = products.iter().map(|key| key.product_id.as_str()).collect();
     Ok(sqlx::query_as::<_, Purchase>(concat!(
         "SELECT ",
-        purchase_with_product_category!(),
+        purchase_columns!(),
         purchases_and_products!(),
         " WHERE (p.store, p.product_id) IN (SELECT * FROM unnest($1::text[], $2::text[]))
          ORDER BY p.bought_at DESC, p.id"
@@ -81,7 +61,7 @@ where
 {
     Ok(sqlx::query_as::<_, Purchase>(concat!(
         "SELECT ",
-        purchase_with_product_category!(),
+        purchase_columns!(),
         purchases_and_products!(),
         " WHERE ($1::timestamptz IS NULL OR p.bought_at >= $1)
            AND ($2::timestamptz IS NULL OR p.bought_at < $2)
@@ -106,7 +86,7 @@ where
 {
     Ok(sqlx::query_as::<_, Purchase>(concat!(
         "SELECT ",
-        purchase_with_product_category!(),
+        purchase_columns!(),
         purchases_and_products!(),
         " WHERE p.item_key = $1 ORDER BY p.bought_at, p.id"
     ))

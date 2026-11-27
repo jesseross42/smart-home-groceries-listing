@@ -4,6 +4,12 @@
 
 use std::time::Duration;
 
+use chrono::{DateTime, Utc};
+use grocery_backend::models::db::CategorySource;
+use grocery_backend::services::purchases::product_repository::{
+    self, ProductDetails, ProductTexts,
+};
+use grocery_backend::services::stores::Store;
 use serde_json::{json, Value};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -57,8 +63,10 @@ pub async fn orders_once_saved(app: &TestApp, count: usize) -> Vec<Value> {
 /// One saved purchase, written straight into the tables.
 pub struct Bought<'a> {
     pub item: &'a str,
-    pub store: &'a str,
+    pub store: Store,
     pub product_id: &'a str,
+    /// The product's name as the store gave it.
+    pub name: &'a str,
     pub total: &'a str,
     pub delivery_share: &'a str,
     pub category: &'a str,
@@ -67,50 +75,55 @@ pub struct Bought<'a> {
 }
 
 /// Writes `bought` as a one-product shop. Its product's row in
-/// `bought_products` takes `bought.category` too, as saving a shop would.
+/// `bought_products` is written the way saving a shop writes it (a newer
+/// purchase's row is never overwritten), with `bought.category`.
 pub async fn insert_bought(pool: &PgPool, bought: &Bought<'_>) {
+    let at: DateTime<Utc> = bought.at.parse().unwrap();
+    let product = ProductDetails {
+        store: bought.store,
+        product_id: bought.product_id,
+        texts: ProductTexts {
+            product_name: bought.name,
+            brand: None,
+            package_size: None,
+            store_category: None,
+        },
+        category: bought.category,
+        category_source: CategorySource::Name,
+        refreshed_at: at,
+    };
+    product_repository::upsert_if_newer(pool, &product)
+        .await
+        .unwrap();
     let order_id = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO bought_products (store, product_id, product_name, category,
-                                      category_source, refreshed_at)
-         VALUES ($1, $2, $2, $3, 'name', $4::timestamptz)
-         ON CONFLICT (store, product_id) DO UPDATE SET category = EXCLUDED.category",
-    )
-    .bind(bought.store)
-    .bind(bought.product_id)
-    .bind(bought.category)
-    .bind(bought.at)
-    .execute(pool)
-    .await
-    .unwrap();
-    sqlx::query(
         "INSERT INTO purchase_orders (id, store, items_total, delivery_fee, recorded_by, bought_at)
-         VALUES ($1, $2, $3::numeric, $4::numeric, 'dev-user', $5::timestamptz)",
+         VALUES ($1, $2, $3::numeric, $4::numeric, 'dev-user', $5)",
     )
     .bind(order_id)
     .bind(bought.store)
     .bind(bought.total)
     .bind(bought.delivery_share)
-    .bind(bought.at)
+    .bind(at)
     .execute(pool)
     .await
     .unwrap();
     sqlx::query(
         "INSERT INTO purchases (id, order_id, item_name, item_key, item_status_before, store,
                                 product_id, product_name, quantity, unit_price, total_price,
-                                delivery_fee_share, category, category_source, bought_at)
-         VALUES ($1, $2, $3, lower($3), 'committed', $4, $5, $5, 1, $6::numeric, $6::numeric,
-                 $7::numeric, $8, 'name', $9::timestamptz)",
+                                delivery_fee_share, bought_at)
+         VALUES ($1, $2, $3, lower($3), 'committed', $4, $5, $6, 1, $7::numeric, $7::numeric,
+                 $8::numeric, $9)",
     )
     .bind(Uuid::new_v4())
     .bind(order_id)
     .bind(bought.item)
     .bind(bought.store)
     .bind(bought.product_id)
+    .bind(bought.name)
     .bind(bought.total)
     .bind(bought.delivery_share)
-    .bind(bought.category)
-    .bind(bought.at)
+    .bind(at)
     .execute(pool)
     .await
     .unwrap();
