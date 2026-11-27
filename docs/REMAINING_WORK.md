@@ -24,13 +24,8 @@ behavioral contract.
 - [#72 — Enable Coles login, trolley fill, and checkout in the desktop app](https://github.com/jesseross42/smart-home-groceries-listing/issues/72)
 - [#70 — Read live delivery windows and fees from Woolworths and Coles](https://github.com/jesseross42/smart-home-groceries-listing/issues/70)
 - [#71 — Add one-tap order placement through the desktop app](https://github.com/jesseross42/smart-home-groceries-listing/issues/71)
-- [#79 — Use member pricing and cross-product multibuys](https://github.com/jesseross42/smart-home-groceries-listing/issues/79)
 - [#78 — Import Woolworths and Coles order history](https://github.com/jesseross42/smart-home-groceries-listing/issues/78)
 - [#84 — Decide whether checkout extras are in scope](https://github.com/jesseross42/smart-home-groceries-listing/issues/84)
-
-### Desktop app
-
-- [#73 — Push trolley-filled events to desktop clients](https://github.com/jesseross42/smart-home-groceries-listing/issues/73)
 
 ### Integration follow-ups and maintenance
 
