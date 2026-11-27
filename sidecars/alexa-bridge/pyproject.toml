@@ -5,15 +5,15 @@ description = "Verifies Alexa skill requests with Amazon's ask-sdk and forwards 
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "python-dotenv>=1.2.1",
+    "python-dotenv>=1.2.4",
     # Amazon's official Alexa Skills Kit SDK. There is no maintained Rust
     # equivalent, which is the whole reason this sidecar exists.
     "ask-sdk-core>=1.19.0",
     "ask-sdk-webservice-support>=1.3.3",
     "flask-ask-sdk>=1.0.0",
-    "flask>=3.1.0",
-    "gunicorn>=23.0.0",
-    "requests>=2.32.0",
+    "flask>=3.1.3",
+    "gunicorn>=27.0.1",
+    "requests>=2.34.2",
     # ask-sdk-webservice-support pulls in certvalidator -> oscrypto, and
     # oscrypto 1.3.0 (the newest release, 2022) cannot detect OpenSSL 3's
     # version and raises LibraryNotFoundError on import. The fix is on
@@ -24,8 +24,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.0",
-    "ruff>=0.16.0",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
 ]
 
 [build-system]
