@@ -99,6 +99,8 @@ pub struct Tag {
     /// `<a href="/Shop/OfferGroup/24787902">`.
     pub tag_content: Option<String>,
     pub member_price_data: Option<MemberPriceData>,
+    /// The tag's offer is for registered Everyday Rewards cards only.
+    pub is_registered_reward_card_promotion: Option<bool>,
     /// Plain text of the tag, e.g. `2 for $6.00 - $1.88/100G `.
     pub tag_content_text: Option<String>,
 }

@@ -8,7 +8,8 @@
 //! Which units get the deal price: the dearest ones first. With a fixed
 //! deal price per unit that is the cheapest way to fill the groups, and a
 //! product whose shelf price is already at or below the deal price is never
-//! put in a group. Pure.
+//! put in a group. The offer's saving is then shared out so no part costs
+//! more than it does alone ([`share_saving`]). Pure.
 
 use std::collections::BTreeMap;
 
@@ -58,8 +59,9 @@ impl GroupedUnits {
 /// What each part costs with its offer's units pooled, in `parts`' order.
 ///
 /// An offer's parts are pooled only when that makes the offer as a whole
-/// cheaper than pricing each part alone; otherwise they keep `alone`. The
-/// first part of an offer sets its group size and deal price.
+/// cheaper than pricing each part alone; otherwise they keep `alone`. No
+/// part ever costs more than `alone`. The first part of an offer sets its
+/// group size and deal price.
 pub fn pooled_totals(parts: &[GroupedUnits]) -> Vec<Decimal> {
     let mut totals: Vec<Decimal> = parts.iter().map(|part| part.alone).collect();
     let mut offers: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
@@ -71,12 +73,42 @@ pub fn pooled_totals(parts: &[GroupedUnits]) -> Vec<Decimal> {
         let before: Decimal = members.iter().map(|&i| parts[i].alone).sum();
         let after: Decimal = pooled.iter().map(|(_, total)| *total).sum();
         if after < before {
-            for (index, total) in pooled {
+            for (index, total) in share_saving(parts, &pooled, before - after) {
                 totals[index] = total;
             }
         }
     }
     totals
+}
+
+/// The offer's `saving` shared out in cents to the parts pooling made
+/// cheaper, in proportion to how much cheaper; the last one takes what
+/// rounding leaves, so the totals still add up to the pooled total.
+fn share_saving(
+    parts: &[GroupedUnits],
+    pooled: &[(usize, Decimal)],
+    saving: Decimal,
+) -> Vec<(usize, Decimal)> {
+    let gains: Vec<(usize, Decimal)> = pooled
+        .iter()
+        .map(|&(i, total)| (i, (parts[i].alone - total).max(Decimal::ZERO)))
+        .collect();
+    let weight: Decimal = gains.iter().map(|(_, gain)| *gain).sum();
+    let last = gains.iter().rposition(|(_, gain)| !gain.is_zero());
+    let mut left = saving;
+    gains
+        .iter()
+        .enumerate()
+        .map(|(n, &(i, gain))| {
+            let share = if Some(n) == last {
+                left
+            } else {
+                (saving * gain / weight).round_dp(2)
+            };
+            left -= share;
+            (i, parts[i].alone - share)
+        })
+        .collect()
 }
 
 /// One offer's parts priced with their units pooled, dearest units first.
@@ -151,6 +183,35 @@ mod tests {
     fn a_product_already_cheaper_than_the_deal_is_left_out() {
         let totals = pooled_totals(&[part("a", dec!(2.00), 1), part("a", dec!(4.50), 1)]);
         assert_eq!(totals, vec![dec!(2.00), dec!(4.50)]);
+    }
+
+    #[test]
+    fn no_part_costs_more_than_it_does_alone() {
+        // Pooled, the $5 one takes a deal unit from the $4 pair, which alone
+        // fills its own group: the saving goes to the $5 one only.
+        let totals = pooled_totals(&[part("a", dec!(5), 1), part("a", dec!(4), 2)]);
+        assert_eq!(totals, vec![dec!(4.00), dec!(5.80)]);
+    }
+
+    #[test]
+    fn shared_savings_add_up_to_the_pooled_total() {
+        let parts = [
+            part("a", dec!(4), 1),
+            part("a", dec!(4), 1),
+            part("a", dec!(4), 1),
+        ];
+        let three_for_ten: Vec<GroupedUnits> = parts
+            .into_iter()
+            .map(|p| GroupedUnits {
+                min_quantity: 3,
+                deal_price: dec!(3.3333),
+                ..p
+            })
+            .collect();
+        let totals = pooled_totals(&three_for_ten);
+        assert_eq!(&totals[..2], &[dec!(3.33), dec!(3.33)]);
+        assert_eq!(totals.iter().copied().sum::<Decimal>(), dec!(9.9999));
+        assert!(totals.iter().all(|t| *t <= dec!(4)));
     }
 
     #[test]

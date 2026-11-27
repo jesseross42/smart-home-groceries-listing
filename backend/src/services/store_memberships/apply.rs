@@ -7,11 +7,17 @@ use crate::services::stores::Product;
 /// A member pays the member price when it is lower: it becomes `price`, the
 /// shelf price becomes `was_price`, and the unit price is scaled to match;
 /// `member_price` stays set so the web app can label it. A non-member never
-/// sees a member price or a member-only multibuy.
+/// sees a member price or a member-only multibuy, and a product whose only
+/// offer was for members is no longer a special.
 pub fn apply(mut product: Product, member: bool) -> Product {
     if !member {
+        let had_member_offer =
+            product.member_price.is_some() || product.deals.iter().any(|deal| deal.member_only);
         product.member_price = None;
         product.deals.retain(|deal| !deal.member_only);
+        if had_member_offer && product.was_price.is_none() && product.deals.is_empty() {
+            product.on_special = false;
+        }
         return product;
     }
     match (product.member_price, product.price) {
@@ -71,6 +77,16 @@ mod tests {
         assert_eq!(priced.price, Some(dec!(10)));
         assert_eq!(priced.member_price, None);
         assert!(priced.deals.is_empty());
+    }
+
+    #[test]
+    fn a_members_only_offer_is_not_a_special_for_a_non_member() {
+        let mut coffee = coffee();
+        coffee.on_special = true;
+        assert!(!apply(coffee.clone(), false).on_special);
+
+        coffee.was_price = Some(dec!(12));
+        assert!(apply(coffee, false).on_special, "a real reduction stays");
     }
 
     #[test]

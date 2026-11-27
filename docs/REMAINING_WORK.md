@@ -30,6 +30,7 @@ behavioral contract.
 ### Integration follow-ups and maintenance
 
 - [#85 — Verify live store and voice integrations end to end](https://github.com/jesseross42/smart-home-groceries-listing/issues/85)
+- [#116 — Check Woolworths member prices and pick-any offers against live data](https://github.com/jesseross42/smart-home-groceries-listing/issues/116)
 
 ## Deliberately out of the roadmap
 

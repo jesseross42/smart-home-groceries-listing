@@ -121,9 +121,11 @@ and 2026-10-06 (lookup) —
 ### Member prices
 Woolworths `CentreTag.MemberPriceData.PromotionalPrice` → `Product.member_price`
 (kept only when lower than `Price`). A multibuy on a product whose
-`ImageTag.FallbackText` is `Member Price` is `member_only`. Shapes are from
-public open-source scrapers, not a captured response: check them against a
-live member product.
+`CentreTag.IsRegisteredRewardCardPromotion` is true, or whose
+`ImageTag.FallbackText` is `Member Price` with no member shelf price, is
+`member_only`. Shapes are from public open-source scrapers, not a captured
+response; checking them live is
+[#116](https://github.com/jesseross42/smart-home-groceries-listing/issues/116).
 
 Settings › Member prices (`/settings/member-prices`, table
 `store_memberships`, `services/store_memberships`) says whether the household
@@ -135,7 +137,8 @@ purchase history) sees the same prices and a change counts at once:
   the unit price is scaled to match, and `member_price: true` is sent so the
   web app shows **Member price**;
 - not a member (the default): member prices and member-only multibuys are
-  removed, so nothing invites the household to join.
+  removed, and a product whose only offer was for members is not a special,
+  so nothing invites the household to join.
 
 | Method | Path | Answer |
 |---|---|---|
@@ -146,7 +149,8 @@ purchase history) sees the same prices and a change counts at once:
 Units of different products with the same `group_id`, at one store, count
 towards the same group (`services/stores/deal_group.rs`). The dearest units
 get the deal price first; a product already at or below the deal price is
-left out. Pooling is applied to the lines of one store in the order review
+left out. The saving is shared out to the parts pooling made cheaper, so no
+line costs more than it would alone; saved purchases are rounded to cents. Pooling is applied to the lines of one store in the order review
 and in each option of the order planner (`order_review/pooling.rs`), and to
 the products of one trolley fill before the purchase is saved
 (`purchases/pooling.rs`). It is only used when it lowers the offer's total.

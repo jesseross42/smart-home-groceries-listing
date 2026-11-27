@@ -22,10 +22,14 @@ pub fn pool_offers(bought: &mut [BoughtLine]) {
             continue;
         }
         let line = &mut bought[owner];
-        line.total_price += total - part.alone;
-        line.unit_price = (line.total_price / Decimal::from(part.quantity))
-            .round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
+        line.total_price = cents(line.total_price + total - part.alone);
+        line.unit_price = cents(line.total_price / Decimal::from(part.quantity));
     }
+}
+
+/// Rounds to whole cents, as every saved price is.
+fn cents(amount: Decimal) -> Decimal {
+    amount.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero)
 }
 
 #[cfg(test)]
@@ -78,5 +82,18 @@ mod tests {
         pool_offers(&mut lines);
         assert_eq!(lines[0].total_price, dec!(4.50));
         assert_eq!(lines[1].total_price, dec!(4.00));
+    }
+
+    #[test]
+    fn a_pooled_total_is_saved_in_whole_cents() {
+        let mut lines: Vec<BoughtLine> = (0..3).map(|_| bought(dec!(4), Some("a"))).collect();
+        for line in &mut lines {
+            let part = line.grouped.as_mut().unwrap();
+            part.min_quantity = 3;
+            part.deal_price = dec!(3.3333);
+        }
+        pool_offers(&mut lines);
+        assert!(lines.iter().all(|line| line.total_price.scale() <= 2));
+        assert_eq!(lines[0].total_price, dec!(3.33));
     }
 }

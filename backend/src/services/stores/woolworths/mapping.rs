@@ -35,7 +35,7 @@ pub fn detail(response: ProductDetail, site_url: &str) -> Option<Product> {
 /// One product.
 fn product(p: WireProduct, site_url: &str) -> Product {
     let price = from_wire(p.price);
-    let members_only = member_badge(&p);
+    let badged = member_badge(&p);
     Product {
         store: Store::Woolworths,
         product_id: p.stockcode.to_string(),
@@ -51,7 +51,7 @@ fn product(p: WireProduct, site_url: &str) -> Product {
         deals: p
             .centre_tag
             .as_ref()
-            .and_then(|tag| deal(tag, members_only))
+            .and_then(|tag| deal(tag, members_only(tag, badged)))
             .into_iter()
             .collect(),
         category: p.additional_attributes.as_ref().and_then(category),
@@ -77,6 +77,14 @@ fn member_badge(p: &WireProduct) -> bool {
         .as_ref()
         .and_then(|tag| tag.fallback_text.as_deref())
         .is_some_and(|text| text.trim().eq_ignore_ascii_case(MEMBER_BADGE))
+}
+
+/// The tag's multibuy is for members only: the tag says so, or the picture
+/// is badged "Member Price" while the tag has no member shelf price (which
+/// is what the badge would otherwise be for).
+fn members_only(tag: &Tag, badged: bool) -> bool {
+    tag.is_registered_reward_card_promotion == Some(true)
+        || (badged && tag.member_price_data.is_none())
 }
 
 /// What an Everyday Rewards member pays for one, when the tag says.
@@ -308,5 +316,34 @@ mod tests {
             "https://www.woolworths.com.au",
         );
         assert!(!plain.deals[0].member_only);
+    }
+
+    #[test]
+    fn a_public_multibuy_beside_a_member_price_stays_public() {
+        let coffee = product(
+            wire(serde_json::json!({
+                "CentreTag": {
+                    "MemberPriceData": { "PromotionalPrice": 8.5 },
+                    "MultibuyData": { "Quantity": 2, "Price": 16.0 }
+                },
+                "ImageTag": { "FallbackText": "Member Price" }
+            })),
+            "https://www.woolworths.com.au",
+        );
+        assert!(!coffee.deals[0].member_only);
+    }
+
+    #[test]
+    fn a_reward_card_promotion_flag_marks_the_multibuy_members_only() {
+        let coffee = product(
+            wire(serde_json::json!({
+                "CentreTag": {
+                    "MultibuyData": { "Quantity": 2, "Price": 16.0 },
+                    "IsRegisteredRewardCardPromotion": true
+                }
+            })),
+            "https://www.woolworths.com.au",
+        );
+        assert!(coffee.deals[0].member_only);
     }
 }
