@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::auth::AuthUser;
 use crate::error::ApiError;
+use crate::models::db::ProductKey;
 use crate::models::schemas::{
     ProductHistoryLookup, ProductHistoryResponse, PurchaseOrderResponse, RecategoriseResponse,
     UndoPurchaseResponse,
@@ -63,7 +64,10 @@ async fn product_history(
     let products: Vec<_> = body
         .products
         .into_iter()
-        .map(|product| (product.store, product.product_id))
+        .map(|product| ProductKey {
+            store: product.store,
+            product_id: product.product_id,
+        })
         .collect();
     let history = PurchaseService::new(&state.pool)
         .product_history(&products)
@@ -71,8 +75,8 @@ async fn product_history(
     Ok(Json(history.into_iter().map(Into::into).collect()))
 }
 
-/// `POST /api/purchase-history/recategorise` — work out every purchase's
-/// category again with today's keyword list.
+/// `POST /api/purchase-history/recategorise` — work out every bought
+/// product's category again with today's rules.
 async fn recategorise(
     State(state): State<AppState>,
     _user: AuthUser,

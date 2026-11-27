@@ -21,6 +21,7 @@ use super::category;
 use super::product_repository::{self as repository, ProductDetails, ProductTexts};
 use super::repository::NewPurchase;
 use crate::error::ApiError;
+use crate::models::db::ProductKey;
 use crate::services::stores::Store;
 
 /// Writes the product of `purchase`, bought at `bought_at`. Runs before the
@@ -45,9 +46,9 @@ pub async fn keep(
 /// with no purchase left is deleted.
 pub async fn refresh(
     tx: &mut Transaction<'_, Postgres>,
-    products: &[(Store, String)],
+    products: &[ProductKey],
 ) -> Result<(), ApiError> {
-    for (store, product_id) in products {
+    for ProductKey { store, product_id } in products {
         let Some(newest) = repository::newest_purchase(&mut **tx, *store, product_id).await? else {
             repository::delete(&mut **tx, *store, product_id).await?;
             continue;

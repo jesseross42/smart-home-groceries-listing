@@ -10,7 +10,7 @@ use sqlx::PgExecutor;
 use uuid::Uuid;
 
 use crate::error::ApiError;
-use crate::models::db::{GroceryItemStatus, Purchase, PurchaseOrder};
+use crate::models::db::{GroceryItemStatus, ProductKey, Purchase, PurchaseOrder};
 use crate::services::stores::Store;
 
 /// The `purchase_orders` columns, in [`PurchaseOrder`]'s order.
@@ -201,6 +201,21 @@ where
         purchases_and_products!(),
         " WHERE p.order_id = $1 ORDER BY p.item_name"
     ))
+    .bind(order_id)
+    .fetch_all(executor)
+    .await?)
+}
+
+/// Each product one order bought, once.
+pub async fn products_of<'e, E>(executor: E, order_id: Uuid) -> Result<Vec<ProductKey>, ApiError>
+where
+    E: PgExecutor<'e>,
+{
+    Ok(sqlx::query_as::<_, ProductKey>(
+        "SELECT DISTINCT store, product_id FROM purchases
+         WHERE order_id = $1
+         ORDER BY store, product_id",
+    )
     .bind(order_id)
     .fetch_all(executor)
     .await?)

@@ -65,7 +65,7 @@ pub struct UndoPurchaseResponse {
     pub items_restored: usize,
 }
 
-/// `POST /api/purchase-history/recategorise`: how many purchases changed.
+/// `POST /api/purchase-history/recategorise`: how many products changed.
 #[derive(Debug, Serialize)]
 pub struct RecategoriseResponse {
     pub changed: usize,

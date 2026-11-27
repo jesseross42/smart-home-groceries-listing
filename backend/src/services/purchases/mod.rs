@@ -35,8 +35,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::error::ApiError;
-use crate::models::db::PurchaseOrder;
-use crate::services::stores::{Store, StoreClients};
+use crate::models::db::{ProductKey, PurchaseOrder};
+use crate::services::stores::StoreClients;
 
 /// How many recent shops the order list shows.
 pub const RECENT_ORDERS: i64 = 20;
@@ -84,7 +84,7 @@ impl<'a> PurchaseService<'a> {
     /// Every purchase of the given products, grouped by product.
     pub async fn product_history(
         &self,
-        products: &[(Store, String)],
+        products: &[ProductKey],
     ) -> Result<Vec<ProductHistory>, ApiError> {
         if products.is_empty() {
             return Ok(Vec::new());

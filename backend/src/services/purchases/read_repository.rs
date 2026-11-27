@@ -12,7 +12,7 @@ use sqlx::PgExecutor;
 
 use super::repository::{purchase_columns, purchases_and_products};
 use crate::error::ApiError;
-use crate::models::db::Purchase;
+use crate::models::db::{ProductKey, Purchase};
 use crate::services::stores::Store;
 
 /// What the spending analysis narrows purchases to. `None` = no limit.
@@ -28,17 +28,16 @@ pub struct PurchaseFilter<'a> {
     pub category: Option<&'a str>,
 }
 
-/// Every purchase of the given products, newest first. `products` pairs a
-/// store with its own product id.
+/// Every purchase of the given products, newest first.
 pub async fn of_products<'e, E>(
     executor: E,
-    products: &[(Store, String)],
+    products: &[ProductKey],
 ) -> Result<Vec<Purchase>, ApiError>
 where
     E: PgExecutor<'e>,
 {
-    let stores: Vec<&str> = products.iter().map(|(store, _)| store.as_str()).collect();
-    let ids: Vec<&str> = products.iter().map(|(_, id)| id.as_str()).collect();
+    let stores: Vec<&str> = products.iter().map(|key| key.store.as_str()).collect();
+    let ids: Vec<&str> = products.iter().map(|key| key.product_id.as_str()).collect();
     Ok(sqlx::query_as::<_, Purchase>(concat!(
         "SELECT ",
         purchase_columns!(),

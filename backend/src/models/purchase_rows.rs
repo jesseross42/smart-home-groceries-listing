@@ -87,6 +87,14 @@ pub struct Purchase {
     pub bought_at: DateTime<Utc>,
 }
 
+/// One store product: the primary key of `bought_products`.
+#[derive(Debug, Clone, PartialEq, Eq, sqlx::FromRow)]
+pub struct ProductKey {
+    pub store: Store,
+    /// The store's own product id.
+    pub product_id: String,
+}
+
 impl Purchase {
     /// What this line cost the household, delivery share included.
     pub fn spend(&self) -> Decimal {
