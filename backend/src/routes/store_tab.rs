@@ -29,6 +29,7 @@ use crate::routes::extract::AnyContentTypeJson;
 use crate::services::delivery_day_fees::DeliveryDayFeeService;
 use crate::services::stores::Store;
 use crate::services::trolley_handoffs::delivery::ReportedDelivery;
+use crate::services::trolley_handoffs::filled::filled_event;
 use crate::services::trolley_handoffs::store_tab::ReportedLine;
 use crate::services::trolley_handoffs::TrolleyHandoffService;
 use crate::services::{delivery_windows, purchases};
@@ -72,7 +73,7 @@ async fn claim_handoff(
 ///
 /// Once recorded, the products that went in are saved as bought, in the
 /// background (`services/purchases/`), so this answer does not wait for the
-/// stores to price them.
+/// stores to price them, and every open session hears `trolley_filled`.
 async fn report_handoff(
     State(state): State<AppState>,
     Path(handoff_id): Path<Uuid>,
@@ -84,6 +85,14 @@ async fn report_handoff(
     let closed = TrolleyHandoffService::new(&state.pool)
         .record_store_tab_report(handoff_id, &report, delivery.as_ref())
         .await?;
+    // The report is saved: tell open sessions and save the purchases before
+    // anything else can fail, since a retried report is refused.
+    purchases::record_in_background(state.pool.clone(), state.stores.clone(), handoff_id);
+    state.hub.broadcast(filled_event(
+        handoff_id,
+        closed.handoff.store,
+        &closed.lines,
+    ));
     let days: Vec<_> = body
         .delivery_days
         .iter()
@@ -92,7 +101,6 @@ async fn report_handoff(
     DeliveryDayFeeService::new(&state.pool)
         .record(closed.handoff.store, &days)
         .await?;
-    purchases::record_in_background(state.pool.clone(), state.stores.clone(), handoff_id);
     Ok(Json(closed.into()))
 }
 

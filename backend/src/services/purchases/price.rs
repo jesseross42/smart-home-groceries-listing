@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use crate::models::db::{GroceryItem, GroceryItemStatus, ItemSelection, TrolleyHandoffLine};
 use crate::services::product_search::{PricedProduct, StoreOutcome};
+use crate::services::stores::deal_group::GroupedUnits;
 use crate::services::stores::Store;
 
 /// One product the household bought, priced, before its delivery share and
@@ -30,6 +31,9 @@ pub struct BoughtLine {
     pub shelf_price: Option<Decimal>,
     pub total_price: Decimal,
     pub store_category: Option<String>,
+    /// The units under a "Pick any N" offer, pooled with the order's other
+    /// lines by [`super::pooling`]. `None` for none.
+    pub grouped: Option<GroupedUnits>,
 }
 
 /// Prices `line` for `item`, from the store's fresh answer or else from the
@@ -56,6 +60,7 @@ pub fn price_line(
         shelf_price: None,
         total_price: Decimal::ZERO,
         store_category: None,
+        grouped: None,
     };
     from_store(&base, quantity, outcome).or_else(|| from_choice(&base, quantity, choice))
 }
@@ -72,7 +77,11 @@ fn from_store(
         .find(|priced| priced.product.product_id == base.product_id)?;
     let product = found.product.clone();
     let total = PricedProduct::new(product.clone(), quantity).total_price?;
+    let grouped = product
+        .price
+        .and_then(|shelf| GroupedUnits::new(shelf, &product.deals, quantity, total));
     Some(BoughtLine {
+        grouped,
         product_name: product.name,
         brand: product.brand,
         package_size: product.package_size,

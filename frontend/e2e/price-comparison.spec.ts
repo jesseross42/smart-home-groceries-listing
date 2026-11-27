@@ -199,4 +199,28 @@ test.describe("price comparison", () => {
 		expect(await picture.evaluate((img) => (img as HTMLElement).offsetWidth)).toBe(96);
 		await expect(view.locator("s")).toHaveCount(0);
 	});
+
+	test("Settings › Member prices shows a member's price, and Undo puts it back", async ({
+		page,
+	}) => {
+		await gotoList(page, "/settings/member-prices");
+		const member = page.getByRole("switch", {
+			name: "Woolworths Everyday Rewards member",
+		});
+		await member.click();
+		await expect(page.getByText("Member prices saved").first()).toBeVisible();
+		await expect(member).toBeChecked();
+
+		await gotoList(page);
+		await addItem(page, "milk");
+		const view = await openSelectItem(page, "milk");
+		const milk = view.getByRole("article", { name: "Dairy Farmers Full Cream Milk" });
+		await expect(milk.getByText("Member price")).toBeVisible();
+		await expect(milk.getByText("$4.90")).toBeVisible();
+
+		await gotoList(page, "/settings/member-prices");
+		await member.click();
+		await page.getByRole("button", { name: "Undo" }).first().click();
+		await expect(member).toBeChecked();
+	});
 });

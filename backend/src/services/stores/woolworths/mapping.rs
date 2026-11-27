@@ -3,6 +3,9 @@
 use rust_decimal::Decimal;
 
 use super::wire::{Attributes, ProductDetail, SearchResponse, Tag, WireProduct};
+
+/// The picture badge Woolworths puts on an offer for members only.
+const MEMBER_BADGE: &str = "member price";
 use crate::services::stores::deal::Deal;
 use crate::services::stores::image::https_only;
 use crate::services::stores::measure;
@@ -32,6 +35,7 @@ pub fn detail(response: ProductDetail, site_url: &str) -> Option<Product> {
 /// One product.
 fn product(p: WireProduct, site_url: &str) -> Product {
     let price = from_wire(p.price);
+    let badged = member_badge(&p);
     Product {
         store: Store::Woolworths,
         product_id: p.stockcode.to_string(),
@@ -39,7 +43,17 @@ fn product(p: WireProduct, site_url: &str) -> Product {
         image_url: https_only(p.small_image_file.as_deref()),
         unit_price: unit_price(p.cup_price, p.cup_measure.as_deref()),
         was_price: positive_from_wire(p.was_price).filter(|was| Some(*was) > price),
-        deals: p.centre_tag.as_ref().and_then(deal).into_iter().collect(),
+        member_price: p
+            .centre_tag
+            .as_ref()
+            .and_then(member_price)
+            .filter(|member| price.is_some_and(|shelf| *member < shelf)),
+        deals: p
+            .centre_tag
+            .as_ref()
+            .and_then(|tag| deal(tag, members_only(tag, badged)))
+            .into_iter()
+            .collect(),
         category: p.additional_attributes.as_ref().and_then(category),
         available: p.is_available && price.is_some(),
         on_special: p.is_on_special,
@@ -57,8 +71,30 @@ fn unit_price(cup_price: Option<f64>, cup_measure: Option<&str>) -> Option<UnitP
     Some(normalise(price, &measure))
 }
 
-/// A multibuy, priced per unit inside a complete group.
-fn deal(tag: &Tag) -> Option<Deal> {
+/// The picture is badged "Member Price", so its offer is for members only.
+fn member_badge(p: &WireProduct) -> bool {
+    p.image_tag
+        .as_ref()
+        .and_then(|tag| tag.fallback_text.as_deref())
+        .is_some_and(|text| text.trim().eq_ignore_ascii_case(MEMBER_BADGE))
+}
+
+/// The tag's multibuy is for members only: the tag says so, or the picture
+/// is badged "Member Price" while the tag has no member shelf price (which
+/// is what the badge would otherwise be for).
+fn members_only(tag: &Tag, badged: bool) -> bool {
+    tag.is_registered_reward_card_promotion == Some(true)
+        || (badged && tag.member_price_data.is_none())
+}
+
+/// What an Everyday Rewards member pays for one, when the tag says.
+fn member_price(tag: &Tag) -> Option<rust_decimal::Decimal> {
+    positive_from_wire(tag.member_price_data.as_ref()?.promotional_price)
+}
+
+/// A multibuy, priced per unit inside a complete group. `member_only` when
+/// the product is badged as a members' offer.
+fn deal(tag: &Tag, member_only: bool) -> Option<Deal> {
     let multibuy = tag.multibuy_data.as_ref()?;
     if multibuy.quantity == 0 {
         return None;
@@ -73,10 +109,30 @@ fn deal(tag: &Tag) -> Option<Deal> {
         .map(str::to_string)
         .unwrap_or_else(|| format!("{} for ${group_price}", multibuy.quantity));
     Some(Deal {
+        group_id: offer_group(tag, &description),
         description,
         min_quantity: multibuy.quantity,
         unit_price: (group_price / Decimal::from(multibuy.quantity)).round_dp(4),
+        member_only,
     })
+}
+
+/// The offer a mix-and-match multibuy belongs to.
+///
+/// Only an offer worded "Any N for $X" mixes different products. A plain
+/// "2 for $6.50" links to an offer page too, but is priced per product.
+fn offer_group(tag: &Tag, description: &str) -> Option<String> {
+    if !description
+        .to_lowercase()
+        .split_whitespace()
+        .any(|word| word == "any")
+    {
+        return None;
+    }
+    let html = tag.tag_content.as_deref()?;
+    let (_, after) = html.split_once("/OfferGroup/")?;
+    let id: String = after.chars().take_while(char::is_ascii_digit).collect();
+    (!id.is_empty()).then_some(id)
 }
 
 /// The most specific shopper-facing category, else the internal one.
@@ -145,8 +201,23 @@ mod tests {
                 description: "2 for $6.50".into(),
                 min_quantity: 2,
                 unit_price: dec!(3.25),
+                group_id: None,
+                member_only: false,
             }]
         );
+    }
+
+    #[test]
+    fn an_any_n_multibuy_carries_its_offer_group() {
+        let tag: Tag = serde_json::from_value(serde_json::json!({
+            "MultibuyData": { "Quantity": 2, "Price": 10.0 },
+            "TagContent": "<a title=\"Any 2 for $10\" href=\"/Shop/OfferGroup/24787902\"><span>Any 2 for $10</span></a>",
+            "TagContentText": "Any 2 for $10 "
+        }))
+        .unwrap();
+        let found = deal(&tag, false).unwrap();
+        assert_eq!(found.group_id.as_deref(), Some("24787902"));
+        assert_eq!(found.unit_price, dec!(5));
     }
 
     #[test]
@@ -191,5 +262,88 @@ mod tests {
             found.url,
             "https://www.woolworths.com.au/shop/productdetails/722/kleenex-complete-clean-double-length-toilet-paper"
         );
+    }
+
+    /// A product as Woolworths sends it, with `extra` fields on top.
+    fn wire(extra: serde_json::Value) -> WireProduct {
+        let mut json = serde_json::json!({
+            "Stockcode": 1, "Name": "Coffee", "Price": 10.0, "IsAvailable": true
+        });
+        json.as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        serde_json::from_value(json).unwrap()
+    }
+
+    #[test]
+    fn reads_a_member_price_lower_than_the_shelf_price() {
+        let coffee = product(
+            wire(serde_json::json!({
+                "CentreTag": { "MemberPriceData": { "PromotionalPrice": 8.5 } },
+                "ImageTag": { "FallbackText": "Member Price" }
+            })),
+            "https://www.woolworths.com.au",
+        );
+        assert_eq!(coffee.price, Some(dec!(10)));
+        assert_eq!(coffee.member_price, Some(dec!(8.5)));
+    }
+
+    #[test]
+    fn a_member_price_that_is_not_lower_is_ignored() {
+        let coffee = product(
+            wire(serde_json::json!({
+                "CentreTag": { "MemberPriceData": { "PromotionalPrice": 10.0 } }
+            })),
+            "https://www.woolworths.com.au",
+        );
+        assert_eq!(coffee.member_price, None);
+    }
+
+    #[test]
+    fn a_multibuy_badged_member_price_is_for_members_only() {
+        let coffee = product(
+            wire(serde_json::json!({
+                "CentreTag": { "MultibuyData": { "Quantity": 2, "Price": 16.0 } },
+                "ImageTag": { "FallbackText": "Member Price" }
+            })),
+            "https://www.woolworths.com.au",
+        );
+        assert!(coffee.deals[0].member_only);
+        let plain = product(
+            wire(serde_json::json!({
+                "CentreTag": { "MultibuyData": { "Quantity": 2, "Price": 16.0 } }
+            })),
+            "https://www.woolworths.com.au",
+        );
+        assert!(!plain.deals[0].member_only);
+    }
+
+    #[test]
+    fn a_public_multibuy_beside_a_member_price_stays_public() {
+        let coffee = product(
+            wire(serde_json::json!({
+                "CentreTag": {
+                    "MemberPriceData": { "PromotionalPrice": 8.5 },
+                    "MultibuyData": { "Quantity": 2, "Price": 16.0 }
+                },
+                "ImageTag": { "FallbackText": "Member Price" }
+            })),
+            "https://www.woolworths.com.au",
+        );
+        assert!(!coffee.deals[0].member_only);
+    }
+
+    #[test]
+    fn a_reward_card_promotion_flag_marks_the_multibuy_members_only() {
+        let coffee = product(
+            wire(serde_json::json!({
+                "CentreTag": {
+                    "MultibuyData": { "Quantity": 2, "Price": 16.0 },
+                    "IsRegisteredRewardCardPromotion": true
+                }
+            })),
+            "https://www.woolworths.com.au",
+        );
+        assert!(coffee.deals[0].member_only);
     }
 }

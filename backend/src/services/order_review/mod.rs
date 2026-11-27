@@ -7,13 +7,16 @@
 //! a product or a store for the household — it only reports what was chosen
 //! and what it costs now.
 //!
-//! Re-pricing rules are in [`line`]; grouping and totals in [`summary`].
+//! Re-pricing rules are in [`line`]; "Pick any N" offers across lines in
+//! [`pooling`]; grouping and totals in [`summary`].
 
 mod line;
 mod log;
+mod pooling;
 mod summary;
 
 pub use line::{reprice, LineStatus, OrderLine, PriceChange};
+pub use pooling::pool_offers;
 pub use summary::{OrderReview, StoreOrder};
 
 #[cfg(test)]

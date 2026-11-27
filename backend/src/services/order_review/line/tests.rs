@@ -62,6 +62,8 @@ fn a_deal_reached_at_the_new_quantity_is_applied() {
         description: "2 for $5.80".into(),
         min_quantity: 2,
         unit_price: dec!(2.90),
+        group_id: None,
+        member_only: false,
     });
 
     let line = reprice(
@@ -72,6 +74,31 @@ fn a_deal_reached_at_the_new_quantity_is_applied() {
 
     assert_eq!(line.total_price, Some(dec!(5.80)));
     assert!(line.deal_applied);
+}
+
+#[test]
+fn a_mix_and_match_offer_is_kept_for_pooling_with_other_lines() {
+    let cola = item("cola", 1);
+    let mut on_offer = product(Store::Coles, "Cola", dec!(4.50));
+    on_offer.deals.push(Deal {
+        description: "Pick any 2 for $5.80".into(),
+        min_quantity: 2,
+        unit_price: dec!(2.90),
+        group_id: Some("730915457".into()),
+        member_only: false,
+    });
+
+    let line = reprice(
+        cola.clone(),
+        choice(&cola, Store::Coles, "cola", dec!(4.50)),
+        coles(vec![on_offer], 1),
+    );
+
+    assert_eq!(line.total_price, Some(dec!(4.50)));
+    assert_eq!(line.grouped.len(), 1);
+    assert_eq!(line.grouped[0].group_id, "730915457");
+    assert_eq!(line.grouped[0].quantity, 1);
+    assert_eq!(line.grouped[0].alone, dec!(4.50));
 }
 
 #[test]

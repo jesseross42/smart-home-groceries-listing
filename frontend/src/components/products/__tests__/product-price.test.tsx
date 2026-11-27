@@ -39,4 +39,21 @@ describe("ProductPrice", () => {
 
 		expect(container.querySelector("s")).toBeNull();
 	});
+
+	it("labels a member price", () => {
+		render(
+			<ProductPrice
+				product={productFixture({ price: "4.90", member_price: true })}
+				quantity={1}
+			/>,
+		);
+
+		expect(screen.getByText("Member price")).toBeInTheDocument();
+	});
+
+	it("does not label a shelf price as a member price", () => {
+		render(<ProductPrice product={productFixture()} quantity={1} />);
+
+		expect(screen.queryByText("Member price")).not.toBeInTheDocument();
+	});
 });

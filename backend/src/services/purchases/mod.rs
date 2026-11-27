@@ -15,6 +15,7 @@ pub mod category;
 mod fee;
 pub mod history;
 mod log;
+mod pooling;
 mod price;
 pub mod product_repository;
 pub mod products;

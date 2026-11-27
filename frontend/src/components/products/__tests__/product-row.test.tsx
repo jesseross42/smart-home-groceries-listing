@@ -39,7 +39,12 @@ describe("ProductRow", () => {
 			productFixture({
 				price: "3.9",
 				deals: [
-					{ description: "2 for $6.50", min_quantity: 2, unit_price: "3.25" },
+					{
+						description: "2 for $6.50",
+						min_quantity: 2,
+						unit_price: "3.25",
+						group_id: null,
+					},
 				],
 				total_price: "6.5",
 				deal_applied: true,

@@ -69,7 +69,25 @@ pub struct WireProduct {
     /// `https://cdn0.woolworths.media/content/wowproductimages/small/007985.jpg`.
     pub small_image_file: Option<String>,
     pub centre_tag: Option<Tag>,
+    /// The badge on the product's picture; "Member Price" marks an offer
+    /// for Everyday Rewards members only.
+    pub image_tag: Option<ImageTag>,
     pub additional_attributes: Option<Attributes>,
+}
+
+/// The badge on a product's picture.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct ImageTag {
+    pub fallback_text: Option<String>,
+}
+
+/// An Everyday Rewards member price.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct MemberPriceData {
+    /// What a member pays for one.
+    pub promotional_price: Option<f64>,
 }
 
 /// A promotional tag shown on the product tile; multibuys live here.
@@ -77,6 +95,12 @@ pub struct WireProduct {
 #[serde(rename_all = "PascalCase")]
 pub struct Tag {
     pub multibuy_data: Option<Multibuy>,
+    /// The tag as HTML. A multibuy links to its offer, e.g.
+    /// `<a href="/Shop/OfferGroup/24787902">`.
+    pub tag_content: Option<String>,
+    pub member_price_data: Option<MemberPriceData>,
+    /// The tag's offer is for registered Everyday Rewards cards only.
+    pub is_registered_reward_card_promotion: Option<bool>,
     /// Plain text of the tag, e.g. `2 for $6.00 - $1.88/100G `.
     pub tag_content_text: Option<String>,
 }

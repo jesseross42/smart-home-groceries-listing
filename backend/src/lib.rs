@@ -71,11 +71,15 @@ pub fn build_app(pool: PgPool, settings: Settings) -> Router {
     );
     recheck_in_background(triage.clone());
 
+    let stores = services::store_memberships::with_member_prices(
+        services::stores::registry::build(&settings.stores),
+        pool.clone(),
+    );
     let state = AppState {
         pool,
         triage,
         auth: auth::build_provider(&settings),
-        stores: services::stores::registry::build(&settings.stores),
+        stores,
         google_tasks: services::google_tasks::registry::build(&settings.google_tasks),
         settings: Arc::new(settings),
         hub,

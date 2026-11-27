@@ -12,6 +12,7 @@ use rust_decimal::Decimal;
 
 use crate::models::db::{GroceryItem, ItemSelection};
 use crate::services::product_search::StoreOutcome;
+use crate::services::stores::deal_group::GroupedUnits;
 
 /// Whether the chosen product can be bought as it is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,6 +50,9 @@ pub struct OrderLine {
     pub price_change: Option<PriceChange>,
     /// A sentence for the household when the line cannot be bought as it is.
     pub problem: Option<String>,
+    /// The line's units under a "Pick any N" offer, pooled with the other
+    /// lines at its store by [`super::pooling`]. Empty for none.
+    pub grouped: Vec<GroupedUnits>,
 }
 
 impl OrderLine {
@@ -97,6 +101,12 @@ pub fn reprice(
     }
 
     let price = priced.product.price;
+    let quantity = u32::try_from(item.quantity).unwrap_or(0);
+    let grouped = price
+        .zip(priced.total_price)
+        .and_then(|(shelf, total)| GroupedUnits::new(shelf, &priced.product.deals, quantity, total))
+        .into_iter()
+        .collect();
     OrderLine {
         price_change: compare(choice.price, price),
         problem: priced
@@ -109,6 +119,7 @@ pub fn reprice(
         price,
         total_price: priced.total_price,
         deal_applied: priced.deal_applied,
+        grouped,
     }
 }
 
@@ -128,6 +139,7 @@ fn unpriced(
         deal_applied: false,
         price_change: None,
         problem: Some(problem),
+        grouped: Vec::new(),
     }
 }
 

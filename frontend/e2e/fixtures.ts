@@ -19,7 +19,8 @@ interface GroceryFixtures {
  * The dev-only TanStack Devtools button is hidden.
  *
  * Every test starts from an empty list, an empty confirmation queue, no
- * item rules, no saved shops, no dislikes and no delivery fees, and
+ * item rules, no saved shops, no dislikes, no delivery fees and no store
+ * memberships, and
  * every test fails if the browser threw, logged an error, or got a 5xx from the
  * backend — a feature that "works" while React complains in the console is not
  * working.
@@ -89,6 +90,11 @@ export const test = base.extend<GroceryFixtures>({
 				default_delivery_day: null,
 				allowed_delivery_days: [],
 			},
+		});
+
+		// Not a member anywhere, so prices are the shelf prices.
+		await request.put(`${API_BASE_URL}/api/store-memberships`, {
+			data: { stores: [{ store: "woolworths", member: false }] },
 		});
 
 		// The dev server's TanStack Devtools button floats over the page's

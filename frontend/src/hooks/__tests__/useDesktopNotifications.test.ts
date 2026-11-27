@@ -106,4 +106,46 @@ describe("desktop notifications", () => {
 			"0 added. Check out when ready.",
 		);
 	});
+
+	it("announces a pushed trolley fill once, even when pushed twice", () => {
+		renderHook(() => useDesktopNotifications());
+		const filled: ServerEvent = {
+			type: "trolley_filled",
+			handoff_id: "pushed-1",
+			store: "woolworths",
+			store_name: "Woolworths",
+			added: 2,
+			not_added: 1,
+		};
+		push(filled);
+		push(filled);
+
+		expect(notify.mock.calls).toEqual([
+			[
+				"Woolworths trolley filled",
+				"2 added. 1 not added. Check out when ready.",
+			],
+		]);
+	});
+
+	it("does not announce a fill the sheet already announced", () => {
+		renderHook(() => useDesktopNotifications());
+		const filled = {
+			id: "seen-1",
+			status: "filled",
+			store_name: "Coles",
+			lines: [],
+		} as unknown as TrolleyHandoff;
+		renderHook(() => useHandoffNotice(filled));
+		push({
+			type: "trolley_filled",
+			handoff_id: "seen-1",
+			store: "coles",
+			store_name: "Coles",
+			added: 0,
+			not_added: 0,
+		});
+
+		expect(notify).toHaveBeenCalledTimes(1);
+	});
 });

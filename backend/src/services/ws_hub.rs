@@ -10,6 +10,9 @@
 
 use serde::Serialize;
 use tokio::sync::broadcast;
+use uuid::Uuid;
+
+use crate::services::stores::Store;
 
 /// How many undelivered events a connection may fall behind by before it is
 /// dropped from the channel. Events are small and clients only need the latest
@@ -33,6 +36,17 @@ pub enum ServerEvent {
     /// open pages read them again. Carries nothing: the list is re-read, so a
     /// missed or repeated event does no harm.
     GroceryListChanged,
+    /// The store tab reported a trolley fill: how many products went in and
+    /// how many did not. The desktop app notifies once per `handoff_id`, so a
+    /// repeated event does no harm; one missed while disconnected is not
+    /// sent again (the Send sheet still shows the result).
+    TrolleyFilled {
+        handoff_id: Uuid,
+        store: Store,
+        store_name: &'static str,
+        added: usize,
+        not_added: usize,
+    },
 }
 
 /// Queue counts keyed by the corresponding live event types.
@@ -101,6 +115,26 @@ mod tests {
         assert_eq!(
             json,
             serde_json::json!({ "type": "triage_held", "count": 2 })
+        );
+    }
+
+    #[test]
+    fn trolley_filled_carries_the_handoff_and_its_counts() {
+        let id = Uuid::nil();
+        let json = serde_json::to_value(ServerEvent::TrolleyFilled {
+            handoff_id: id,
+            store: Store::Coles,
+            store_name: "Coles",
+            added: 3,
+            not_added: 1,
+        })
+        .unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "type": "trolley_filled", "handoff_id": id, "store": "coles",
+                "store_name": "Coles", "added": 3, "not_added": 1,
+            })
         );
     }
 

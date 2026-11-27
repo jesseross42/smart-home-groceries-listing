@@ -21,7 +21,7 @@ use uuid::Uuid;
 
 use super::price::{price_line, BoughtLine};
 use super::repository::{self, NewOrder, NewPurchase};
-use super::{category, fee, log, products};
+use super::{category, fee, log, pooling, products};
 use crate::error::ApiError;
 use crate::models::db::{
     GroceryItemStatus, PurchaseOrder, TrolleyHandoff, TrolleyHandoffLine, TrolleyLineOutcome,
@@ -51,7 +51,8 @@ pub async fn trolley_fill(
             .partition(|line| line.outcome == Some(TrolleyLineOutcome::Added));
     // Items with a product the trolley did not take are only partly bought.
     let partly: HashSet<Uuid> = not_added.iter().map(|line| line.grocery_item_id).collect();
-    let bought = price_all(pool, stores, &handoff, &added).await?;
+    let mut bought = price_all(pool, stores, &handoff, &added).await?;
+    pooling::pool_offers(&mut bought);
     if bought.is_empty() {
         log::nothing_to_save(&handoff, added.len());
         return Ok(None);

@@ -38,7 +38,7 @@ or card details.
 | 8 | **One tap to buy**: the web app shows items, delivery time and total; the person taps **Place order**; the app places it with the card already saved on the store account | planned — needs the checkout calls captured from the live site |
 | 9 | Coles: login window, trolley fill, checkout | planned — needs the Coles trolley calls captured |
 | 10 | Start at login: optional, off by default, a tick in the tray menu. A login start stays in the tray without showing the window | built |
-| 11 | Server pushes "trolley filled" over the WebSocket, so the notice arrives even when the sheet is closed | planned |
+| 11 | Server pushes "trolley filled" over the WebSocket, so the notice arrives even when the sheet is closed | built |
 
 ### Rules for goal 8 (one tap to buy)
 - Never automatic. Only after the person taps **Place order** in the app.
@@ -66,6 +66,15 @@ items. Both toast and desktop listeners use it as a silent baseline, including
 after reconnects, so the first subsequent increase produces a notice. Existing
 items on connection never produce notices. Nav badges also use the snapshot;
 a delayed initial HTTP response cannot overwrite a pushed count.
+
+When the store tab reports a fill, the backend broadcasts
+`{type: "trolley_filled", handoff_id, store, store_name, added, not_added}`
+(`services/trolley_handoffs/filled.rs`). The root layout's
+`useTrolleyFilledNotices` turns it into the same notice the Send sheet shows.
+Each handoff is announced once per page (`lib/desktop/announce-handoff.ts`):
+a repeated push, or the sheet and the push both seeing it, gives one notice.
+A refused second report sends nothing. A fill reported while the app was
+disconnected is not replayed on reconnect; the sheet still shows it.
 
 The main webview disables background throttling so macOS 14+ keeps its
 WebSocket and notification listeners active while the window is hidden in the

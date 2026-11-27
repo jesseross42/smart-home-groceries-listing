@@ -3,8 +3,9 @@ import { formatMoney } from "#/lib/money";
 
 /**
  * What a product costs: its shelf price (with the previous price struck
- * through when reduced, unless `showWasPrice` is off), and — when a multibuy
- * applies at the item's quantity — what that many cost with it.
+ * through when reduced, unless `showWasPrice` is off), "Member price" when
+ * it is the store's member price, and — when a multibuy applies at the
+ * item's quantity — what that many cost with it.
  */
 export function ProductPrice({
 	product,
@@ -30,6 +31,9 @@ export function ProductPrice({
 					</s>
 				) : null}
 			</p>
+			{product.member_price ? (
+				<p className="text-xs text-muted-foreground">Member price</p>
+			) : null}
 			{quantity > 1 && product.total_price && product.deal_applied ? (
 				<p className="text-xs text-muted-foreground">
 					{quantity} for {formatMoney(product.total_price)} with deal

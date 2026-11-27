@@ -70,7 +70,9 @@ website). Money is always a decimal **string**.
    name or pack size as whole words, ignoring case, punctuation and spacing:
    `3 ply` matches `3-ply` and `3ply`; `apple` does not match `pineapple`.
 4. **Pricing at the item's quantity** — the best multibuy is applied to every
-   complete group; the remainder pays shelf price (`total_price`).
+   complete group; the remainder pays shelf price (`total_price`). A search
+   prices each product on its own, so a "Pick any N" offer only counts the
+   one product here; see "Mix-and-match offers" below.
 5. **Unit prices** are restated per 100 g, per 100 mL or per unit. One basis
    is chosen for the whole search (the most common, across both stores).
    Notes, in priority order: `units differ — compare by hand` (another
@@ -111,6 +113,49 @@ and 2026-10-06 (lookup) —
   beside a per-kilogram price. `multiBuyPromotion.reward` is already a
   per-unit price. Entries with an `adId` or `featured: true` are dropped.
 - `was` / `WasPrice` only count when higher than the current price.
+- Mix-and-match offers (`Deal.group_id`): Coles `multiBuyPromotion.id` when
+  its `type` is `MultibuyMultiSku`; Woolworths the `/Shop/OfferGroup/<id>`
+  link in `CentreTag.TagContent`, only when the tag says "Any N for $X". A
+  plain Woolworths "2 for $6.50" stays priced per product.
+
+### Member prices
+Woolworths `CentreTag.MemberPriceData.PromotionalPrice` → `Product.member_price`
+(kept only when lower than `Price`). A multibuy on a product whose
+`CentreTag.IsRegisteredRewardCardPromotion` is true, or whose
+`ImageTag.FallbackText` is `Member Price` with no member shelf price, is
+`member_only`. Shapes are from public open-source scrapers, not a captured
+response; checking them live is
+[#116](https://github.com/jesseross42/smart-home-groceries-listing/issues/116).
+
+Settings › Member prices (`/settings/member-prices`, table
+`store_memberships`, `services/store_memberships`) says whether the household
+is an Everyday Rewards member. `with_member_prices` wraps every store client
+outside the search cache, so every reader (search, order review, planner,
+purchase history) sees the same prices and a change counts at once:
+
+- member: a lower member price becomes `price`, the shelf price `was_price`,
+  the unit price is scaled to match, and `member_price: true` is sent so the
+  web app shows **Member price**;
+- not a member (the default): member prices and member-only multibuys are
+  removed, and a product whose only offer was for members is not a special,
+  so nothing invites the household to join.
+
+| Method | Path | Answer |
+|---|---|---|
+| `GET` | `/api/store-memberships` | 200 `{stores: [{store, store_name, program, member}]}`, stores with a rewards program only |
+| `PUT` | `/api/store-memberships` `{stores: [{store, member}]}` | 200 as `GET`; 422 for a store with no program, an empty or unknown list. Stores left out keep theirs. Undo saves the previous value |
+
+### Mix-and-match offers
+Units of different products with the same `group_id`, at one store, count
+towards the same group (`services/stores/deal_group.rs`). The dearest units
+get the deal price first; a product already at or below the deal price is
+left out. The saving is shared out to the parts pooling made cheaper, so no
+line costs more than it would alone; saved purchases are rounded to cents. Pooling is applied to the lines of one store in the order review
+and in each option of the order planner (`order_review/pooling.rs`), and to
+the products of one trolley fill before the purchase is saved
+(`purchases/pooling.rs`). It is only used when it lowers the offer's total.
+The planner's store-mix search still compares items by their own prices;
+the pooled saving is in each option's totals.
 - Pictures (`image_url`): Woolworths `SmallImageFile`; Coles `imageUris`
   (the `type: default` entry, else the first) joined to
   `https://productimages.coles.com.au/productimages`. Only `https://` links
@@ -165,12 +210,12 @@ starts at the default.
   were checked in a real browser (search 2026-10-01, lookup 2026-10-06),
   but not yet from the server's `wreq` client. If a store answers `blocked` there, the next step is the
   human-login + cookie-reuse route in `backend/skills/store-integration.md`.
-- Delivery windows, cart and checkout, member/rewards pricing (`MemberPriceData` is ignored),
-  "Pick any N" multibuys across different products (treated per product).
-- Storing products and categories for Spending Analysis.
+- Delivery windows, cart and checkout.
+- Coles member prices: Coles shows none in its search data, so Settings ›
+  Member prices lists Woolworths only.
 
 ## Tests
-- Unit: measures, unit prices, deals, both mappings (against the fixtures),
+- Unit: measures, unit prices, deals, mix-and-match pooling, both mappings (against the fixtures),
   chip matching, comparability, ordering, the cache.
 - `tests/woolworths_client.rs`, `tests/coles_client.rs`: the real clients
   against `wiremock` — cookies carried, refusals reported not retried, the

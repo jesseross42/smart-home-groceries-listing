@@ -43,11 +43,14 @@ struct Row {
     unit: (Decimal, &'static str),
     /// A multibuy: group size and per-unit price inside a group.
     deal: Option<(u32, Decimal)>,
+    /// What a member of the store's rewards programme pays for one.
+    member: Option<Decimal>,
     category: &'static str,
 }
 
 /// The catalogue. Small on purpose: enough to show cheaper-per-unit,
-/// specials, multibuys, a converted unit price and an unavailable store.
+/// specials, multibuys, a member price, a converted unit price and an
+/// unavailable store.
 const CATALOGUE: &[Row] = &[
     Row {
         store: Store::Woolworths,
@@ -60,6 +63,7 @@ const CATALOGUE: &[Row] = &[
         was: None,
         unit: (dec!(1.55), "1L"),
         deal: None,
+        member: None,
         category: "Milk",
     },
     Row {
@@ -73,6 +77,7 @@ const CATALOGUE: &[Row] = &[
         was: Some(dec!(6.20)),
         unit: (dec!(1.80), "1L"),
         deal: None,
+        member: Some(dec!(4.90)),
         category: "Milk",
     },
     Row {
@@ -86,6 +91,7 @@ const CATALOGUE: &[Row] = &[
         was: None,
         unit: (dec!(1.65), "1L"),
         deal: None,
+        member: None,
         category: "Milk",
     },
     Row {
@@ -99,6 +105,7 @@ const CATALOGUE: &[Row] = &[
         was: None,
         unit: (dec!(3.90), "1L"),
         deal: Some((2, dec!(3.25))),
+        member: None,
         category: "Long-Life Milk",
     },
     Row {
@@ -112,6 +119,7 @@ const CATALOGUE: &[Row] = &[
         was: Some(dec!(13.50)),
         unit: (dec!(0.28), "100 sheets"),
         deal: None,
+        member: None,
         category: "Toilet Paper",
     },
     Row {
@@ -125,6 +133,7 @@ const CATALOGUE: &[Row] = &[
         was: None,
         unit: (dec!(0.19), "100 sheets"),
         deal: None,
+        member: None,
         category: "Toilet Paper",
     },
     Row {
@@ -138,6 +147,7 @@ const CATALOGUE: &[Row] = &[
         was: None,
         unit: (dec!(0.40), "100ea"),
         deal: None,
+        member: None,
         category: "Toilet Paper",
     },
     Row {
@@ -151,6 +161,7 @@ const CATALOGUE: &[Row] = &[
         was: None,
         unit: (dec!(4.50), "1kg"),
         deal: None,
+        member: None,
         category: "Fruit",
     },
     Row {
@@ -164,6 +175,7 @@ const CATALOGUE: &[Row] = &[
         was: None,
         unit: (dec!(4.90), "1kg"),
         deal: None,
+        member: None,
         category: "Fruit",
     },
 ];
@@ -205,6 +217,7 @@ fn product(row: &Row) -> Product {
         was_price: row.was,
         on_special: row.was.is_some(),
         unit_price: measure::parse(row.unit.1).map(|m| normalise(row.unit.0, &m)),
+        member_price: row.member,
         deals: row
             .deal
             .map(|(min_quantity, unit_price)| Deal {
@@ -214,6 +227,8 @@ fn product(row: &Row) -> Product {
                 ),
                 min_quantity,
                 unit_price,
+                group_id: None,
+                member_only: false,
             })
             .into_iter()
             .collect(),

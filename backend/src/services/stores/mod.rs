@@ -15,6 +15,7 @@ pub mod cached;
 pub mod client;
 pub mod coles;
 pub mod deal;
+pub mod deal_group;
 pub mod error;
 pub mod fake;
 pub mod http;

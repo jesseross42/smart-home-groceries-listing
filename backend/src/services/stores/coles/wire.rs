@@ -100,6 +100,11 @@ pub struct Pricing {
 pub struct MultiBuy {
     pub min_quantity: u32,
     pub reward: f64,
+    /// The offer's id, e.g. `730915457`.
+    pub id: Option<String>,
+    /// `MultibuyMultiSku` when different products count together.
+    #[serde(rename = "type")]
+    pub kind: Option<String>,
 }
 
 /// A place the product sits in the online aisles.

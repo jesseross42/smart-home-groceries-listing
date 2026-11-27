@@ -153,6 +153,8 @@ Log: `order options planned` (mode, each option's total, recommended, exact),
    **Subtotal**, then a **Total for items**. Delivery fees are not included.
 4. A line shows **Up from $X** / **Down from $X** when the shelf price for one
    moved since it was chosen, and **Deal applied** when a multibuy lowers it.
+   Lines at one store in the same "Pick any N" offer share it
+   (`order_review/pooling.rs`, see `FEATURE_STORE_INTEGRATION.md`).
 5. A line that cannot be bought as it is shows **No price** and why. It is not
    counted, and the subtotal and total read **so far**.
 6. **Check prices again** re-runs the review. **Send to Woolworths** sits in
