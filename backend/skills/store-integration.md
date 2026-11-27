@@ -52,12 +52,11 @@ web app shows a placeholder.
 ## Crates
 | Job | Crate | Version |
 |---|---|---|
-| TLS-fingerprint HTTP client | `wreq` + `wreq-util` | **0.15.3 / 0.1.0** (in use) |
+| TLS-fingerprint HTTP client | `wreq` + `wreq-util` | **0.16.5 / 0.2.1** (in use) |
 | Money | `rust_decimal` (+ `rust_decimal_macros` for `dec!`) | 1.43 (in use) |
 | Mock stores in tests | `wiremock` | 0.6.5 (in use) |
 
-`wreq` 0.16 needs Rust 1.98; the crate's MSRV is 1.85 and the Docker image
-builds with 1.95, so stay on 0.15 until both move. Enable `gzip`, `brotli`,
+`wreq` 0.16 needs Rust 1.98, which is the backend's `rust-version`. Enable `gzip`, `brotli`,
 `zstd`, `deflate`: the emulated Chrome advertises them, so responses arrive
 compressed. `wreq` builds BoringSSL, so the Docker builder needs `cmake`,
 `clang`, `libclang-dev`, `g++`, `perl`, `make`.
@@ -138,10 +137,10 @@ trolley from the household's own tab, so they need nothing extra.
 ### `wreq` TLS emulation
 ```rust
 use wreq::Client;
-use wreq_util::Emulation;
+use wreq_util::Profile;
 
 let client = Client::builder()
-    .emulation(Emulation::Chrome137)   // newest in wreq-util 0.1; see http.rs
+    .emulation(Profile::Chrome149)   // newest in wreq-util 0.2.1; see http.rs
     .cookie_store(true)
     .build()?;
 
