@@ -30,6 +30,8 @@ export interface Deal {
 	description: string;
 	min_quantity: number;
 	unit_price: string;
+	/** The store's mix-and-match offer: other products with the same id count towards one group. */
+	group_id: string | null;
 }
 
 export interface StoreProduct {

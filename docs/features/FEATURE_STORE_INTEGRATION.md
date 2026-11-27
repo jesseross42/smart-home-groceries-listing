@@ -70,7 +70,9 @@ website). Money is always a decimal **string**.
    name or pack size as whole words, ignoring case, punctuation and spacing:
    `3 ply` matches `3-ply` and `3ply`; `apple` does not match `pineapple`.
 4. **Pricing at the item's quantity** — the best multibuy is applied to every
-   complete group; the remainder pays shelf price (`total_price`).
+   complete group; the remainder pays shelf price (`total_price`). A search
+   prices each product on its own, so a "Pick any N" offer only counts the
+   one product here; see "Mix-and-match offers" below.
 5. **Unit prices** are restated per 100 g, per 100 mL or per unit. One basis
    is chosen for the whole search (the most common, across both stores).
    Notes, in priority order: `units differ — compare by hand` (another
@@ -111,6 +113,21 @@ and 2026-10-06 (lookup) —
   beside a per-kilogram price. `multiBuyPromotion.reward` is already a
   per-unit price. Entries with an `adId` or `featured: true` are dropped.
 - `was` / `WasPrice` only count when higher than the current price.
+- Mix-and-match offers (`Deal.group_id`): Coles `multiBuyPromotion.id` when
+  its `type` is `MultibuyMultiSku`; Woolworths the `/Shop/OfferGroup/<id>`
+  link in `CentreTag.TagContent`, only when the tag says "Any N for $X". A
+  plain Woolworths "2 for $6.50" stays priced per product.
+
+### Mix-and-match offers
+Units of different products with the same `group_id`, at one store, count
+towards the same group (`services/stores/deal_group.rs`). The dearest units
+get the deal price first; a product already at or below the deal price is
+left out. Pooling is applied to the lines of one store in the order review
+and in each option of the order planner (`order_review/pooling.rs`), and to
+the products of one trolley fill before the purchase is saved
+(`purchases/pooling.rs`). It is only used when it lowers the offer's total.
+The planner's store-mix search still compares items by their own prices;
+the pooled saving is in each option's totals.
 - Pictures (`image_url`): Woolworths `SmallImageFile`; Coles `imageUris`
   (the `type: default` entry, else the first) joined to
   `https://productimages.coles.com.au/productimages`. Only `https://` links
@@ -165,12 +182,10 @@ starts at the default.
   were checked in a real browser (search 2026-10-01, lookup 2026-10-06),
   but not yet from the server's `wreq` client. If a store answers `blocked` there, the next step is the
   human-login + cookie-reuse route in `backend/skills/store-integration.md`.
-- Delivery windows, cart and checkout, member/rewards pricing (`MemberPriceData` is ignored),
-  "Pick any N" multibuys across different products (treated per product).
-- Storing products and categories for Spending Analysis.
+- Delivery windows, cart and checkout, member/rewards pricing (`MemberPriceData` is ignored).
 
 ## Tests
-- Unit: measures, unit prices, deals, both mappings (against the fixtures),
+- Unit: measures, unit prices, deals, mix-and-match pooling, both mappings (against the fixtures),
   chip matching, comparability, ordering, the cache.
 - `tests/woolworths_client.rs`, `tests/coles_client.rs`: the real clients
   against `wiremock` — cookies carried, refusals reported not retried, the

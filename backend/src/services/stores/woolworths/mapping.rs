@@ -73,10 +73,29 @@ fn deal(tag: &Tag) -> Option<Deal> {
         .map(str::to_string)
         .unwrap_or_else(|| format!("{} for ${group_price}", multibuy.quantity));
     Some(Deal {
+        group_id: offer_group(tag, &description),
         description,
         min_quantity: multibuy.quantity,
         unit_price: (group_price / Decimal::from(multibuy.quantity)).round_dp(4),
     })
+}
+
+/// The offer a mix-and-match multibuy belongs to.
+///
+/// Only an offer worded "Any N for $X" mixes different products. A plain
+/// "2 for $6.50" links to an offer page too, but is priced per product.
+fn offer_group(tag: &Tag, description: &str) -> Option<String> {
+    if !description
+        .to_lowercase()
+        .split_whitespace()
+        .any(|word| word == "any")
+    {
+        return None;
+    }
+    let html = tag.tag_content.as_deref()?;
+    let (_, after) = html.split_once("/OfferGroup/")?;
+    let id: String = after.chars().take_while(char::is_ascii_digit).collect();
+    (!id.is_empty()).then_some(id)
 }
 
 /// The most specific shopper-facing category, else the internal one.
@@ -145,8 +164,22 @@ mod tests {
                 description: "2 for $6.50".into(),
                 min_quantity: 2,
                 unit_price: dec!(3.25),
+                group_id: None,
             }]
         );
+    }
+
+    #[test]
+    fn an_any_n_multibuy_carries_its_offer_group() {
+        let tag: Tag = serde_json::from_value(serde_json::json!({
+            "MultibuyData": { "Quantity": 2, "Price": 10.0 },
+            "TagContent": "<a title=\"Any 2 for $10\" href=\"/Shop/OfferGroup/24787902\"><span>Any 2 for $10</span></a>",
+            "TagContentText": "Any 2 for $10 "
+        }))
+        .unwrap();
+        let found = deal(&tag).unwrap();
+        assert_eq!(found.group_id.as_deref(), Some("24787902"));
+        assert_eq!(found.unit_price, dec!(5));
     }
 
     #[test]

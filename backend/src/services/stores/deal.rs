@@ -4,6 +4,10 @@
 //! applies to every complete group of `min_quantity`. Any remainder is paid
 //! at the shelf price. The order optimiser uses [`total_price`], never the
 //! shelf price alone.
+//!
+//! A deal with a `group_id` ("Pick any 2 for $5.80") also counts units of the
+//! other products in the same offer. [`total_price`] prices one product on
+//! its own; [`super::deal_group`] pools an order's units per offer.
 
 use rust_decimal::Decimal;
 use serde::Serialize;
@@ -17,6 +21,10 @@ pub struct Deal {
     pub min_quantity: u32,
     /// Price per unit inside a complete group.
     pub unit_price: Decimal,
+    /// The store's id for a mix-and-match offer: units of every product
+    /// carrying the same id count towards one group. `None` when only this
+    /// product counts.
+    pub group_id: Option<String>,
 }
 
 /// What `quantity` units cost at `shelf_price`, taking the best deal.
@@ -50,6 +58,7 @@ mod tests {
             description: "2 for $6.00".into(),
             min_quantity: 2,
             unit_price: dec!(3),
+            group_id: None,
         }
     }
 
@@ -75,6 +84,7 @@ mod tests {
             description: "2 for $12".into(),
             min_quantity: 2,
             unit_price: dec!(6),
+            group_id: None,
         };
         assert_eq!(
             total_price(dec!(5), std::slice::from_ref(&worse), 2),
@@ -89,6 +99,7 @@ mod tests {
             description: "?".into(),
             min_quantity: 0,
             unit_price: dec!(0),
+            group_id: None,
         };
         assert_eq!(total_price(dec!(5), &[broken], 2), dec!(10));
     }

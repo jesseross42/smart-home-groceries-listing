@@ -167,3 +167,37 @@ fn an_option_over_the_cap_is_not_recommended() {
     assert!(!planned.options[0].within_cap);
     assert_eq!(planned.recommended, None);
 }
+
+#[test]
+fn a_pick_any_offer_across_two_items_lowers_that_stores_total() {
+    use crate::services::stores::deal_group::GroupedUnits;
+    let offer = |line: &mut crate::services::order_review::OrderLine| {
+        let shelf = line.total_price.unwrap();
+        line.grouped = vec![GroupedUnits {
+            group_id: "730915457".into(),
+            min_quantity: 2,
+            deal_price: dec!(2.90),
+            shelf_price: shelf,
+            quantity: 1,
+            alone: shelf,
+        }];
+    };
+    let mut items = [
+        candidate("cola", Coles, &[(Coles, dec!(4.50))]),
+        candidate("lemonade", Coles, &[(Coles, dec!(4))]),
+    ];
+    for item in &mut items {
+        offer(&mut item.offers[0]);
+    }
+
+    let planned = plan(
+        OrderMode::MinimiseTotal,
+        &items,
+        vec![],
+        &settings(dec!(5), None, None),
+    );
+
+    let best = &planned.options[0];
+    assert_eq!(best.items_total, dec!(5.80));
+    assert!(best.parts[0].lines.iter().all(|line| line.deal_applied));
+}

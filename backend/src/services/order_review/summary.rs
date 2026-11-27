@@ -7,6 +7,7 @@
 use rust_decimal::Decimal;
 
 use super::line::OrderLine;
+use super::pooling::pool_offers;
 use crate::models::db::GroceryItem;
 use crate::services::stores::Store;
 
@@ -64,7 +65,7 @@ pub fn build(lines: Vec<OrderLine>, unchosen: Vec<GroceryItem>) -> OrderReview {
 
 /// `store`'s part of the order, or `None` when nothing is bought there.
 fn store_order(store: Store, lines: &[OrderLine]) -> Option<StoreOrder> {
-    let lines: Vec<OrderLine> = lines
+    let mut lines: Vec<OrderLine> = lines
         .iter()
         .filter(|line| line.choice.store == store)
         .cloned()
@@ -72,6 +73,7 @@ fn store_order(store: Store, lines: &[OrderLine]) -> Option<StoreOrder> {
     if lines.is_empty() {
         return None;
     }
+    pool_offers(&mut lines);
     let subtotal = lines.iter().filter_map(OrderLine::counted_total).sum();
     let complete = lines.iter().all(|line| line.counted_total().is_some());
     Some(StoreOrder {
@@ -105,6 +107,7 @@ mod tests {
             deal_applied: false,
             price_change: None,
             problem: total.is_none().then(|| "gone".to_string()),
+            grouped: Vec::new(),
         }
     }
 

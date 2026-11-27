@@ -11,7 +11,7 @@ use super::fees::DeliveryCharge;
 use super::timing::{StoreTiming, Timing};
 use crate::models::db::GroceryItem;
 use crate::services::delivery_settings::DeliverySettings;
-use crate::services::order_review::OrderLine;
+use crate::services::order_review::{pool_offers, OrderLine};
 use crate::services::stores::Store;
 
 /// A committed item, and each of its chosen products re-priced today.
@@ -195,7 +195,7 @@ pub fn evaluate(
     let mut missing = Vec::new();
     let mut parts: Vec<StorePart> = Vec::new();
     for store in Store::ALL {
-        let lines: Vec<OrderLine> = candidates
+        let mut lines: Vec<OrderLine> = candidates
             .iter()
             .zip(assignment)
             .filter(|(_, at)| **at == Some(store))
@@ -204,6 +204,7 @@ pub fn evaluate(
         if lines.is_empty() {
             continue;
         }
+        pool_offers(&mut lines);
         let subtotal = lines.iter().filter_map(OrderLine::counted_total).sum();
         let rules = settings.rules_for(store);
         let store_timing = timing.at(store, lines.iter().any(|line| line.item.perishable));

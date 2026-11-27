@@ -77,6 +77,9 @@ pub struct WireProduct {
 #[serde(rename_all = "PascalCase")]
 pub struct Tag {
     pub multibuy_data: Option<Multibuy>,
+    /// The tag as HTML. A multibuy links to its offer, e.g.
+    /// `<a href="/Shop/OfferGroup/24787902">`.
+    pub tag_content: Option<String>,
     /// Plain text of the tag, e.g. `2 for $6.00 - $1.88/100G `.
     pub tag_content_text: Option<String>,
 }

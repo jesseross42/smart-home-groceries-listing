@@ -17,6 +17,7 @@ pub fn combine(item: &GroceryItem, lines: Vec<OrderLine>) -> Option<OrderLine> {
         .position(|line| line.status != LineStatus::Priced);
     let total: Option<Decimal> = lines.iter().map(|line| line.total_price).sum();
     let deal_applied = lines.iter().any(|line| line.deal_applied);
+    let grouped = lines.iter().flat_map(|line| line.grouped.clone()).collect();
     let mut lines = lines.into_iter();
     let mut joined = match blocked {
         Some(index) => lines.nth(index)?,
@@ -25,6 +26,7 @@ pub fn combine(item: &GroceryItem, lines: Vec<OrderLine>) -> Option<OrderLine> {
             OrderLine {
                 total_price: total,
                 deal_applied,
+                grouped,
                 ..first
             }
         }
@@ -56,6 +58,7 @@ mod tests {
             deal_applied: false,
             price_change: None,
             problem: None,
+            grouped: Vec::new(),
         }
     }
 

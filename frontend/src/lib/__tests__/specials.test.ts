@@ -7,7 +7,14 @@ const plain = productFixture({ product_id: "plain" });
 const special = productFixture({ product_id: "special", on_special: true });
 const multibuy = productFixture({
 	product_id: "multibuy",
-	deals: [{ description: "2 for $5", min_quantity: 2, unit_price: "2.5" }],
+	deals: [
+		{
+			description: "2 for $5",
+			min_quantity: 2,
+			unit_price: "2.5",
+			group_id: null,
+		},
+	],
 });
 
 describe("isPromoted", () => {

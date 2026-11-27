@@ -103,11 +103,16 @@ fn unit_price(pricing: &Pricing) -> Option<UnitPrice> {
     Some(normalise(price, &measure))
 }
 
+/// The `type` Coles gives an offer that mixes different products.
+const MIX_AND_MATCH: &str = "MultibuyMultiSku";
+
 /// A multibuy deal. `reward` is already a per-unit price.
 fn deal(pricing: &Pricing) -> Option<Deal> {
     let MultiBuy {
         min_quantity,
         reward,
+        id,
+        kind,
     } = pricing.multi_buy_promotion.as_ref()?;
     if *min_quantity == 0 {
         return None;
@@ -127,6 +132,9 @@ fn deal(pricing: &Pricing) -> Option<Deal> {
         description,
         min_quantity: *min_quantity,
         unit_price,
+        group_id: id
+            .clone()
+            .filter(|id| !id.is_empty() && kind.as_deref() == Some(MIX_AND_MATCH)),
     })
 }
 
@@ -187,6 +195,7 @@ mod tests {
                 description: "Pick any 2 for $5.80".into(),
                 min_quantity: 2,
                 unit_price: dec!(2.9),
+                group_id: Some("730915457".into()),
             }]
         );
         let unit = coke.unit_price.as_ref().unwrap();

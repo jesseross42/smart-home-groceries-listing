@@ -214,6 +214,7 @@ fn product(row: &Row) -> Product {
                 ),
                 min_quantity,
                 unit_price,
+                group_id: None,
             })
             .into_iter()
             .collect(),

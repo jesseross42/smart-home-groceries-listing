@@ -23,6 +23,7 @@ pub fn candidate(name: &str, current: Store, prices: &[(Store, Decimal)]) -> Can
             deal_applied: false,
             price_change: Some(PriceChange::Same),
             problem: None,
+            grouped: Vec::new(),
         })
         .collect();
     Candidate {
