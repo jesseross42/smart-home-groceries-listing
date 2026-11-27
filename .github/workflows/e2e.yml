@@ -36,7 +36,7 @@ jobs:
           workspaces: backend
       - uses: pnpm/action-setup@v6
         with:
-          version: 10.28.0
+          version: 10.34.9
       - uses: actions/setup-node@v7
         with:
           node-version: 22

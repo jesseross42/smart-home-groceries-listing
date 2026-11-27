@@ -2,8 +2,8 @@
   "name": "google-home-grocery-list",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@10.34.9",
   "devDependencies": {
-    "@testcontainers/postgresql": "12.2.1"
+    "@testcontainers/postgresql": "12.2.2"
   }
 }
