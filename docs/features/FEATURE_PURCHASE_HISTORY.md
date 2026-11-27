@@ -87,8 +87,10 @@ Migration `20261119090000_bought_products`: `bought_products` (store,
 product_id, product_name, brand, package_size, store_category, category,
 category_source, refreshed_at), backfilled from each product's newest
 purchase with that purchase's category, then the foreign key from
-`purchases`. Migration `20261127090000_drop_purchase_category` drops
-`purchases.category` and `category_source`.
+`purchases`. Migration `20261127090000_retire_purchase_category` makes
+`purchases.category` and `category_source` nullable: new purchases leave
+them NULL and nothing reads them. Dropping them needs a planned data removal,
+since the production installer refuses destructive migrations.
 
 ## Code
 - Backend: `services/purchases/` (`mod.rs` service + `record`,
