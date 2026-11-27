@@ -119,6 +119,7 @@ mod tests {
             min_quantity: 2,
             unit_price: dec!(2.90),
             group_id: Some(group.into()),
+            member_only: false,
         };
         let alone = crate::services::stores::deal::total_price(
             shelf,
@@ -165,6 +166,7 @@ mod tests {
             min_quantity: 2,
             unit_price: dec!(3),
             group_id: None,
+            member_only: false,
         };
         assert_eq!(GroupedUnits::new(dec!(4), &[deal], 2, dec!(6)), None);
     }

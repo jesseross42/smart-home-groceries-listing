@@ -12,6 +12,7 @@ export function productFixture(
 		price: "4.95",
 		was_price: null,
 		on_special: false,
+		member_price: false,
 		unit_price: { amount: "0.165", per: "100mL", converted_from: "1L" },
 		unit_price_note: "unit price calculated from 1L",
 		deals: [],

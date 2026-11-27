@@ -63,6 +63,7 @@ fn a_deal_reached_at_the_new_quantity_is_applied() {
         min_quantity: 2,
         unit_price: dec!(2.90),
         group_id: None,
+        member_only: false,
     });
 
     let line = reprice(
@@ -84,6 +85,7 @@ fn a_mix_and_match_offer_is_kept_for_pooling_with_other_lines() {
         min_quantity: 2,
         unit_price: dec!(2.90),
         group_id: Some("730915457".into()),
+        member_only: false,
     });
 
     let line = reprice(

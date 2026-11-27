@@ -20,6 +20,7 @@ import { productsApi } from "#/lib/api/products";
 import { purchasesApi } from "#/lib/api/purchases";
 import { selectionsApi } from "#/lib/api/selections";
 import { spendingApi } from "#/lib/api/spending";
+import { storeMembershipsApi } from "#/lib/api/store-memberships";
 import { triageApi } from "#/lib/api/triage";
 import { trolleyHandoffsApi } from "#/lib/api/trolley-handoffs";
 import { voiceApi } from "#/lib/api/voice";
@@ -39,6 +40,7 @@ export * from "#/lib/api/products";
 export * from "#/lib/api/purchases";
 export * from "#/lib/api/selections";
 export * from "#/lib/api/spending";
+export * from "#/lib/api/store-memberships";
 export * from "#/lib/api/triage";
 export * from "#/lib/api/trolley-handoffs";
 export * from "#/lib/api/voice";
@@ -62,4 +64,5 @@ export const api = {
 	voiceChanges: voiceListChangesApi,
 	deliverySettings: deliverySettingsApi,
 	openAiKey: openAiKeyApi,
+	storeMemberships: storeMembershipsApi,
 };

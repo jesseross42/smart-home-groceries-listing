@@ -11,6 +11,7 @@ and API details are in [`features/`](features/).
 | [Google Tasks intake](#google-tasks-intake) | Google Tasks, then the web app |
 | [Triage review](#triage-review) | Web app `/pending`, lower half |
 | [Delivery fees and store choice](#delivery-fees-and-store-choice) | Web app `/settings/delivery`, `/order` |
+| [Member prices](#member-prices) | Web app `/settings/member-prices` |
 | [Woolworths shop](#woolworths-shop) | Web app, then woolworths.com.au in Chrome |
 | [Change the delivery window](#change-the-delivery-window) | woolworths.com.au |
 | [Coles shop](#coles-shop) | Web app, then coles.com.au in Chrome |
@@ -129,6 +130,22 @@ recommended one is badged **Recommended**, and under **Delivery comes** the
 store fees read e.g. `Woolworths $2.00 on Tue 17 Nov`.
 
 Behaviour: [`FEATURE_ORDER_OPTIMISATION.md`](features/FEATURE_ORDER_OPTIMISATION.md).
+
+---
+
+## Member prices
+
+Only when the Woolworths account used for the trolley is an Everyday
+Rewards member.
+
+**Web app**
+1. **Settings › Member prices**: turn on **Woolworths Everyday Rewards
+   member** (toast has **Undo**).
+
+**Verify:** on **Select item**, a product with a member price shows it with
+**Member price** under it; the old shelf price is struck through.
+
+Behaviour: [`FEATURE_STORE_INTEGRATION.md`](features/FEATURE_STORE_INTEGRATION.md#member-prices).
 
 ---
 

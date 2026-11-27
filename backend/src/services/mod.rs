@@ -19,6 +19,7 @@ pub mod product_search;
 pub mod purchases;
 pub mod selections;
 pub mod spending;
+pub mod store_memberships;
 pub mod stores;
 pub mod triage;
 pub mod trolley_handoffs;

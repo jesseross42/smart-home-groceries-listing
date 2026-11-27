@@ -61,6 +61,8 @@ pub fn product(p: WireProduct, site_url: &str) -> Product {
             .filter(|was| Some(*was) > price),
         on_special: pricing.is_some_and(is_special),
         unit_price: pricing.and_then(unit_price),
+        // Coles has no member-only shelf prices.
+        member_price: None,
         deals: pricing.and_then(deal).into_iter().collect(),
         category: p
             .online_heirs
@@ -135,6 +137,7 @@ fn deal(pricing: &Pricing) -> Option<Deal> {
         group_id: id
             .clone()
             .filter(|id| !id.is_empty() && kind.as_deref() == Some(MIX_AND_MATCH)),
+        member_only: false,
     })
 }
 
@@ -196,6 +199,7 @@ mod tests {
                 min_quantity: 2,
                 unit_price: dec!(2.9),
                 group_id: Some("730915457".into()),
+                member_only: false,
             }]
         );
         let unit = coke.unit_price.as_ref().unwrap();

@@ -77,6 +77,7 @@ fn the_stores_answer_prices_the_trolley_quantity_with_deals() {
         min_quantity: 2,
         unit_price: dec!(3.25),
         group_id: None,
+        member_only: false,
     }];
     found.category = Some("Long-Life Milk".into());
     let outcome = answer(vec![found]);

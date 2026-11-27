@@ -60,6 +60,9 @@ pub struct ProductResponse {
     pub price: Option<Decimal>,
     pub was_price: Option<Decimal>,
     pub on_special: bool,
+    /// `price` is the store's member price, which the household gets as a
+    /// member (Settings › Member prices).
+    pub member_price: bool,
     pub unit_price: Option<UnitPrice>,
     /// Why the unit price needs care: converted, on another basis, missing.
     pub unit_price_note: Option<String>,
@@ -113,6 +116,7 @@ impl From<PricedProduct> for ProductResponse {
             price: p.price,
             was_price: p.was_price,
             on_special: p.on_special,
+            member_price: p.member_price.is_some(),
             unit_price: p.unit_price,
             unit_price_note: priced.unit_price_note,
             deals: p.deals,

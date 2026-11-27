@@ -66,6 +66,7 @@ mod tests {
             min_quantity: 2,
             unit_price: dec!(2.9),
             group_id: None,
+            member_only: false,
         });
 
         let priced = PricedProduct::new(cola, 2);
@@ -87,6 +88,7 @@ mod tests {
             min_quantity: 2,
             unit_price: dec!(3),
             group_id: None,
+            member_only: false,
         });
 
         assert_eq!(

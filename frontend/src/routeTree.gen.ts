@@ -22,6 +22,7 @@ import { Route as SettingsDisplayRouteImport } from './routes/settings/display'
 import { Route as SettingsHelpRouteImport } from './routes/settings/help'
 import { Route as SettingsItemRulesRouteImport } from './routes/settings/item-rules'
 import { Route as SettingsLogsRouteImport } from './routes/settings/logs'
+import { Route as SettingsMemberPricesRouteImport } from './routes/settings/member-prices'
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api.auth.$'
 import { Route as ItemsItemIdSelectRouteImport } from './routes/items.$itemId.select'
@@ -91,6 +92,11 @@ const SettingsLogsRoute = SettingsLogsRouteImport.update({
   path: '/logs',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsMemberPricesRoute = SettingsMemberPricesRouteImport.update({
+  id: '/member-prices',
+  path: '/member-prices',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SignInSplatRoute = SignInSplatRouteImport.update({
   id: '/sign-in/$',
   path: '/sign-in/$',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/settings/help': typeof SettingsHelpRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/settings/logs': typeof SettingsLogsRoute
+  '/settings/member-prices': typeof SettingsMemberPricesRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/order/': typeof OrderIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/settings/help': typeof SettingsHelpRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/settings/logs': typeof SettingsLogsRoute
+  '/settings/member-prices': typeof SettingsMemberPricesRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/order': typeof OrderIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/settings/help': typeof SettingsHelpRoute
   '/settings/item-rules': typeof SettingsItemRulesRoute
   '/settings/logs': typeof SettingsLogsRoute
+  '/settings/member-prices': typeof SettingsMemberPricesRoute
   '/sign-in/$': typeof SignInSplatRoute
   '/order/': typeof OrderIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/settings/help'
     | '/settings/item-rules'
     | '/settings/logs'
+    | '/settings/member-prices'
     | '/sign-in/$'
     | '/order/'
     | '/settings/'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/settings/help'
     | '/settings/item-rules'
     | '/settings/logs'
+    | '/settings/member-prices'
     | '/sign-in/$'
     | '/order'
     | '/settings'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/settings/help'
     | '/settings/item-rules'
     | '/settings/logs'
+    | '/settings/member-prices'
     | '/sign-in/$'
     | '/order/'
     | '/settings/'
@@ -318,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsLogsRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/member-prices': {
+      id: '/settings/member-prices'
+      path: '/member-prices'
+      fullPath: '/settings/member-prices'
+      preLoaderRoute: typeof SettingsMemberPricesRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/sign-in/$': {
       id: '/sign-in/$'
       path: '/sign-in/$'
@@ -361,6 +380,7 @@ interface SettingsRouteChildren {
   SettingsHelpRoute: typeof SettingsHelpRoute
   SettingsItemRulesRoute: typeof SettingsItemRulesRoute
   SettingsLogsRoute: typeof SettingsLogsRoute
+  SettingsMemberPricesRoute: typeof SettingsMemberPricesRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
@@ -371,6 +391,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsHelpRoute: SettingsHelpRoute,
   SettingsItemRulesRoute: SettingsItemRulesRoute,
   SettingsLogsRoute: SettingsLogsRoute,
+  SettingsMemberPricesRoute: SettingsMemberPricesRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
 

@@ -43,6 +43,8 @@ export interface StoreProduct {
 	price: string | null;
 	was_price: string | null;
 	on_special: boolean;
+	/** `price` is the store's member price (Settings › Member prices). */
+	member_price: boolean;
 	unit_price: UnitPrice | null;
 	/** Why the unit price needs care: converted, other units, missing. */
 	unit_price_note: string | null;

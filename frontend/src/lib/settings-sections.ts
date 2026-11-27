@@ -29,6 +29,11 @@ export const SETTINGS_SECTIONS: ReadonlyArray<SettingsSection> = [
 		description: "Delivery fees, how stores are picked, the usual day.",
 	},
 	{
+		to: "/settings/member-prices",
+		label: "Member prices",
+		description: "Store rewards programs you belong to.",
+	},
+	{
 		to: "/settings/display",
 		label: "Display",
 		description: "What the product lists show.",

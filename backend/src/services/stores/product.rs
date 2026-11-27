@@ -28,6 +28,10 @@ pub struct Product {
     /// The store marks the product as on special.
     pub on_special: bool,
     pub unit_price: Option<UnitPrice>,
+    /// A lower price only the store's members pay, for one unit. Shown only
+    /// to a member household, which then pays it as `price`
+    /// (`services/store_memberships`).
+    pub member_price: Option<Decimal>,
     pub deals: Vec<Deal>,
     /// The store's own category, used later for spending analysis.
     pub category: Option<String>,
@@ -72,6 +76,7 @@ pub(crate) mod fixtures {
             was_price: None,
             on_special: false,
             unit_price: None,
+            member_price: None,
             deals: Vec::new(),
             category: None,
             url: String::new(),

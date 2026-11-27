@@ -25,6 +25,8 @@ pub struct Deal {
     /// carrying the same id count towards one group. `None` when only this
     /// product counts.
     pub group_id: Option<String>,
+    /// Only the store's members get it (`services/store_memberships`).
+    pub member_only: bool,
 }
 
 /// What `quantity` units cost at `shelf_price`, taking the best deal.
@@ -59,6 +61,7 @@ mod tests {
             min_quantity: 2,
             unit_price: dec!(3),
             group_id: None,
+            member_only: false,
         }
     }
 
@@ -85,6 +88,7 @@ mod tests {
             min_quantity: 2,
             unit_price: dec!(6),
             group_id: None,
+            member_only: false,
         };
         assert_eq!(
             total_price(dec!(5), std::slice::from_ref(&worse), 2),
@@ -100,6 +104,7 @@ mod tests {
             min_quantity: 0,
             unit_price: dec!(0),
             group_id: None,
+            member_only: false,
         };
         assert_eq!(total_price(dec!(5), &[broken], 2), dec!(10));
     }

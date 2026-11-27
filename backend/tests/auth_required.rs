@@ -56,6 +56,8 @@ fn household_routes() -> Vec<(Method, String)> {
         (Method::POST, "/api/purchase-history/products".into()),
         (Method::POST, "/api/purchase-history/recategorise".into()),
         (Method::GET, "/api/spending".into()),
+        (Method::GET, "/api/store-memberships".into()),
+        (Method::PUT, "/api/store-memberships".into()),
         (Method::GET, "/api/spending/item-prices?name=milk".into()),
         (Method::GET, "/api/access-logs".into()),
         (Method::GET, "/api/product-dislikes".into()),

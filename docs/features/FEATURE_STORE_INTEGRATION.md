@@ -118,6 +118,30 @@ and 2026-10-06 (lookup) —
   link in `CentreTag.TagContent`, only when the tag says "Any N for $X". A
   plain Woolworths "2 for $6.50" stays priced per product.
 
+### Member prices
+Woolworths `CentreTag.MemberPriceData.PromotionalPrice` → `Product.member_price`
+(kept only when lower than `Price`). A multibuy on a product whose
+`ImageTag.FallbackText` is `Member Price` is `member_only`. Shapes are from
+public open-source scrapers, not a captured response: check them against a
+live member product.
+
+Settings › Member prices (`/settings/member-prices`, table
+`store_memberships`, `services/store_memberships`) says whether the household
+is an Everyday Rewards member. `with_member_prices` wraps every store client
+outside the search cache, so every reader (search, order review, planner,
+purchase history) sees the same prices and a change counts at once:
+
+- member: a lower member price becomes `price`, the shelf price `was_price`,
+  the unit price is scaled to match, and `member_price: true` is sent so the
+  web app shows **Member price**;
+- not a member (the default): member prices and member-only multibuys are
+  removed, so nothing invites the household to join.
+
+| Method | Path | Answer |
+|---|---|---|
+| `GET` | `/api/store-memberships` | 200 `{stores: [{store, store_name, program, member}]}`, stores with a rewards program only |
+| `PUT` | `/api/store-memberships` `{stores: [{store, member}]}` | 200 as `GET`; 422 for a store with no program, an empty or unknown list. Stores left out keep theirs. Undo saves the previous value |
+
 ### Mix-and-match offers
 Units of different products with the same `group_id`, at one store, count
 towards the same group (`services/stores/deal_group.rs`). The dearest units
@@ -182,7 +206,9 @@ starts at the default.
   were checked in a real browser (search 2026-10-01, lookup 2026-10-06),
   but not yet from the server's `wreq` client. If a store answers `blocked` there, the next step is the
   human-login + cookie-reuse route in `backend/skills/store-integration.md`.
-- Delivery windows, cart and checkout, member/rewards pricing (`MemberPriceData` is ignored).
+- Delivery windows, cart and checkout.
+- Coles member prices: Coles shows none in its search data, so Settings ›
+  Member prices lists Woolworths only.
 
 ## Tests
 - Unit: measures, unit prices, deals, mix-and-match pooling, both mappings (against the fixtures),
