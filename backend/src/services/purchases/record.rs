@@ -2,8 +2,8 @@
 //!
 //! When the "Fill trolley" bookmarklet reports, every product it added is
 //! saved as bought: priced ([`super::price`]), given its share of the
-//! delivery fee ([`super::fee`]) and a category ([`super::category`]), and
-//! its product's record is kept up to date ([`super::products`]). The
+//! delivery fee ([`super::fee`]), and its product's record, which holds its
+//! category, is kept up to date ([`super::products`]). The
 //! list items it fulfilled become `ordered`, so they leave the list. A product
 //! that could not be added stays on the list and is not saved: an item with
 //! some products added and others not keeps the rest of its quantity and
@@ -21,7 +21,7 @@ use uuid::Uuid;
 
 use super::price::{price_line, BoughtLine};
 use super::repository::{self, NewOrder, NewPurchase};
-use super::{category, fee, log, products};
+use super::{fee, log, products};
 use crate::error::ApiError;
 use crate::models::db::{
     GroceryItemStatus, PurchaseOrder, TrolleyHandoff, TrolleyHandoffLine, TrolleyLineOutcome,
@@ -117,7 +117,6 @@ async fn save(
     };
     for (line, share) in bought.iter().zip(shares) {
         let item_key = items::normalise(&line.item_name);
-        let found = category::categorise(line.store_category.as_deref(), &line.product_name);
         let purchase = NewPurchase {
             grocery_item_id: line.grocery_item_id,
             item_name: &line.item_name,
@@ -134,8 +133,6 @@ async fn save(
             total_price: line.total_price,
             delivery_fee_share: share,
             store_category: line.store_category.as_deref(),
-            category: found.category,
-            category_source: found.source,
         };
         products::keep(&mut tx, &purchase, order.bought_at).await?;
         repository::insert_purchase(&mut *tx, &order, &purchase).await?;

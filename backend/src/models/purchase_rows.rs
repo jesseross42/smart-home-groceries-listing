@@ -18,7 +18,7 @@ pub enum PurchaseSource {
     TrolleyFill,
 }
 
-/// Where a purchase's category came from (`purchases.category_source`).
+/// Where a product's category came from (`bought_products.category_source`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
@@ -81,8 +81,7 @@ pub struct Purchase {
     /// This line's part of the order's delivery fee.
     pub delivery_fee_share: Decimal,
     pub store_category: Option<String>,
-    /// The product's category in `bought_products` when read for the
-    /// analysis or the picker; the copy saved with the purchase otherwise.
+    /// The product's category, read from `bought_products`.
     pub category: String,
     pub category_source: CategorySource,
     pub bought_at: DateTime<Utc>,

@@ -13,7 +13,9 @@ use common::purchases::{fill_trolley, insert_bought, orders_once_saved, Bought};
 use common::trolley::chosen_item;
 use common::TestApp;
 use grocery_backend::models::db::CategorySource;
-use grocery_backend::services::purchases::product_repository::{self, ProductDetails};
+use grocery_backend::services::purchases::product_repository::{
+    self, ProductDetails, ProductTexts,
+};
 use grocery_backend::services::stores::Store;
 use serde_json::{json, Value};
 use sqlx::PgPool;
@@ -21,8 +23,9 @@ use sqlx::PgPool;
 /// A July purchase of the same milk the fake Woolworths sells.
 const MILK_JULY: Bought = Bought {
     item: "milk",
-    store: "woolworths",
+    store: Store::Woolworths,
     product_id: "w-milk-2l",
+    name: "Milk 2L (July)",
     total: "3.10",
     delivery_share: "0",
     category: "Dairy & eggs",
@@ -107,7 +110,6 @@ async fn undo_of_a_products_only_shop_removes_its_record(pool: PgPool) {
 
 #[sqlx::test]
 async fn undo_of_the_newest_shop_refreshes_from_the_older_purchase(pool: PgPool) {
-    // The older purchase saved the product id as its name.
     insert_bought(&pool, &MILK_JULY).await;
     let app = TestApp::new(pool.clone());
     let order = buy_milk(&app, 1).await;
@@ -121,7 +123,7 @@ async fn undo_of_the_newest_shop_refreshes_from_the_older_purchase(pool: PgPool)
     assert_eq!(status, StatusCode::OK);
     let (name, _, count) = milk_record(&pool).await;
     assert_eq!(count, 1);
-    assert_eq!(name.as_deref(), Some("w-milk-2l"));
+    assert_eq!(name.as_deref(), Some("Milk 2L (July)"));
 }
 
 #[sqlx::test]
@@ -131,10 +133,12 @@ async fn an_older_purchase_never_overwrites_a_newer_ones_details(pool: PgPool) {
     let details = ProductDetails {
         store: Store::Woolworths,
         product_id: "w-milk-2l",
-        product_name: "Old Milk Name",
-        brand: None,
-        package_size: None,
-        store_category: None,
+        texts: ProductTexts {
+            product_name: "Old Milk Name",
+            brand: None,
+            package_size: None,
+            store_category: None,
+        },
         category: "Pantry",
         category_source: CategorySource::Name,
         refreshed_at: older,
@@ -145,6 +149,6 @@ async fn an_older_purchase_never_overwrites_a_newer_ones_details(pool: PgPool) {
         .unwrap();
 
     let (name, category, _) = milk_record(&pool).await;
-    assert_eq!(name.as_deref(), Some("w-milk-2l"));
+    assert_eq!(name.as_deref(), Some("Milk 2L (July)"));
     assert_eq!(category.as_deref(), Some("Dairy & eggs"));
 }

@@ -11,18 +11,25 @@ use crate::error::ApiError;
 use crate::models::db::CategorySource;
 use crate::services::stores::Store;
 
-/// A product's details, as one purchase of it gave them, and its category.
-#[derive(Debug)]
-pub struct ProductDetails<'a> {
-    pub store: Store,
-    pub product_id: &'a str,
+/// What the store said about a product on one purchase of it.
+#[derive(Debug, Clone, Copy)]
+pub struct ProductTexts<'a> {
     pub product_name: &'a str,
     pub brand: Option<&'a str>,
     pub package_size: Option<&'a str>,
     pub store_category: Option<&'a str>,
+}
+
+/// A product's row: one purchase's texts, and the category worked out from
+/// them.
+#[derive(Debug)]
+pub struct ProductDetails<'a> {
+    pub store: Store,
+    pub product_id: &'a str,
+    pub texts: ProductTexts<'a>,
     pub category: &'a str,
     pub category_source: CategorySource,
-    /// When the purchase the details came from was bought.
+    /// When the purchase the texts came from was bought.
     pub refreshed_at: DateTime<Utc>,
 }
 
@@ -34,6 +41,18 @@ pub struct NewestPurchase {
     pub package_size: Option<String>,
     pub store_category: Option<String>,
     pub bought_at: DateTime<Utc>,
+}
+
+impl NewestPurchase {
+    /// This purchase's texts, borrowed.
+    pub fn texts(&self) -> ProductTexts<'_> {
+        ProductTexts {
+            product_name: &self.product_name,
+            brand: self.brand.as_deref(),
+            package_size: self.package_size.as_deref(),
+            store_category: self.store_category.as_deref(),
+        }
+    }
 }
 
 /// One product's key and the texts its category is worked out from.
@@ -70,10 +89,10 @@ where
     )
     .bind(details.store)
     .bind(details.product_id)
-    .bind(details.product_name)
-    .bind(details.brand)
-    .bind(details.package_size)
-    .bind(details.store_category)
+    .bind(details.texts.product_name)
+    .bind(details.texts.brand)
+    .bind(details.texts.package_size)
+    .bind(details.texts.store_category)
     .bind(details.category)
     .bind(details.category_source)
     .bind(details.refreshed_at)
@@ -95,10 +114,10 @@ where
     )
     .bind(details.store)
     .bind(details.product_id)
-    .bind(details.product_name)
-    .bind(details.brand)
-    .bind(details.package_size)
-    .bind(details.store_category)
+    .bind(details.texts.product_name)
+    .bind(details.texts.brand)
+    .bind(details.texts.package_size)
+    .bind(details.texts.store_category)
     .bind(details.category)
     .bind(details.category_source)
     .bind(details.refreshed_at)

@@ -18,7 +18,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
 
 use super::category;
-use super::product_repository::{self as repository, ProductDetails};
+use super::product_repository::{self as repository, ProductDetails, ProductTexts};
 use super::repository::NewPurchase;
 use crate::error::ApiError;
 use crate::services::stores::Store;
@@ -30,17 +30,13 @@ pub async fn keep(
     purchase: &NewPurchase<'_>,
     bought_at: DateTime<Utc>,
 ) -> Result<(), ApiError> {
-    let details = ProductDetails {
-        store: purchase.store,
-        product_id: purchase.product_id,
+    let texts = ProductTexts {
         product_name: purchase.product_name,
         brand: purchase.brand,
         package_size: purchase.package_size,
         store_category: purchase.store_category,
-        category: purchase.category,
-        category_source: purchase.category_source,
-        refreshed_at: bought_at,
     };
+    let details = details(purchase.store, purchase.product_id, texts, bought_at);
     repository::upsert_if_newer(&mut **tx, &details).await
 }
 
@@ -56,21 +52,29 @@ pub async fn refresh(
             repository::delete(&mut **tx, *store, product_id).await?;
             continue;
         };
-        let found = category::categorise(newest.store_category.as_deref(), &newest.product_name);
-        let details = ProductDetails {
-            store: *store,
-            product_id,
-            product_name: &newest.product_name,
-            brand: newest.brand.as_deref(),
-            package_size: newest.package_size.as_deref(),
-            store_category: newest.store_category.as_deref(),
-            category: found.category,
-            category_source: found.source,
-            refreshed_at: newest.bought_at,
-        };
+        let details = details(*store, product_id, newest.texts(), newest.bought_at);
         repository::overwrite(&mut **tx, &details).await?;
     }
     Ok(())
+}
+
+/// A product's row from one purchase's `texts`, with the category today's
+/// rules give them. Saving and Undo both build rows with it.
+fn details<'a>(
+    store: Store,
+    product_id: &'a str,
+    texts: ProductTexts<'a>,
+    bought_at: DateTime<Utc>,
+) -> ProductDetails<'a> {
+    let found = category::categorise(texts.store_category, texts.product_name);
+    ProductDetails {
+        store,
+        product_id,
+        texts,
+        category: found.category,
+        category_source: found.source,
+        refreshed_at: bought_at,
+    }
 }
 
 /// How many products "Sort categories again" looked at, and moved.

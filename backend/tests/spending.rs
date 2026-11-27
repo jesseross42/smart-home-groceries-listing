@@ -7,13 +7,15 @@ mod common;
 use axum::http::StatusCode;
 use common::purchases::{insert_bought, Bought};
 use common::TestApp;
+use grocery_backend::services::stores::Store;
 use serde_json::{json, Value};
 use sqlx::PgPool;
 
 const MILK_JULY: Bought = Bought {
     item: "Milk",
-    store: "coles",
+    store: Store::Coles,
     product_id: "c-milk-3l",
+    name: "Milk 3L",
     total: "4.95",
     delivery_share: "2",
     category: "Dairy & eggs",
@@ -21,8 +23,9 @@ const MILK_JULY: Bought = Bought {
 };
 const BREAD_JULY: Bought = Bought {
     item: "Bread",
-    store: "woolworths",
+    store: Store::Woolworths,
     product_id: "w-bread",
+    name: "White Bread",
     total: "4",
     delivery_share: "0",
     category: "Bakery",
@@ -31,8 +34,9 @@ const BREAD_JULY: Bought = Bought {
 /// 11:30pm on 30 September in Sydney — still September there.
 const MILK_SEPTEMBER: Bought = Bought {
     item: "milk",
-    store: "woolworths",
+    store: Store::Woolworths,
     product_id: "w-milk-2l",
+    name: "Full Cream Milk",
     total: "3.10",
     delivery_share: "0",
     category: "Dairy & eggs",
