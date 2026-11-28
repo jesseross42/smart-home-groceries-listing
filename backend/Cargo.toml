@@ -16,10 +16,10 @@ path = "src/main.rs"
 
 [dependencies]
 axum = { version = "0.8.9", features = ["ws", "macros"] }
-tokio = { version = "1.53", features = ["rt-multi-thread", "macros", "signal"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "signal"] }
 tower = "0.5.3"
 tower-http = { version = "0.7.1", features = ["cors", "trace", "timeout", "limit"] }
-sqlx = { version = "0.9.0", default-features = false, features = [
+sqlx = { version = "0.9.1", default-features = false, features = [
   "runtime-tokio",
   "tls-rustls-ring-webpki",
   "postgres",
@@ -30,11 +30,11 @@ sqlx = { version = "0.9.0", default-features = false, features = [
   "rust_decimal",
 ] }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
-uuid = { version = "1.26", features = ["v4", "serde"] }
+serde_json = "1.0.154"
+uuid = { version = "1.29", features = ["v4", "serde"] }
 chrono = { version = "0.4.45", default-features = false, features = ["std", "clock", "serde"] }
 thiserror = "2.0.21"
-anyhow = "1.0.104"
+anyhow = "1.0.105"
 dotenvy = "0.15.7"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
@@ -43,15 +43,15 @@ aes-gcm = "0.11.1"
 base64 = "0.23.1"
 subtle = "2.6"
 validator = { version = "0.21.0", features = ["derive"] }
-wreq = { version = "0.16.3", features = ["json", "cookies", "gzip", "brotli", "zstd", "deflate", "query"] }
+wreq = { version = "0.16.5", features = ["json", "cookies", "gzip", "brotli", "zstd", "deflate", "query"] }
 wreq-util = "0.2.1"
 rust_decimal = { version = "1.43", features = ["serde"] }
 rust_decimal_macros = "1.40"
 futures-util = "0.3.34"
 chrono-tz = "0.10"
 tracing-appender = "0.2.5"
-sha2 = "0.11.0"
-url = "2.5.8"
+sha2 = "0.11.2"
+url = "2.5.9"
 
 [dev-dependencies]
 http-body-util = "0.1.5"
@@ -60,8 +60,3 @@ futures-util = "0.3.34"
 # Drives the real /ws endpoint over a real socket in tests/websocket.rs.
 tokio-tungstenite = "0.30.0"
 wiremock = "0.6.5"
-
-[patch.crates-io]
-# SQLx 0.9.0 caps the optional SQLite driver's libsqlite3-sys below 0.38.
-# Remove this patch when published SQLx permits 0.39 (RUSTSEC-2026-0459).
-sqlx-sqlite = { git = "https://github.com/transact-rs/sqlx", rev = "10462fa4414c6c7f1ed1d39bb31678e3b726878c" }

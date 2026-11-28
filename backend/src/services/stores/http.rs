@@ -17,7 +17,7 @@ use super::error::StoreError;
 
 /// The browser the client presents as. Keep it a recent Chrome: an old
 /// version is itself a bot signal.
-const EMULATED_BROWSER: Profile = Profile::Chrome137;
+const EMULATED_BROWSER: Profile = Profile::Chrome149;
 
 /// Builds a client that looks like Chrome, keeps cookies between requests
 /// (the bot-protection cookies a first page visit sets), and gives up after

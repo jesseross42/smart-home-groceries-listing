@@ -14,13 +14,14 @@ import logging
 
 from ask_sdk_core.dispatch_components import AbstractRequestHandler
 from ask_sdk_core.handler_input import HandlerInput
-from ask_sdk_core.utils import get_slot_value, is_intent_name
+from ask_sdk_core.utils import is_intent_name
 from ask_sdk_model import Response
 
 from alexa_bridge import speech
 from alexa_bridge.backend import BackendUnavailable
 from alexa_bridge.list_changes import ChangeRefused, ListChangeClient, NotOnList
 from alexa_bridge.parsing import ParsedRemoval, UnusableRequest, parse_removal_slots, parse_slots
+from alexa_bridge.slots import slot_text
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +107,8 @@ def _parse(handler_input: HandlerInput) -> ParsedRemoval:
     Remove with no number takes the whole item; reduce with no number takes
     one off.
     """
-    item = get_slot_value(handler_input, ITEM_SLOT)
-    quantity = get_slot_value(handler_input, QUANTITY_SLOT)
+    item = slot_text(handler_input, ITEM_SLOT)
+    quantity = slot_text(handler_input, QUANTITY_SLOT)
     if is_intent_name(REDUCE_ITEM_INTENT)(handler_input):
         parsed = parse_slots(item, quantity)
         return ParsedRemoval(item=parsed.item, quantity=parsed.quantity)

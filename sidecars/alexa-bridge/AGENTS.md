@@ -31,6 +31,7 @@ src/alexa_bridge/
 ├── config.py      # Settings from env; fails closed on a missing secret
 ├── handlers.py    # Add, launch, help, stop handlers — thin, no rules
 ├── list_change_handlers.py  # Remove/reduce and Undo handlers — thin, no rules
+├── slots.py       # Reads a slot's spoken text from the request
 ├── parsing.py     # Pure slot → (item, quantity); where the tests bite
 ├── speech.py      # Pure: what Alexa says after a remove, reduce or undo
 ├── backend.py     # Posts added items to the Rust backend

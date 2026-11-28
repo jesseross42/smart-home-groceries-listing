@@ -15,11 +15,12 @@ import logging
 
 from ask_sdk_core.dispatch_components import AbstractExceptionHandler, AbstractRequestHandler
 from ask_sdk_core.handler_input import HandlerInput
-from ask_sdk_core.utils import get_slot_value, is_intent_name, is_request_type
+from ask_sdk_core.utils import is_intent_name, is_request_type
 from ask_sdk_model import Response
 
 from alexa_bridge.backend import BackendClient, BackendUnavailable
 from alexa_bridge.parsing import UnusableRequest, parse_slots
+from alexa_bridge.slots import slot_text
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +43,8 @@ class AddItemIntentHandler(AbstractRequestHandler):
     def handle(self, handler_input: HandlerInput) -> Response:
         try:
             parsed = parse_slots(
-                get_slot_value(handler_input, ITEM_SLOT),
-                get_slot_value(handler_input, QUANTITY_SLOT),
+                slot_text(handler_input, ITEM_SLOT),
+                slot_text(handler_input, QUANTITY_SLOT),
             )
         except UnusableRequest:
             return (
