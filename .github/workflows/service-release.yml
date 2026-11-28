@@ -39,8 +39,6 @@ jobs:
           echo "RUN=$RUN" >> "$GITHUB_ENV"
       - if: env.RUN == 'true'
         uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
-        with:
-          version: 10.34.9
       - if: env.RUN == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:

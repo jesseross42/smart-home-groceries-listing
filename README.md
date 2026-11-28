@@ -46,7 +46,7 @@ not built.
 
 ## Run everything on your own computer
 
-You need Node 22 or newer, pnpm, Rust, uv, and Docker with Compose.
+You need Node 22 or newer, pnpm 12, Rust, uv, and Docker with Compose.
 
 ```sh
 make setup       # installs the dependencies and Chromium

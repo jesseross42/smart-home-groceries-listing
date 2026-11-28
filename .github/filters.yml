@@ -12,6 +12,7 @@ make: &make
   - Makefile
   - package.json
   - pnpm-lock.yaml
+  - pnpm-workspace.yaml
   - scripts/**
 
 alexa-bridge:

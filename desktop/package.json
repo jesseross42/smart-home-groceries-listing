@@ -4,6 +4,7 @@
 	"version": "0.1.0",
 	"description": "Tauri desktop app for the grocery list. See docs/features/FEATURE_DESKTOP_APP.md.",
 	"type": "module",
+	"packageManager": "pnpm@12.23.0",
 	"scripts": {
 		"dev": "node ../scripts/desktop.mjs dev",
 		"build": "node ../scripts/desktop.mjs build",
