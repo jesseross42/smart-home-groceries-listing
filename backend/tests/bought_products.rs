@@ -73,13 +73,6 @@ async fn a_saved_shop_keeps_a_record_of_each_product(pool: PgPool) {
     assert_eq!(count, 1);
     assert_eq!(name.as_deref(), Some("Full Cream Milk"));
     assert_eq!(category.as_deref(), Some("Dairy & eggs"));
-    // The purchase's own category columns are retired: left NULL.
-    let retired: (Option<String>, Option<String>) =
-        sqlx::query_as("SELECT category, category_source FROM purchases")
-            .fetch_one(&pool)
-            .await
-            .unwrap();
-    assert_eq!(retired, (None, None));
 }
 
 #[sqlx::test]

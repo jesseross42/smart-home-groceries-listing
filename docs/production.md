@@ -234,8 +234,33 @@ branch, pull source or build application code on the server.
 The installer rejects destructive pending migrations and schema downgrades,
 stops application writes, takes a root-only PostgreSQL dump under
 `/var/backups/grocery/`, and migrates before switching the runtime. There is
-no destructive-migration bypass flag; plan intentional data removal separately.
+no destructive-migration bypass flag; intentional data removal is a
+[planned removal](#planned-data-removal).
 The SQL check is a guard, not proof arbitrary application code cannot alter data.
+
+### Planned data removal
+
+A migration that removes data (`DROP TABLE`, `DROP COLUMN`, `TRUNCATE`,
+`DELETE FROM`, a column type change) is applied only when
+`scripts/planned-removals.json` lists its file name with the SHA-256 of its
+exact contents and a reason. Any edit to the migration withdraws the approval.
+
+The list is fixed control code. Release bundles carry migrations but never the
+list, so a release cannot approve its own removal. Before the release that
+contains a planned removal reaches the server, install the control code from a
+checkout of main that lists it:
+
+```bash
+git pull
+sudo bash deploy/start.sh --adopt-existing
+```
+
+Until then `grocery-update` rejects that release and the running application
+is unchanged. The update still takes the PostgreSQL dump before migrating.
+
+To plan a removal in a pull request: add the migration, then add its entry with
+`sha256sum backend/migrations/<file>.sql`. `make test-tooling` fails if an entry
+does not match its file or a data-removing migration is not listed.
 
 sqlx applies migrations in transactions and rejects edits to already-applied
 files. Fix mistakes with a new migration. Old releases and backups are retained;

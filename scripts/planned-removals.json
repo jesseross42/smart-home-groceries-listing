@@ -1,0 +1,6 @@
+{
+  "20261128090000_drop_purchase_category.sql": {
+    "sha256": "36253be792cb0ee7530c1b41107d4e421adcb69e89707ff7902db9b802316884",
+    "reason": "purchases.category and category_source were retired by 20261127090000; bought_products owns the category (issue 115)"
+  }
+}

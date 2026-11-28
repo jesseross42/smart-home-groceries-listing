@@ -1,10 +1,9 @@
 /** Back up and inspect the application database without exposing connection secrets. */
-import { closeSync, openSync, readFileSync, renameSync } from 'node:fs';
+import { closeSync, openSync, renameSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { databaseTarget, setupSql } from '../../scripts/database-setup-sql.mjs';
-import { migrationPlan } from '../../scripts/migration-plan.mjs';
-import { readdirSync } from 'node:fs';
+import { directoryPlan, planBlocksUpdate } from '../../scripts/migration-plan.mjs';
 import { command, systemEnvironment } from './process.mjs';
 
 /** PostgreSQL environment for an application-role connection; never put the URL in argv. */
@@ -25,13 +24,13 @@ export function provisionDatabase(url) {
     { input: setupSql(target), env: { ...systemEnvironment, PGPORT: new URL(url).port || '5432' } });
 }
 
-/** Reject destructive pending migrations and schema downgrades before running new code. */
+/** Reject unplanned destructive pending migrations and schema downgrades before running new code. */
 export function inspectMigrations(directory, url) {
   const env = postgresEnvironment(url);
   const present = command('psql', ['-XAtqc', "select to_regclass('public._sqlx_migrations') is not null"], { env }).trim();
   const applied = present === 't' ? command('psql', ['-XAtqc', 'select version from _sqlx_migrations where success'], { env }).trim().split(/\s+/).filter(Boolean) : [];
-  const plan = migrationPlan(readdirSync(directory), applied, file => readFileSync(join(directory, file), 'utf8'));
-  if (plan.ahead.length || plan.pending.some(item => item.destructive.length)) throw new Error('Migration would remove data or downgrade the schema; deployment stopped');
+  const plan = directoryPlan(directory, applied);
+  if (planBlocksUpdate(plan)) throw new Error('Migration would remove data or downgrade the schema; deployment stopped');
   return plan;
 }
 

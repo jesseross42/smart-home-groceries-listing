@@ -10,4 +10,5 @@ node --test scripts/environment-contract.test.mjs scripts/compose.test.mjs \
   scripts/dev.test.mjs scripts/dev-context.test.mjs scripts/process.test.mjs \
   scripts/service-env.test.mjs \
   scripts/op-environment.test.mjs scripts/deploy-setup.test.mjs \
-  scripts/migration-plan.test.mjs scripts/build-frontend.test.mjs
+  scripts/migration-plan.test.mjs scripts/planned-removals.test.mjs \
+  scripts/build-frontend.test.mjs
