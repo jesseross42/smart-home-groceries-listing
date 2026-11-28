@@ -62,6 +62,8 @@ test.describe("usability", () => {
 		await page.getByLabel("Add a product filter").fill("3 ply");
 		await page.getByRole("button", { name: "Add filter" }).click();
 		await page.getByRole("button", { name: "Save" }).click();
+		// The open editor has the same button; wait for the saved list.
+		await expect(page.getByLabel("Edit toilet paper")).toBeVisible();
 
 		// The × is an icon; the accessible name has to say what it removes.
 		await expect(page.getByRole("button", { name: "Remove filter 3 ply" })).toBeVisible();
