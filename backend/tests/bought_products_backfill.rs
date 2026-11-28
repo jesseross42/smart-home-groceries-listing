@@ -1,6 +1,8 @@
 //! Migration `20261119090000_bought_products` on a database that already
 //! holds purchases: each product bought gets one record, from its newest
 //! purchase, and every purchase stays readable with its total unchanged.
+//! Migration `20261128090000_drop_purchase_category` then drops the
+//! purchases' own copy of the category.
 
 use std::borrow::Cow;
 
@@ -93,4 +95,13 @@ async fn existing_purchases_are_backfilled_from_the_newest(pool: PgPool) {
             .await
             .unwrap();
     assert_eq!((count, total), (3, rust_decimal::Decimal::from(6)));
+    let own_category_columns: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM information_schema.columns
+         WHERE table_schema = current_schema() AND table_name = 'purchases'
+           AND column_name IN ('category', 'category_source')",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(own_category_columns, 0);
 }

@@ -19,4 +19,9 @@ apply it with `make update-db`.
 - Prefer `TEXT` with `CHECK` constraints to PostgreSQL enums. Add indexes for
   real query predicates, and verify any expression index matches its query.
 - Validate with the relevant `#[sqlx::test]` coverage against a disposable
-  database. Back up before a destructive production migration.
+  database.
+- A migration that removes data (`DROP TABLE`, `DROP COLUMN`, `TRUNCATE`,
+  `DELETE FROM`, a column type change) must be listed in
+  `scripts/planned-removals.json` with its `sha256sum` and a reason, or the
+  production update rejects it. See `docs/production.md`, "Planned data
+  removal".

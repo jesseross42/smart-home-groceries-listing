@@ -13,7 +13,7 @@ install -m 755 "$root/build/backend/grocery-backend" "$stage/bin/grocery-backend
 cp -a "$root/build/alexa" "$stage/alexa-bridge"
 cp -a "$root/build/frontend/.output" "$stage/frontend/.output"
 for file in environment.mjs op-auth.mjs op-environment.mjs service-env.mjs service-components.mjs systemd-env.mjs \
-  database-setup-sql.mjs triage-setup.mjs migration-plan.mjs run-with-env.mjs; do
+  database-setup-sql.mjs triage-setup.mjs migration-plan.mjs planned-removals.mjs planned-removals.json run-with-env.mjs; do
   install -m 644 "$root/scripts/$file" "$stage/lib/$file"
 done
 install -m 755 "$root/deploy/bin/grocery-env" "$stage/libexec/grocery-env"

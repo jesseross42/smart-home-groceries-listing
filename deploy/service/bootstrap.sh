@@ -5,7 +5,7 @@ set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 fixed=/usr/local/lib/grocery-service
 install -d -m 755 "$fixed" "$fixed/bin" "$fixed/libexec" "$fixed/scripts" "$fixed/deploy/service"
-for file in environment.mjs op-auth.mjs op-environment.mjs service-env.mjs service-components.mjs systemd-env.mjs database-setup-sql.mjs migration-plan.mjs; do
+for file in environment.mjs op-auth.mjs op-environment.mjs service-env.mjs service-components.mjs systemd-env.mjs database-setup-sql.mjs migration-plan.mjs planned-removals.mjs planned-removals.json; do
   install -m 644 "$root/scripts/$file" "$fixed/scripts/$file"
 done
 for file in bundle configuration database identity install-release process runtime start-options start; do

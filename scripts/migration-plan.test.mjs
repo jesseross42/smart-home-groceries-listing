@@ -1,11 +1,13 @@
 /** `make hm-update-server` migration checks: pending files, destructive statements, downgrades. */
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { destructiveStatements, migrationPlan, migrationVersion } from './migration-plan.mjs';
+import { fileURLToPath } from 'node:url';
+import { destructiveStatements, directoryPlan, migrationPlan, migrationVersion } from './migration-plan.mjs';
+import { contentHash } from './planned-removals.mjs';
 import { lookupUser } from './run-with-env.mjs';
 
 test('versions follow sqlx: the numeric prefix, so 0002 and 20261002120000 both parse', () => {
@@ -34,14 +36,24 @@ test('a database with migrations the checkout lacks is reported as ahead', () =>
   assert.deepEqual(migrationPlan(['0001_a.sql'], ['1', '2'], () => '').ahead, ['2']);
 });
 
-test('none of the repository migrations is destructive (they are all already applied in production)', () => {
-  const dir = new URL('../backend/migrations/', import.meta.url);
-  const plan = migrationPlan(readdirSync(dir), [], file => readFileSync(new URL(file, dir), 'utf8'));
-  assert.ok(plan.pending.length > 0);
-  for (const { file, destructive } of plan.pending) assert.deepEqual(destructive, [], file);
+test('a planned removal is reported apart from a destructive statement, and only for its exact contents', () => {
+  const drop = 'ALTER TABLE a DROP COLUMN b;';
+  const approvals = { '0002_b.sql': { sha256: contentHash(drop), reason: 'b moved' } };
+  const plan = sql => migrationPlan(['0001_a.sql', '0002_b.sql'], ['1'], () => sql, approvals).pending;
+  assert.deepEqual(plan(drop), [{ file: '0002_b.sql', destructive: [], planned: ['DROP COLUMN'], reason: 'b moved' }]);
+  assert.deepEqual(plan(`${drop} TRUNCATE a;`), [{ file: '0002_b.sql', destructive: ['DROP COLUMN', 'TRUNCATE'], planned: [] }]);
+  assert.deepEqual(migrationPlan(['0002_b.sql'], [], () => drop).pending[0].destructive, ['DROP COLUMN']);
 });
 
-test('the command exits 3 for a destructive pending migration and 4 for a downgrade', () => {
+test('every data-removing repository migration is a planned removal', () => {
+  const plan = directoryPlan(fileURLToPath(new URL('../backend/migrations/', import.meta.url)), []);
+  assert.ok(plan.pending.length > 0);
+  for (const { file, destructive } of plan.pending) assert.deepEqual(destructive, [], file);
+  assert.deepEqual(plan.pending.filter(({ planned }) => planned.length).map(({ file }) => file),
+    ['20261128090000_drop_purchase_category.sql']);
+});
+
+test('the command exits 3 for a destructive pending migration, 4 for a downgrade and 0 for a planned removal', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grocery-migrations-'));
   try {
     writeFileSync(join(dir, '0001_a.sql'), 'CREATE TABLE a (id int);');
@@ -53,6 +65,13 @@ test('the command exits 3 for a destructive pending migration and 4 for a downgr
     assert.match(destructive.stdout, /destructive 0002_b.sql: DROP TABLE/);
     assert.equal(run('').status, 3);
     assert.equal(run('1\n2\n3\n').status, 4);
+    const approvals = join(dir, 'approvals.json');
+    writeFileSync(approvals, JSON.stringify({ '0002_b.sql': { sha256: contentHash('DROP TABLE a;'), reason: 'a is unused' } }));
+    const planned = spawnSync(process.execPath, ['scripts/migration-plan.mjs', dir, approvals], { input: '1\n', encoding: 'utf8' });
+    assert.equal(planned.status, 0);
+    assert.match(planned.stdout, /planned removal 0002_b.sql: DROP TABLE \(a is unused\)/);
+    writeFileSync(approvals, 'not json');
+    assert.equal(spawnSync(process.execPath, ['scripts/migration-plan.mjs', dir, approvals], { input: '1\n' }).status, 1);
   } finally { rmSync(dir, { recursive: true }); }
 });
 
