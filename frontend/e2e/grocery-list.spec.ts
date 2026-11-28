@@ -117,6 +117,9 @@ test.describe("grocery list", () => {
 		await page.getByLabel("Add a product filter").fill("recycled");
 		await page.getByRole("button", { name: "Add filter" }).click();
 		await page.getByRole("button", { name: "Save" }).click();
+		// The open editor shows the same chips under the same label. Wait for
+		// it to close, so what follows is the saved list and not the draft.
+		await expect(page.getByLabel("Edit toilet paper")).toBeVisible();
 
 		const filters = page.getByLabel("Product filters");
 		await expect(filters).toContainText("3 ply");

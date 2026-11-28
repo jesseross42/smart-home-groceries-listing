@@ -2,7 +2,7 @@
 
 ## Software Lifecycle
 
-1. **Set up.** Install Node 22+, pnpm, Rust, uv and Docker. Run `make setup`,
+1. **Set up.** Install Node 22+, pnpm 12, Rust, uv and Docker. Run `make setup`,
    then `make setup-env`. Fill in `.env` with [`docs/human-setup.md`](docs/human-setup.md).
 2. **Develop.** Run `make dev`. Web app edits reload at once; backend and Alexa
    edits rebuild their containers. Ctrl-C or `make dev-stop` stops it and keeps

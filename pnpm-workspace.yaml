@@ -1,0 +1,10 @@
+# Root tooling only (the disposable test database). frontend/ and desktop/
+# are separate pnpm projects with their own lock files.
+# pnpm 12 fails an install on any build script it was not told about.
+# These come in through testcontainers, which works without them: ssh2 and
+# cpu-features only speed up SSH to a remote Docker host, and the protobufjs
+# script only prints a version notice.
+allowBuilds:
+  cpu-features: false
+  protobufjs: false
+  ssh2: false

@@ -66,7 +66,7 @@ To build locally, also install the build tools:
 sudo apt install build-essential cmake clang libclang-dev pkg-config perl git python3 curl
 ```
 
-You also need Rust (rustup), Node 22 with pnpm, and uv on your `PATH`.
+You also need Rust (rustup), Node 22 with pnpm 12, and uv on your `PATH`.
 Services use system-wide `/usr/bin/node` and `/usr/bin/python3`.
 Install optional Ollama and cloudflared separately using their official
 instructions. The application installer does not download these tools or

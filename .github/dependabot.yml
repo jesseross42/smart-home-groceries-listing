@@ -14,6 +14,9 @@ updates:
     directory: /frontend
     schedule:
       interval: weekly
+    # pnpm 12 refuses a lock entry published less than a day ago.
+    cooldown:
+      default-days: 2
     groups:
       frontend-minor:
         update-types: [minor, patch]
